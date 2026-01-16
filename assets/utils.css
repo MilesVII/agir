@@ -1,0 +1,34 @@
+
+.container {
+	padding: var(--padding-block);
+	border-radius: var(--radius-block);
+}
+.col, .row {
+	display: flex;
+	gap: var(--padding-block);
+}
+.col {
+	flex-flow: column nowrap;
+}
+.row {
+	flex-flow: row nowrap;
+}
+
+.float-center {
+	margin-inline: auto;
+}
+.float-end {
+	margin-inline-start: auto;
+}
+
+.shadow {
+	box-shadow: 4px 4px 4px rgba(32, 0, 0, 0.2);
+}
+
+.virtual {
+	display: contents;
+}
+
+.wide {
+	width: 100%;
+}

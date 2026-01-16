@@ -1,0 +1,29 @@
+
+.theme-dark-pink {
+	--color-base: #171717;
+	--color-base-semi: rgb(23 23 23 / 70%);
+	--color-secondary: #444444;
+	--color-accent: #DA0037;
+	--color-text: #EDEDED;
+}
+.theme-dark-teal {
+	--color-base: #222831;
+	--color-base-semi: rgb(34 40 49 / 70%);
+	--color-secondary: #444444;
+	--color-accent: #00ADB5;
+	--color-text: #EEEEEE;
+}
+.theme-light-teal {
+	--color-base: #DDDDFD;
+	--color-base-semi: rgb(240 240 250 / 70%);
+	--color-secondary: #444444;
+	--color-accent: #00ADB5;
+	--color-text: #111130;
+}
+.theme-light-flashbang {
+	--color-base: #EEEEEE;
+	--color-base-semi: rgb(240 240 250 / 70%);
+	--color-secondary: #444444;
+	--color-accent: #a16161;
+	--color-text: #101010;
+}

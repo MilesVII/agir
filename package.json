@@ -1,0 +1,19 @@
+{
+	"name": "akagi",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"build": "esbuild src/page/index.ts --bundle --sourcemap --outfile=page/index.js",
+		"watch": "esbuild src/page/index.ts --bundle --sourcemap --watch --outfile=page/index.js",
+		"dev": "serve"
+	},
+	"devDependencies": {
+		"concurrently": "^9.2.1",
+		"esbuild": "^0.25.9",
+		"serve": "^14.2.5",
+		"typescript": "^5.5.2"
+	},
+	"dependencies": {
+		"rampike": "^0.0.12"
+	}
+}

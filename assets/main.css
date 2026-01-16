@@ -1,0 +1,135 @@
+@font-face{
+	font-family: Arimo;
+	src: url("./arimo.ttf") format('truetype');
+}
+
+@media screen and (orientation: landscape) {
+	:root {
+	}
+}
+
+@media screen and (orientation: portrait) {
+	:root {
+	}
+}
+
+:root {
+	color-scheme: only dark;
+
+	--color-base: #171717;
+	--color-base-semi: rgb(23 23 23 / 70%);
+	--color-secondary: #444444;
+	--color-accent: #DA0037;
+	--color-text: #EDEDED;
+
+	--font-smol: normal 400 16px/20px "Arimo";
+	--font-main: normal 400 18px/22px "Arimo";
+	--font-butt: normal 500 22px/26px "Arimo";
+
+	background-color: black;
+
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+
+	font: var(--font-main);
+	color: var(--color-text);
+}
+
+:root {
+	color-scheme: dark;
+	--back: #1D1515;
+	--accent: #BD2540;
+	background-color: red;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html, body {
+	margin: 0;
+}
+
+body {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	overflow: auto;
+	border: black 3px solid;
+	background-color: darkgray;
+}
+
+.strip-defaults {
+	appearance: none;
+	color: inherit;
+	background: none;
+	font: inherit;
+	outline: inherit;
+	border: none;
+}
+
+a, a:visited {
+	color: var(--color-accent);
+}
+
+
+h1, h2, h3, h4, h5, h6 {
+	margin: 0;
+}
+
+img {
+	display: block;
+}
+
+hr {
+	width: 100%;
+}
+
+p {
+	margin: 0;
+}
+
+ul, ol {
+	padding: 0;
+	list-style-type: none;
+}
+
+textarea {
+	resize: vertical;
+}
+
+dialog {
+	width: 100%;
+	height: auto;
+	max-width: none;
+	max-height: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	background: transparent;
+	backdrop-filter: blur(3px);
+	outline: none;
+}
+dialog > form {
+	display: flex;
+	margin: auto;
+	width: fit-content;
+	min-width: 80vw;
+	max-height: 80vh;
+	overflow-y: auto;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+
+	flex-flow: column nowrap;
+	/* gap: var(--padding-block);
+	padding: var(--padding-block);
+
+	background: var(--color-fore);
+	border-radius: var(--radius-block); */
+}

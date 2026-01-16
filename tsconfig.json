@@ -1,0 +1,22 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["DOM", "ESNext"],
+		// "moduleDetection": "auto",
+
+		"module": "esnext",
+		"moduleResolution": "bundler",
+
+		// "allowJs": true,
+
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+
+		"strict": true,
+		"noImplicitAny": true,
+		"allowUnreachableCode": true,
+		"noFallthroughCasesInSwitch": true,
+
+		"skipLibCheck": true
+	}
+}
