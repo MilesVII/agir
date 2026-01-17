@@ -5,7 +5,7 @@
 
 @media screen and (min-aspect-ratio: 1.2) {
 	:root {
-		--content-width: calc(120vh - var(--min-content-pad));
+		--content-width: calc(min(120vh, 50vw) - var(--min-content-pad));
 	}
 }
 
@@ -42,7 +42,6 @@
 	-moz-osx-font-smoothing: grayscale;
 
 	font: var(--font-main);
-	color: var(--color-text);
 }
 
 * {
@@ -51,6 +50,7 @@
 
 html, body {
 	margin: 0;
+	border: none;
 	overflow: auto;
 }
 
@@ -58,7 +58,7 @@ body {
 	width: 100%;
 	height: 100svh;
 	background-color: var(--color-base);
-	border: black 3px solid;
+	color: var(--color-text);
 }
 
 a, a:visited {
@@ -121,4 +121,11 @@ dialog > form {
 
 	background: var(--color-fore);
 	border-radius: var(--radius-block); */
+}
+
+details {
+	cursor: pointer;
+}
+details > div {
+	padding: var(--dims-reg);
 }

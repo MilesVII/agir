@@ -1,5 +1,5 @@
 
-.strip-defaults {
+.lineout, .strip {
 	appearance: none;
 	color: inherit;
 	background: none;
@@ -8,10 +8,12 @@
 	border: none;
 }
 
-.col, .row, .col-wrap {
-	padding: var(--dims-reg);
+.pad {
+	padding: var(--dims-huge);
+}
+.col, .row, .col-wrap, .row-wrap {
 	display: flex;
-	gap: var(--dims-reg);
+	gap: var(--dims-huge);
 }
 .col {
 	flex-flow: column nowrap;
@@ -21,6 +23,14 @@
 }
 .row {
 	flex-flow: row nowrap;
+}
+.row-wrap {
+	flex-flow: row wrap;
+}
+.list {
+	display: flex;
+	flex-flow: column nowrap;
+	gap: var(--dims-smol);
 }
 
 .float-center {
@@ -40,4 +50,7 @@
 
 .wide {
 	width: 100%;
+}
+.fit {
+	width: fit-content;
 }

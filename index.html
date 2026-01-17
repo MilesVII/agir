@@ -20,93 +20,114 @@
 	<body>
 		<ram-tabs id="tabs-main" tab="chats">
 			<ram-tab key="chats">
-				<div class="main col float-center">
-					<textarea></textarea>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
-					fewgtbnxfh<br/>
+				<div class="main col pad float-center">
+					<div class="row">
+						<button class="lineout fit" data-to="settings">settings</button>
+						<button class="lineout fit" data-to="library">library</button>
+					</div>
+					<div class="placeholder">no chats found</div>
+					<button class="lineout fit" data-to="play">play (test)</button>
 				</div>
 			</ram-tab>
-			<ram-tab key="settings"></ram-tab>
-			<ram-tab key="library"></ram-tab>
-			<ram-tab key="play"></ram-tab>
+			<ram-tab key="settings">
+				<div class="main col pad float-center">
+					<button class="lineout fit" data-to="chats">back</button>
+					<details>
+						<summary>
+							Personas
+						</summary>
+						<div class="list">
+							<div class="placeholder">nothing found</div>
+							<hr/>
+							<input class="lineout" type="file" />
+							<input class="lineout" type="text" placeholder="persona name" />
+							<textarea class="lineout" placeholder="persona description"></textarea>
+						</div>
+					</details>
+					<details>
+						<summary>
+							Engines
+						</summary>
+					</details>
+					<details>
+						<summary>
+							Generation Settings
+						</summary>
+					</details>
+					<details>
+						<summary>
+							Recap
+						</summary>
+					</details>
+					<details>
+						<summary>
+							Options
+						</summary>
+						<div id="settings-themes" class="row-wrap"></div>
+					</details>
+				</div>
+			</ram-tab>
+			<ram-tab key="library">
+				<div class="main col pad float-center">
+					<button class="lineout fit" data-to="chats">back</button>
+				</div>
+			</ram-tab>
+			<ram-tab key="play">
+				<div class="chat-layout">
+					<div class="row pad">
+						<button class="lineout fit" data-to="chats">back</button>
+					</div>
+					<div class="chat-scroll-container">
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+						messages<br/>
+					</div>
+					<div class="row pad">
+						<textarea class="lineout"></textarea>
+					</div>
+				</div>
+			</ram-tab>
 		</ram-tabs>
 	</body>
 
 	<template id="template-theme-selector">
-		<svg class="rounded bordered hoverable selector-theme" viewBox="0 0 6 1" xmlns="http://www.w3.org/2000/svg">
+		<svg class="settings-theme-selector-button" viewBox="0 0 6 1" xmlns="http://www.w3.org/2000/svg">
 			<path
 				d="M0,0 l100,0 l0,1 l-100,0 Z"
 				fill="var(--color-base)"

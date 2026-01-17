@@ -1,4 +1,6 @@
-export type RampikeUnit<T> = {
-	init: (data: T) => void,
-	update: (data: T) => void
+
+type UnitInputs = undefined;
+export type RampikeUnit = {
+	init?: (inputs: UnitInputs) => void,
+	update?: (inputs: UnitInputs) => void
 }

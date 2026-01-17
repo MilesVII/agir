@@ -5,7 +5,7 @@
 	"scripts": {
 		"build": "esbuild src/index.ts --bundle --sourcemap         --outfile=assets/index.js",
 		"watch": "esbuild src/index.ts --bundle --sourcemap --watch --outfile=assets/index.js",
-		"dev": "serve"
+		"dev": "concurrently \"npm run watch\" \"serve\""
 	},
 	"devDependencies": {
 		"concurrently": "^9.2.1",
