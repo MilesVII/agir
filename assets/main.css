@@ -3,15 +3,15 @@
 	src: url("./arimo.ttf") format('truetype');
 }
 
-@media screen and (orientation: landscape) {
+@media screen and (min-aspect-ratio: 1.2) {
 	:root {
-		--content-width: 42vw;
+		--content-width: calc(120vh - var(--min-content-pad));
 	}
 }
 
-@media screen and (orientation: portrait) {
+@media screen and (max-aspect-ratio: 1.2) {
 	:root {
-		--content-width: max(calc(100vw - 32px), 95vw);
+		--content-width: calc(100vw - var(--min-content-pad));
 	}
 }
 
@@ -31,6 +31,8 @@
 	--dims-smol:  4px;
 	--dims-reg:   8px;
 	--dims-huge: 16px;
+
+	--min-content-pad: min(32px, 2vw);
 
 	background-color: black;
 
