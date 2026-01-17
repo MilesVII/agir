@@ -6,6 +6,13 @@
 	--color-accent: #DA0037;
 	--color-text: #EDEDED;
 }
+.theme-dark-lime {
+	--color-base: #171717;
+	--color-base-semi: rgb(23 23 23 / 70%);
+	--color-secondary: #444444;
+	--color-accent: #29DF47;
+	--color-text: #EDEDED;
+}
 .theme-dark-teal {
 	--color-base: #222831;
 	--color-base-semi: rgb(34 40 49 / 70%);

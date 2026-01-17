@@ -41,7 +41,7 @@
 }
 
 .shadow {
-	box-shadow: 4px 4px 4px rgba(32, 0, 0, 0.2);
+	box-shadow: 0 0 8px black;
 }
 
 .virtual {
@@ -53,4 +53,7 @@
 }
 .fit {
 	width: fit-content;
+}
+.content-wide {
+	width: var(--content-width);
 }
