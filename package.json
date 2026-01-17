@@ -3,8 +3,8 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-		"build": "esbuild src/page/index.ts --bundle --sourcemap --outfile=page/index.js",
-		"watch": "esbuild src/page/index.ts --bundle --sourcemap --watch --outfile=page/index.js",
+		"build": "esbuild src/index.ts --bundle --sourcemap         --outfile=assets/index.js",
+		"watch": "esbuild src/index.ts --bundle --sourcemap --watch --outfile=assets/index.js",
 		"dev": "serve"
 	},
 	"devDependencies": {

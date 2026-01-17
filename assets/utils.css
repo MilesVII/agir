@@ -1,14 +1,23 @@
 
-.container {
-	padding: var(--padding-block);
-	border-radius: var(--radius-block);
+.strip-defaults {
+	appearance: none;
+	color: inherit;
+	background: none;
+	font: inherit;
+	outline: inherit;
+	border: none;
 }
-.col, .row {
+
+.col, .row, .col-wrap {
+	padding: var(--dims-reg);
 	display: flex;
-	gap: var(--padding-block);
+	gap: var(--dims-reg);
 }
 .col {
 	flex-flow: column nowrap;
+}
+.col-wrap {
+	flex-flow: column wrap;
 }
 .row {
 	flex-flow: row nowrap;
