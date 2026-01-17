@@ -389,7 +389,6 @@
         rules.push(...raw.filter((r) => r.constructor.name === "CSSStyleRule"));
       }
     const themes = rules.map((r) => r.selectorText.match(/\.theme-(.*)/)).filter((r) => r);
-    console.log(rules);
     document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
   }
   function selectorItem(name) {

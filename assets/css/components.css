@@ -89,7 +89,7 @@
 	object-fit: contain;
 	width: var(--profile-pictire-size);
 	height: var(--profile-pictire-size);
-	border-radius: var(--dims-smol);
+	border-radius: var(--dims-reg);
 }
 .message-name {
 	font: var(--font-bold);

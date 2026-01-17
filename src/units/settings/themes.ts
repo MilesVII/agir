@@ -20,7 +20,6 @@ export function initTheme() {
 		.map(r => r.selectorText.match(/\.theme-(.*)/))
 		.filter(r => r);
 
-	console.log(rules)
 	document.querySelector("#settings-themes")?.append(...themes.map(t => selectorItem(t[1])));
 }
 
