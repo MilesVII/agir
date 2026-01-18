@@ -3,6 +3,7 @@ import { define as defineTabs } from "./components/tabs";
 import { define as defineModal } from "./components/modal";
 import { define as definePages } from "./components/pagination";
 import { define as defineSVGImport } from "./components/import";
+import { define as defineFilePicker} from "./components/filepicker";
 import { navigationUnit } from "./units/navigation";
 import { RampikeUnit } from "./units/types";
 import { settingsUnit } from "./units/settings";
@@ -13,6 +14,7 @@ defineRadio();
 defineModal("ram-modal");
 definePages();
 defineSVGImport("ram-import");
+defineFilePicker("ram-file-picker");
 window.addEventListener("DOMContentLoaded", main);
 
 const units: RampikeUnit[] = [
