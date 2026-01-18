@@ -386,6 +386,41 @@
     window.customElements.define(tagName, RampikeSVGImport);
   }
 
+  // src/components/filepicker.ts
+  var RampikeFilePicker = class extends HTMLElement {
+    get input() {
+      return this.querySelector(`input[type="file"]`);
+    }
+    get value() {
+      return this.input.value;
+    }
+    constructor() {
+      super();
+      const contents = d({
+        tagName: "label",
+        style: {
+          display: "contents"
+        },
+        contents: [
+          d({
+            tagName: "input",
+            attributes: {
+              type: "file"
+            },
+            style: {
+              display: "none"
+            }
+          }),
+          ...Array.from(this.children)
+        ]
+      });
+      this.append(contents);
+    }
+  };
+  function define6(tagName) {
+    window.customElements.define(tagName, RampikeFilePicker);
+  }
+
   // src/units/navigation.ts
   var navigationUnit = {
     init: () => {
@@ -434,10 +469,74 @@
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
+  // src/persist.ts
+  var db = null;
+  async function init() {
+    const result = await open();
+    if (result.success) db = result.value;
+    else console.error(result.error);
+    return result.success;
+  }
+  async function get(store, key) {
+    if (!db) {
+      console.error("db not initialized");
+      return { success: false, error: "db not initialized" };
+    }
+    ;
+    const r = db.transaction(store, "readonly").objectStore(store).get(key);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: "read error" });
+    });
+  }
+  async function set(store, value) {
+    if (!db) {
+      console.error("db not initialized");
+      return;
+    }
+    ;
+    const r = db.transaction(store, "readwrite").objectStore(store).put(value);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: "write error" });
+    });
+  }
+  function open() {
+    return new Promise((resolve) => {
+      const r = window.indexedDB.open("ehh", 1);
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: r.error });
+      r.onupgradeneeded = (e) => {
+        const db2 = r.result;
+        db2.createObjectStore("media", { keyPath: "id" });
+      };
+    });
+  }
+
   // src/units/settings.ts
   var settingsUnit = {
     init: () => {
       initTheme();
+      const filePicker = document.querySelector("#settings-persona-file");
+      filePicker.addEventListener("input", () => {
+        if (!filePicker.input.files) return;
+        const file = filePicker.input.files[0];
+        if (!file) return;
+        set("media", {
+          id: "tete",
+          media: file,
+          mime: file.type
+        });
+      });
+      document.querySelector("#settings-add-persona")?.addEventListener("click", async () => {
+        const file = await get("media", "tete");
+        if (!file.success) {
+          console.error("fuck!");
+          return;
+        }
+        console.log(file.value);
+        filePicker.querySelector("img").src = URL.createObjectURL(file.value.media);
+      });
     }
   };
 
@@ -445,7 +544,7 @@
   var chatUnit = {
     init: () => {
       const textarea = document.querySelector("#chat-textarea");
-      const initialHeight = textarea.clientHeight;
+      const initialHeight = 52;
       const update = () => {
         textarea.style.height = "auto";
         textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight)}px`;
@@ -461,6 +560,7 @@
   define3("ram-modal");
   define4();
   define5("ram-import");
+  define6("ram-file-picker");
   window.addEventListener("DOMContentLoaded", main);
   var units = [
     navigationUnit,
@@ -469,6 +569,8 @@
   ];
   async function main() {
     units.forEach((u) => u.init?.(void 0));
+    const dbAvailable = init();
+    if (!dbAvailable) alert("indexeddb init failed");
   }
 })();
 //# sourceMappingURL=index.js.map

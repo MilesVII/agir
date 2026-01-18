@@ -1,10 +1,11 @@
 import { mudcrack } from "rampike";
 
 class RampikeFilePicker extends HTMLElement {
-
+	get input() {
+		return this.querySelector<HTMLInputElement>(`input[type="file"]`)!;
+	}
 	get value() {
-		const input = this.querySelector<HTMLInputElement>(`input[type="file"]`)!;
-		return input.value;
+		return this.input.value;
 	}
 
 	constructor() {
