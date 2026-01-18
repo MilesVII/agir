@@ -69,6 +69,7 @@
 	width: var(--send-size);
 	height: var(--send-size);
 	transition: box-shadow .2s ease, background-color .2s ease;
+	color: var(--color-text);
 }
 .chat-send:hover, .chat-send:focus {
 	background-color: var(--color-accent);

@@ -359,6 +359,33 @@
     window.customElements.define(TAG_NAME3, RampikePages);
   }
 
+  // src/components/import.ts
+  var parser = new DOMParser();
+  var RampikeSVGImport = class extends HTMLElement {
+    constructor() {
+      super();
+      const path = this.getAttribute("path");
+      const attributes = this.getAttributeNames().filter((a) => a !== "path").map((name) => [name, this.getAttribute(name)]);
+      if (!path) return;
+      fetch(path).then(async (response) => {
+        if (response.ok) {
+          const raw = await response.text();
+          const candidates = Array.from(parser.parseFromString(raw, "image/svg+xml").children);
+          const parsed = candidates.find((c2) => c2.tagName.toLowerCase() === "svg");
+          if (!parsed) return;
+          for (const [a, v] of attributes) {
+            parsed.setAttribute(a, v);
+          }
+          this.parentElement?.replaceChild(parsed, this);
+        }
+        ;
+      });
+    }
+  };
+  function define5(tagName) {
+    window.customElements.define(tagName, RampikeSVGImport);
+  }
+
   // src/units/navigation.ts
   var navigationUnit = {
     init: () => {
@@ -433,6 +460,7 @@
   define();
   define3("ram-modal");
   define4();
+  define5("ram-import");
   window.addEventListener("DOMContentLoaded", main);
   var units = [
     navigationUnit,

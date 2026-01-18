@@ -2,6 +2,7 @@ import { define as defineRadio } from "./components/radio";
 import { define as defineTabs } from "./components/tabs";
 import { define as defineModal } from "./components/modal";
 import { define as definePages } from "./components/pagination";
+import { define as defineSVGImport } from "./components/import";
 import { navigationUnit } from "./units/navigation";
 import { RampikeUnit } from "./units/types";
 import { settingsUnit } from "./units/settings";
@@ -11,6 +12,7 @@ defineTabs();
 defineRadio();
 defineModal("ram-modal");
 definePages();
+defineSVGImport("ram-import");
 window.addEventListener("DOMContentLoaded", main);
 
 const units: RampikeUnit[] = [

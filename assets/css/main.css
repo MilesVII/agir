@@ -130,3 +130,8 @@ details {
 details > div {
 	padding: var(--dims-reg);
 }
+summary {
+	font: var(--font-bold);
+	width: fit-content;
+	border-bottom: 2px solid var(--color-accent);
+}
