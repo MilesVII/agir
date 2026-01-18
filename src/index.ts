@@ -5,6 +5,7 @@ import { define as definePages } from "./components/pagination";
 import { navigationUnit } from "./units/navigation";
 import { RampikeUnit } from "./units/types";
 import { settingsUnit } from "./units/settings";
+import { chatUnit } from "./units/chat";
 
 defineTabs();
 defineRadio();
@@ -14,7 +15,8 @@ window.addEventListener("DOMContentLoaded", main);
 
 const units: RampikeUnit[] = [
 	navigationUnit,
-	settingsUnit
+	settingsUnit,
+	chatUnit
 ];
 
 async function main() {

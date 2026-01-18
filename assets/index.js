@@ -414,6 +414,20 @@
     }
   };
 
+  // src/units/chat.ts
+  var chatUnit = {
+    init: () => {
+      const textarea = document.querySelector("#chat-textarea");
+      const initialHeight = textarea.clientHeight;
+      const update = () => {
+        textarea.style.height = "auto";
+        textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight)}px`;
+      };
+      textarea.addEventListener("input", update);
+      update();
+    }
+  };
+
   // src/index.ts
   define2();
   define();
@@ -422,7 +436,8 @@
   window.addEventListener("DOMContentLoaded", main);
   var units = [
     navigationUnit,
-    settingsUnit
+    settingsUnit,
+    chatUnit
   ];
   async function main() {
     units.forEach((u) => u.init?.(void 0));

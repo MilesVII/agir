@@ -46,7 +46,7 @@
 	overflow-y: auto;
 	scrollbar-width: thin;
 	display: flex;
-	flex-flow: column nowrap;
+	flex-flow: column-reverse nowrap;
 	gap: var(--dims-huge);
 	padding-block: var(--dims-huge);
 }
@@ -59,6 +59,7 @@
 }
 .chat-low textarea {
 	resize: none;
+	max-height: min(40vh, 8em);
 }
 .chat-send {
 	margin-top: auto;
