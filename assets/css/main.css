@@ -73,6 +73,7 @@ h1, h2, h3, h4, h5, h6 {
 
 img {
 	display: block;
+	max-width: 100%;
 }
 
 hr {
@@ -124,14 +125,16 @@ dialog > form {
 	border-radius: var(--radius-block); */
 }
 
-details {
-	cursor: pointer;
-}
 details > div {
 	padding: var(--dims-reg);
 }
 summary {
+	cursor: pointer;
 	font: var(--font-bold);
 	width: fit-content;
 	border-bottom: 2px solid var(--color-accent);
+}
+
+input {
+	min-width: unset;
 }

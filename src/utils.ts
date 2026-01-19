@@ -19,3 +19,9 @@ export function nothrowAsync<T>(cb: Promise<T>): Promise<Result<T, any>> {
 export function sleep(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+export function revolvers<T = void>() {
+	let _resolve: any;
+	const promise = new Promise<T>(resolve => _resolve = resolve);
+	return { promise, resolve: _resolve as ((v: T) => void) };
+}

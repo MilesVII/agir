@@ -438,6 +438,158 @@
     }
   };
 
+  // src/utils.ts
+  function revolvers() {
+    let _resolve;
+    const promise = new Promise((resolve) => _resolve = resolve);
+    return { promise, resolve: _resolve };
+  }
+
+  // src/persist.ts
+  var storageListeners = [];
+  var bc = new BroadcastChannel("storage-updates");
+  bc.onmessage = ({ data }) => {
+    storageListeners.forEach((l2) => l2(data));
+  };
+  var { promise: dbInitPromise, resolve: dbInitComplete } = revolvers();
+  function listen(listener) {
+    storageListeners.push(listener);
+  }
+  async function init() {
+    const result = await open();
+    if (result.success) dbInitComplete(result.value);
+    else console.error(result.error);
+    return result.success;
+  }
+  var idb = { get, set, getAll };
+  async function get(store, key) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readonly").objectStore(store).get(key);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: "read error" });
+    });
+  }
+  async function getAll(store) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readonly").objectStore(store).getAll();
+    return await new Promise((resolve) => {
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: "read error" });
+    });
+  }
+  async function set(store, value) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readwrite").objectStore(store).put(value);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => {
+        resolve({ success: true, value: r.result });
+        const update = { storage: "idb", store };
+        bc.postMessage(update);
+        storageListeners.forEach((l2) => l2(update));
+      };
+      r.onerror = () => resolve({ success: false, error: "write error" });
+    });
+  }
+  function open() {
+    return new Promise((resolve) => {
+      const r = window.indexedDB.open("ehh", 1);
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: r.error });
+      r.onupgradeneeded = (e) => {
+        const db = r.result;
+        db.createObjectStore("media", { keyPath: "id" });
+        db.createObjectStore("personas", { keyPath: "id" });
+        db.createObjectStore("chats", { keyPath: "id" });
+        db.createObjectStore("scenarios", { keyPath: "id" });
+      };
+    });
+  }
+
+  // src/units/settings/persona.ts
+  var personaUnit = {
+    init: () => {
+      const filePicker = document.querySelector("#settings-persona-picture");
+      const personaPicture = filePicker.querySelector("img");
+      const clearButton = document.querySelector("#settings-persona-picture-clear");
+      const nameInput = document.querySelector("#settings-persona-name");
+      const descInput = document.querySelector("#settings-persona-desc");
+      const personaList = document.querySelector("#settings-persona-list");
+      function clear() {
+        if (personaPicture.src.startsWith("blob")) {
+          URL.revokeObjectURL(personaPicture.src);
+          personaPicture.src = "assets/gfx/placeholder.png";
+          clearButton.hidden = true;
+        }
+      }
+      function updatePictureInput() {
+        clearButton.hidden = true;
+        if (!filePicker.input.files) return;
+        const file = filePicker.input.files[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) return;
+        clear();
+        personaPicture.src = URL.createObjectURL(file);
+        clearButton.hidden = false;
+      }
+      filePicker.addEventListener("input", updatePictureInput);
+      clearButton.addEventListener("click", () => {
+        filePicker.input.value = "";
+        clear();
+      });
+      document.querySelector("#settings-add-persona")?.addEventListener("click", async () => {
+        const name = nameInput.value;
+        const desc = descInput.value;
+        if (!name || !desc) return;
+        const file = filePicker.input.files?.[0];
+        let picture = null;
+        if (file) {
+          picture = crypto.randomUUID();
+          await idb.set("media", {
+            id: picture,
+            media: file,
+            mime: file.type
+          });
+        }
+        await idb.set("personas", {
+          id: crypto.randomUUID(),
+          name,
+          description: desc,
+          picture
+        });
+        filePicker.input.value = "";
+        clear();
+        nameInput.value = "";
+        descInput.value = "";
+      });
+      document.querySelector("#settings-persona-form")?.addEventListener("paste", (e) => {
+        const file = e.clipboardData?.files[0];
+        if (!file) return;
+        e.preventDefault();
+        const container = new DataTransfer();
+        container.items.add(file);
+        filePicker.input.files = container.files;
+        updatePictureInput();
+      });
+      async function updatePersonaList() {
+        const personas = await idb.getAll("personas");
+        if (!personas.success) return;
+        personaList.innerHTML = "";
+        const items = personas.value.map((p) => d({
+          tagName: "div",
+          contents: p.name
+        }));
+        personaList.append(...items);
+      }
+      listen(async (update) => {
+        if (update.storage !== "idb") return;
+        if (update.store !== "personas") return;
+        updatePersonaList();
+      });
+      updatePersonaList();
+    }
+  };
+
   // src/units/settings/themes.ts
   var STORAGE_KEY_THEME = "theme";
   var CSS_THEMES_FILE = "theme.css";
@@ -473,6 +625,7 @@
   var settingsUnit = {
     init: () => {
       initTheme();
+      personaUnit.init(void 0);
     }
   };
 
@@ -489,26 +642,6 @@
       update();
     }
   };
-
-  // src/persist.ts
-  var db = null;
-  async function init() {
-    const result = await open();
-    if (result.success) db = result.value;
-    else console.error(result.error);
-    return result.success;
-  }
-  function open() {
-    return new Promise((resolve) => {
-      const r = window.indexedDB.open("ehh", 1);
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: r.error });
-      r.onupgradeneeded = (e) => {
-        const db2 = r.result;
-        db2.createObjectStore("media", { keyPath: "id" });
-      };
-    });
-  }
 
   // src/index.ts
   define2();
