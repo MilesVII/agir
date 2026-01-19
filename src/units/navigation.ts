@@ -1,4 +1,4 @@
-import { RampikeTabs } from "../components/tabs";
+import { RampikeTabs } from "@rampike/tabs";
 import { RampikeUnit } from "./types";
 
 export const navigationUnit: RampikeUnit = {

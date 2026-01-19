@@ -17,6 +17,12 @@
 		"allowUnreachableCode": true,
 		"noFallthroughCasesInSwitch": true,
 
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"baseUrl": ".",
+		"paths": {
+			"@rampike/*": ["src/components/*"],
+			"@units/*": ["src/units/*"],
+			"@root/*": ["src/*"]
+		}
 	}
 }

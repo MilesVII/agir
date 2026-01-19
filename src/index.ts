@@ -1,13 +1,13 @@
-import { define as defineRadio } from "./components/radio";
-import { define as defineTabs } from "./components/tabs";
-import { define as defineModal } from "./components/modal";
-import { define as definePages } from "./components/pagination";
-import { define as defineSVGImport } from "./components/import";
-import { define as defineFilePicker} from "./components/filepicker";
-import { navigationUnit } from "./units/navigation";
-import { RampikeUnit } from "./units/types";
-import { settingsUnit } from "./units/settings";
-import { chatUnit } from "./units/chat";
+import { define as defineRadio }     from "@rampike/radio";
+import { define as defineTabs }      from "@rampike/tabs";
+import { define as defineModal }     from "@rampike/modal";
+import { define as definePages }     from "@rampike/pagination";
+import { define as defineSVGImport } from "@rampike/import";
+import { define as defineFilePicker} from "@rampike/filepicker";
+import { navigationUnit } from "@units/navigation";
+import { RampikeUnit }    from "@units/types";
+import { settingsUnit }   from "@units/settings";
+import { chatUnit }       from "@units/chat";
 import { init as initPersist } from "./persist";
 
 defineTabs();

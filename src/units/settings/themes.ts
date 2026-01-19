@@ -1,6 +1,5 @@
 import { fromTemplateFirst } from "rampike";
 
-
 const STORAGE_KEY_THEME = "theme";
 const CSS_THEMES_FILE = "theme.css";
 

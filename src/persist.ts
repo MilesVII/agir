@@ -9,7 +9,10 @@ export async function init() {
 	return result.success;
 }
 
-export async function get<T extends keyof StorageSchema>(store: T, key: StorageSchema[T]["id"]): Promise<Result<StorageSchema[T], any>> {
+export const idb = { get, set };
+export const local = { get: localGet, set: localSet };
+
+async function get<T extends keyof IDBStorageSchema>(store: T, key: IDBStorageSchema[T]["id"]): Promise<Result<IDBStorageSchema[T], any>> {
 	if (!db) {
 		console.error("db not initialized");
 		return { success: false, error: "db not initialized" };
@@ -26,7 +29,7 @@ export async function get<T extends keyof StorageSchema>(store: T, key: StorageS
 	});
 }
 
-export async function set<T extends keyof StorageSchema>(store: T, value: StorageSchema[T]) {
+async function set<T extends keyof IDBStorageSchema>(store: T, value: IDBStorageSchema[T]) {
 	if (!db) {
 		console.error("db not initialized");
 		return
@@ -57,10 +60,17 @@ function open() {
 	});
 }
 
-export type StorageSchema = {
+type IDBStorageSchema = {
 	media: {
 		id: string,
 		media: Blob,
 		mime: string
 	}
 };
+
+function localGet(key: "theme") {
+	return window.localStorage.getItem(key)
+}
+function localSet(key: "theme", value: string) {
+	return window.localStorage.setItem(key, value);
+}

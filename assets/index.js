@@ -469,74 +469,10 @@
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
-  // src/persist.ts
-  var db = null;
-  async function init() {
-    const result = await open();
-    if (result.success) db = result.value;
-    else console.error(result.error);
-    return result.success;
-  }
-  async function get(store, key) {
-    if (!db) {
-      console.error("db not initialized");
-      return { success: false, error: "db not initialized" };
-    }
-    ;
-    const r = db.transaction(store, "readonly").objectStore(store).get(key);
-    return await new Promise((resolve) => {
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: "read error" });
-    });
-  }
-  async function set(store, value) {
-    if (!db) {
-      console.error("db not initialized");
-      return;
-    }
-    ;
-    const r = db.transaction(store, "readwrite").objectStore(store).put(value);
-    return await new Promise((resolve) => {
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: "write error" });
-    });
-  }
-  function open() {
-    return new Promise((resolve) => {
-      const r = window.indexedDB.open("ehh", 1);
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: r.error });
-      r.onupgradeneeded = (e) => {
-        const db2 = r.result;
-        db2.createObjectStore("media", { keyPath: "id" });
-      };
-    });
-  }
-
   // src/units/settings.ts
   var settingsUnit = {
     init: () => {
       initTheme();
-      const filePicker = document.querySelector("#settings-persona-file");
-      filePicker.addEventListener("input", () => {
-        if (!filePicker.input.files) return;
-        const file = filePicker.input.files[0];
-        if (!file) return;
-        set("media", {
-          id: "tete",
-          media: file,
-          mime: file.type
-        });
-      });
-      document.querySelector("#settings-add-persona")?.addEventListener("click", async () => {
-        const file = await get("media", "tete");
-        if (!file.success) {
-          console.error("fuck!");
-          return;
-        }
-        console.log(file.value);
-        filePicker.querySelector("img").src = URL.createObjectURL(file.value.media);
-      });
     }
   };
 
@@ -553,6 +489,26 @@
       update();
     }
   };
+
+  // src/persist.ts
+  var db = null;
+  async function init() {
+    const result = await open();
+    if (result.success) db = result.value;
+    else console.error(result.error);
+    return result.success;
+  }
+  function open() {
+    return new Promise((resolve) => {
+      const r = window.indexedDB.open("ehh", 1);
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: r.error });
+      r.onupgradeneeded = (e) => {
+        const db2 = r.result;
+        db2.createObjectStore("media", { keyPath: "id" });
+      };
+    });
+  }
 
   // src/index.ts
   define2();
