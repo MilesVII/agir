@@ -82,8 +82,6 @@ export const personaUnit: RampikeUnit = {
 			if (!file) return;
 
 			e.preventDefault();
-			// personaPicture.src = URL.createObjectURL(file);
-			// filePicker.input.files![0] = file;
 
 			const container = new DataTransfer();
 			container.items.add(file);
@@ -92,6 +90,7 @@ export const personaUnit: RampikeUnit = {
 		});
 
 		function removePersona(id: string) {
+			if (!confirm("confirm deletion")) return;
 			return idb.del("personas", id);
 		}
 		async function startEditing(persona: Persona) {

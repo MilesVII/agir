@@ -421,6 +421,39 @@
     window.customElements.define(tagName, RampikeFilePicker);
   }
 
+  // src/components/fieldset.ts
+  var RampikeLabeled = class extends HTMLElement {
+    constructor() {
+      super();
+      const legend = this.getAttribute("legend") ?? "";
+      const multiline = this.getAttribute("multiline");
+      const attributes = Object.fromEntries(
+        this.getAttributeNames().filter((a) => a !== "legend" && a !== "multiline").map((name) => [name, this.getAttribute(name)])
+      );
+      if (!multiline) attributes.type = "text";
+      const contents = d({
+        tagName: "fieldset",
+        contents: [
+          d({
+            tagName: "legend",
+            attributes: {
+              for: attributes.id
+            },
+            contents: legend
+          }),
+          d({
+            tagName: multiline ? "textarea" : "input",
+            attributes
+          })
+        ]
+      });
+      this.parentElement?.replaceChild(contents, this);
+    }
+  };
+  function define7(tagName) {
+    window.customElements.define(tagName, RampikeLabeled);
+  }
+
   // src/units/navigation.ts
   var navigationUnit = {
     init: () => {
@@ -439,6 +472,13 @@
   };
 
   // src/utils.ts
+  function nothrow(cb) {
+    try {
+      return { success: true, value: cb() };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
   function revolvers() {
     let _resolve;
     const promise = new Promise((resolve) => _resolve = resolve);
@@ -462,6 +502,7 @@
     return result.success;
   }
   var idb = { get, set, getAll, del };
+  var local = { get: localGet, set: localSet };
   async function get(store, key) {
     const db = await dbInitPromise;
     const r = db.transaction(store, "readonly").objectStore(store).get(key);
@@ -518,6 +559,15 @@
       };
     });
   }
+  function localGet(key) {
+    return window.localStorage.getItem(key);
+  }
+  function localSet(key, value) {
+    window.localStorage.setItem(key, value);
+    const update = { storage: "local", key };
+    bc.postMessage(update);
+    storageListeners.forEach((l2) => l2(update));
+  }
   var map = /* @__PURE__ */ new Map();
   async function getBlobLink(imageRef) {
     if (map.has(imageRef)) {
@@ -528,6 +578,120 @@
     const link = URL.createObjectURL(blob.value.media);
     map.set(imageRef, link);
     return link;
+  }
+
+  // src/units/settings/engines.ts
+  var enginesUnit = {
+    init: () => {
+      const inputs = {
+        name: document.querySelector("#settings-engines-name"),
+        url: document.querySelector("#settings-engines-url"),
+        key: document.querySelector("#settings-engines-key"),
+        model: document.querySelector("#settings-engines-model"),
+        temp: document.querySelector("#settings-engines-temp"),
+        max: document.querySelector("#settings-engines-max"),
+        context: document.querySelector("#settings-engines-context")
+      };
+      const defaults = {
+        temp: 0.9,
+        max: 720,
+        context: 16384
+      };
+      const submitButton = document.querySelector("#settings-engines-submit");
+      const list = document.querySelector("#settings-engines-list");
+      let editing = null;
+      submitButton.addEventListener("click", submit);
+      function submit() {
+        const id = editing ?? crypto.randomUUID();
+        function parseNumber(key) {
+          const f = parseFloat(inputs[key].value);
+          if (isNaN(f) || f < 0) return defaults[key];
+          return f;
+        }
+        const e = {
+          name: inputs.name.value,
+          url: inputs.url.value,
+          key: inputs.key.value,
+          model: inputs.model.value,
+          temp: parseNumber("temp"),
+          max: parseNumber("max"),
+          context: parseNumber("context")
+        };
+        const missing = ["name", "url", "model"].some((k) => !e[k]);
+        if (missing) return;
+        const eMap = readEngines();
+        eMap[id] = e;
+        saveEngines(eMap);
+        editing = null;
+        inputs.name.value = "";
+        inputs.url.value = "";
+        inputs.key.value = "";
+        inputs.model.value = "";
+        inputs.temp.value = String(defaults.temp);
+        inputs.max.value = String(defaults.max);
+        inputs.context.value = String(defaults.context);
+      }
+      function edit(id, e) {
+        editing = id;
+        inputs.name.value = e.name;
+        inputs.url.value = e.url;
+        inputs.key.value = e.key;
+        inputs.model.value = e.model;
+        inputs.temp.value = String(e.temp);
+        inputs.max.value = String(e.max);
+        inputs.context.value = String(e.context);
+        inputs.name.scrollIntoView({ behavior: "smooth" });
+      }
+      function updateList() {
+        list.innerHTML = "";
+        const enginesMap = readEngines();
+        const engines = Object.entries(enginesMap);
+        const items = engines.map(
+          ([id, e]) => d({
+            className: "lineout row settings-engine-item",
+            contents: [
+              d({
+                contents: e.name
+              }),
+              d({
+                tagName: "button",
+                className: "lineout",
+                events: {
+                  click: () => deleteEngine(id)
+                },
+                contents: "delete"
+              })
+            ],
+            events: {
+              click: () => edit(id, e)
+            }
+          })
+        );
+        list.append(...items);
+      }
+      listen((update) => {
+        if (update.storage !== "local") return;
+        if (update.key !== "engines") return;
+        updateList();
+      });
+      updateList();
+    }
+  };
+  function readEngines() {
+    const enginesRaw = local.get("engines");
+    if (!enginesRaw) return {};
+    const engines = nothrow(() => JSON.parse(enginesRaw));
+    if (!engines.success) return {};
+    return engines.value;
+  }
+  function saveEngines(eMap) {
+    local.set("engines", JSON.stringify(eMap));
+  }
+  function deleteEngine(id) {
+    if (!confirm("confirm deletion")) return;
+    const e = readEngines();
+    delete e[id];
+    saveEngines(e);
   }
 
   // src/units/settings/persona.ts
@@ -607,6 +771,7 @@
         updatePictureInput();
       });
       function removePersona(id) {
+        if (!confirm("confirm deletion")) return;
         return idb.del("personas", id);
       }
       async function startEditing(persona) {
@@ -723,6 +888,7 @@
     init: () => {
       initTheme();
       personaUnit.init(void 0);
+      enginesUnit.init(void 0);
     }
   };
 
@@ -747,6 +913,7 @@
   define4();
   define5("ram-import");
   define6("ram-file-picker");
+  define7("ram-labeled");
   window.addEventListener("DOMContentLoaded", main);
   var units = [
     navigationUnit,

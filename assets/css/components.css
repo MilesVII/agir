@@ -3,14 +3,14 @@
 }
 
 /* lineout is referenced at .strip in utils.css */
-.lineout {
+.lineout, fieldset {
 	border: 2px solid var(--color-secondary);
 	transition: box-shadow .2s ease, border-color .2s ease;
 	padding: var(--dims-smol);
 	border-radius: var(--dims-smol);
 	cursor: pointer;
 }
-.lineout:hover, .lineout:focus {
+.lineout:hover, .lineout:focus, fieldset:has(*:focus), fieldset:hover {
 	border-color: var(--color-accent);
 	box-shadow: 0 0 var(--dims-smol) var(--color-accent);
 	outline: none;
@@ -25,6 +25,25 @@
 	border-radius: var(--dims-smol);
 	color: var(--color-base);
 	background-color: var(--color-secondary);
+}
+
+.hint {
+	font: var(--font-smol);
+	color: var(--color-secondary);
+}
+
+fieldset {
+	margin: 0;
+	box-shadow: none !important;
+}
+fieldset > legend {
+	color: var(--color-secondary);
+	transition: color .2s;
+	padding-left: var(--dims-smol);
+	padding-right: var(--dims-smol);
+}
+fieldset:has(*:focus) > legend, fieldset:hover > legend {
+	color: var(--color-text);
 }
 
 #settings-persona-picture {
@@ -56,6 +75,13 @@
 }
 .settings-persona-item div {
 	white-space: pre-wrap;
+}
+
+.settings-engine-item {
+	align-items: center;
+}
+.settings-engine-item > button {
+	margin-inline-start: auto;
 }
 
 .settings-theme-selector-button {

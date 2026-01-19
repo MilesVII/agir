@@ -24,10 +24,9 @@
 	--color-accent: #DA0037;
 	--color-text: #EDEDED;
 
-	--font-smol: normal 400 16px/20px "Arimo";
+	--font-smol: normal 400 14px/18px "Arimo";
 	--font-main: normal 400 18px/22px "Arimo";
 	--font-bold: normal 600 20px/24px "Arimo";
-	--font-butt: normal 500 22px/26px "Arimo";
 
 	--dims-smol:  4px;
 	--dims-reg:   8px;

@@ -1,4 +1,4 @@
-import { Persona, Result } from "./types";
+import { Engine, Persona, Result } from "./types";
 import { revolvers } from "./utils";
 
 type IDBStorageSchema = {
@@ -10,14 +10,14 @@ type IDBStorageSchema = {
 	personas: Persona
 };
 export type IDBStore = keyof IDBStorageSchema;
-export type LocalKey = "theme";
+export type LocalKey = "theme" | "engines" | "rember";
 
 type StorageUpdate = {
 	storage: "idb",
 	store: IDBStore;
 } | {
 	storage: "local",
-	key: string
+	key: LocalKey
 };
 type StorageListener = (event: StorageUpdate) => void;
 
@@ -128,7 +128,10 @@ function localGet(key: LocalKey) {
 	return window.localStorage.getItem(key)
 }
 function localSet(key: LocalKey, value: string) {
-	return window.localStorage.setItem(key, value);
+	window.localStorage.setItem(key, value);
+	const update: StorageUpdate = { storage: "local", key };
+	bc.postMessage(update);
+	storageListeners.forEach(l => l(update));
 }
 
 const map = new Map<string, string>();

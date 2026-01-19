@@ -13,3 +13,14 @@ export type Persona = {
 	description: string,
 	picture: string | null
 };
+
+export type Engine = {
+	name:  string,
+	url:   string,
+	key:   string,
+	model: string,
+	temp:    number,
+	max:     number,
+	context: number
+};
+export type EngineMap = Record<string, Engine>;

@@ -46,23 +46,79 @@
 									<img src="assets/gfx/placeholder.png" />
 								</ram-file-picker>
 								<div class="list wide">
-									<input id="settings-persona-name" class="lineout wide" type="text" placeholder="persona name" />
-									<button id="settings-persona-picture-clear" class="lineout" hidden>clear picture</button>
+									<input type="text" id="settings-persona-name" class="lineout wide" placeholder="Persona name" />
+									<button id="settings-persona-picture-clear" class="lineout" hidden>Clear picture</button>
 								</div>
 							</div>
-							<textarea id="settings-persona-desc" class="lineout" placeholder="persona description"></textarea>
-							<button id="settings-add-persona" class="lineout">add persona</button>
+							<textarea id="settings-persona-desc" class="lineout" placeholder="Persona description"></textarea>
+							<button id="settings-add-persona" class="lineout">Add persona</button>
 						</div>
 					</details>
 					<details>
 						<summary>
 							Engines
 						</summary>
-					</details>
-					<details>
-						<summary>
-							Generation Settings
-						</summary>
+						<div class="list">
+							<div class="hint">
+								Click engine entry to edit
+							</div>
+							<div id="settings-engines-list" class="virtual">
+							</div>
+							<hr/>
+							<div class="hint">
+								Any OpenAI-compatible LLM provider is supported, including OpenRouter and AI Horde
+							</div>
+							<ram-labeled
+								legend="Display name"
+								id="settings-engines-name"
+								class="strip wide"
+								placeholder="Goober"
+							></ram-labeled>
+							<ram-labeled
+								legend="API URL"
+								id="settings-engines-url"
+								class="strip wide"
+								placeholder="https://openrouter.ai/api/v1/chat/completions"
+							></ram-labeled>
+							<ram-labeled
+								legend="API key"
+								id="settings-engines-key"
+								class="strip wide"
+								placeholder="sk-or-v1-haha-nope"
+							></ram-labeled>
+							<ram-labeled
+								legend="Model"
+								id="settings-engines-model"
+								class="strip wide"
+								placeholder="xiaomi/mimo-v2-flash:free"
+							></ram-labeled>
+							<hr/>
+							<div class="hint">
+								Temperature controls randomness. Lower = focused, higher = creative
+							</div>
+							<ram-labeled
+								legend="Temperature (0.0-2.0)"
+								id="settings-engines-temp"
+								class="strip wide"
+								placeholder="0.9"
+								value="0.9"
+							></ram-labeled>
+							<ram-labeled
+								legend="Response length limit (in tokens, 0 = unlimited)"
+								id="settings-engines-max"
+								class="strip wide"
+								placeholder="720"
+								value="720"
+							></ram-labeled>
+							<ram-labeled
+								legend="Context size"
+								id="settings-engines-context"
+								class="strip wide"
+								placeholder="16384"
+								value="16384"
+							></ram-labeled>
+							<button id="settings-engines-submit" class="lineout">Add engine</button>
+						</div>
 					</details>
 					<details>
 						<summary>
@@ -180,7 +236,7 @@
 							<ram-tabs id="chat-controls" tab="main">
 								<ram-tab key="main">
 									<textarea id="chat-textarea" class="lineout"></textarea>
-									<ram-import path="assets/gfx/send.svg" class="chat-send" />
+									<ram-import path="assets/gfx/send.svg" class="chat-send"></ram-import>
 								</ram-tab>
 								<ram-tab key="pending">
 									<button class="lineout float-center">abort</button>

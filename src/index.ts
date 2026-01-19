@@ -4,6 +4,7 @@ import { define as defineModal }     from "@rampike/modal";
 import { define as definePages }     from "@rampike/pagination";
 import { define as defineSVGImport } from "@rampike/import";
 import { define as defineFilePicker} from "@rampike/filepicker";
+import { define as defineLabeled } from "@rampike/fieldset";
 import { navigationUnit } from "@units/navigation";
 import { RampikeUnit }    from "@units/types";
 import { settingsUnit }   from "@units/settings";
@@ -16,6 +17,7 @@ defineModal("ram-modal");
 definePages();
 defineSVGImport("ram-import");
 defineFilePicker("ram-file-picker");
+defineLabeled("ram-labeled");
 
 window.addEventListener("DOMContentLoaded", main);
 
