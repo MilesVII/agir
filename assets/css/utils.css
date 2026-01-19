@@ -32,6 +32,11 @@
 	flex-flow: column nowrap;
 	gap: var(--dims-smol);
 }
+.row-compact {
+	display: flex;
+	flex-flow: row nowrap;
+	gap: var(--dims-smol);
+}
 
 .float-center {
 	margin-inline: auto;

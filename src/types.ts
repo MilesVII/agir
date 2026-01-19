@@ -6,3 +6,10 @@ export type Result<T, E> = {
 	success: false,
 	error: E
 };
+
+export type Persona = {
+	id: string,
+	name: string,
+	description: string,
+	picture: string | null
+};

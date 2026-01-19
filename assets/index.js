@@ -461,7 +461,7 @@
     else console.error(result.error);
     return result.success;
   }
-  var idb = { get, set, getAll };
+  var idb = { get, set, getAll, del };
   async function get(store, key) {
     const db = await dbInitPromise;
     const r = db.transaction(store, "readonly").objectStore(store).get(key);
@@ -491,12 +491,25 @@
       r.onerror = () => resolve({ success: false, error: "write error" });
     });
   }
+  async function del(store, id) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readwrite").objectStore(store).delete(id);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => {
+        resolve({ success: true, value: r.result });
+        const update = { storage: "idb", store };
+        bc.postMessage(update);
+        storageListeners.forEach((l2) => l2(update));
+      };
+      r.onerror = () => resolve({ success: false, error: "write error" });
+    });
+  }
   function open() {
     return new Promise((resolve) => {
       const r = window.indexedDB.open("ehh", 1);
       r.onsuccess = () => resolve({ success: true, value: r.result });
       r.onerror = () => resolve({ success: false, error: r.error });
-      r.onupgradeneeded = (e) => {
+      r.onupgradeneeded = () => {
         const db = r.result;
         db.createObjectStore("media", { keyPath: "id" });
         db.createObjectStore("personas", { keyPath: "id" });
@@ -505,8 +518,20 @@
       };
     });
   }
+  var map = /* @__PURE__ */ new Map();
+  async function getBlobLink(imageRef) {
+    if (map.has(imageRef)) {
+      return map.get(imageRef);
+    }
+    const blob = await get("media", imageRef);
+    if (!blob.success) return null;
+    const link = URL.createObjectURL(blob.value.media);
+    map.set(imageRef, link);
+    return link;
+  }
 
   // src/units/settings/persona.ts
+  var PLACHEOLDER = "assets/gfx/placeholder.png";
   var personaUnit = {
     init: () => {
       const filePicker = document.querySelector("#settings-persona-picture");
@@ -515,10 +540,15 @@
       const nameInput = document.querySelector("#settings-persona-name");
       const descInput = document.querySelector("#settings-persona-desc");
       const personaList = document.querySelector("#settings-persona-list");
+      const submitButton = document.querySelector("#settings-add-persona");
+      const form = document.querySelector("#settings-persona-form");
+      let editingPersonaID = null;
+      let editingPersonaPicture = null;
+      let editingPersonaPictureChanged = false;
       function clear() {
         if (personaPicture.src.startsWith("blob")) {
           URL.revokeObjectURL(personaPicture.src);
-          personaPicture.src = "assets/gfx/placeholder.png";
+          personaPicture.src = PLACHEOLDER;
           clearButton.hidden = true;
         }
       }
@@ -531,19 +561,21 @@
         clear();
         personaPicture.src = URL.createObjectURL(file);
         clearButton.hidden = false;
+        if (editingPersonaID) editingPersonaPictureChanged = true;
       }
       filePicker.addEventListener("input", updatePictureInput);
       clearButton.addEventListener("click", () => {
         filePicker.input.value = "";
         clear();
       });
-      document.querySelector("#settings-add-persona")?.addEventListener("click", async () => {
+      submitButton.addEventListener("click", async () => {
         const name = nameInput.value;
         const desc = descInput.value;
         if (!name || !desc) return;
+        const editing = Boolean(editingPersonaID);
         const file = filePicker.input.files?.[0];
-        let picture = null;
-        if (file) {
+        let picture = editing ? editingPersonaPicture : null;
+        if (file && editing == editingPersonaPictureChanged) {
           picture = crypto.randomUUID();
           await idb.set("media", {
             id: picture,
@@ -552,7 +584,7 @@
           });
         }
         await idb.set("personas", {
-          id: crypto.randomUUID(),
+          id: editingPersonaID ?? crypto.randomUUID(),
           name,
           description: desc,
           picture
@@ -561,8 +593,11 @@
         clear();
         nameInput.value = "";
         descInput.value = "";
+        editingPersonaID = null;
+        editingPersonaPicture = null;
+        editingPersonaPictureChanged = false;
       });
-      document.querySelector("#settings-persona-form")?.addEventListener("paste", (e) => {
+      form.addEventListener("paste", (e) => {
         const file = e.clipboardData?.files[0];
         if (!file) return;
         e.preventDefault();
@@ -571,13 +606,75 @@
         filePicker.input.files = container.files;
         updatePictureInput();
       });
+      function removePersona(id) {
+        return idb.del("personas", id);
+      }
+      async function startEditing(persona) {
+        editingPersonaID = persona.id;
+        editingPersonaPicture = persona.picture;
+        nameInput.value = persona.name;
+        descInput.value = persona.description;
+        personaPicture.src = persona.picture ? await getBlobLink(persona.picture) : PLACHEOLDER;
+        editingPersonaPictureChanged = false;
+        clearButton.hidden = !persona.picture;
+        nameInput.scrollIntoView({ behavior: "smooth" });
+      }
       async function updatePersonaList() {
         const personas = await idb.getAll("personas");
         if (!personas.success) return;
+        const imageLinks = await Promise.all(
+          personas.value.map(
+            (p) => p.picture ? getBlobLink(p.picture) : PLACHEOLDER
+          )
+        );
         personaList.innerHTML = "";
-        const items = personas.value.map((p) => d({
-          tagName: "div",
-          contents: p.name
+        const items = personas.value.map((p, ix) => d({
+          className: "lineout row settings-persona-item",
+          attributes: {
+            "data-id": p.id
+          },
+          contents: [
+            d({
+              tagName: "img",
+              className: "shadow",
+              attributes: {
+                src: imageLinks[ix]
+              }
+            }),
+            d({
+              className: "list settings-persona-item-main",
+              contents: [
+                d({
+                  className: "row-compact",
+                  contents: [
+                    d({
+                      tagName: "h6",
+                      contents: p.name
+                    }),
+                    d({
+                      tagName: "button",
+                      className: "lineout",
+                      events: {
+                        click: () => startEditing(p)
+                      },
+                      contents: "edit"
+                    }),
+                    d({
+                      tagName: "button",
+                      className: "lineout",
+                      events: {
+                        click: () => removePersona(p.id)
+                      },
+                      contents: "delete"
+                    })
+                  ]
+                }),
+                d({
+                  contents: p.description
+                })
+              ]
+            })
+          ]
         }));
         personaList.append(...items);
       }

@@ -39,6 +39,24 @@
 	aspect-ratio: 1/1;
 	border-radius: var(--dims-smol);
 }
+.settings-persona-item img {
+	/* max-width: 30%; */
+	height: 5em;
+	object-fit: cover;
+	aspect-ratio: 1/1;
+	border-radius: var(--dims-smol);
+}
+.settings-persona-item-main {
+	flex-grow: 1;
+}
+.settings-persona-item h6 {
+	font: var(--font-bold);
+	flex-grow: 1;
+	align-self: center;
+}
+.settings-persona-item div {
+	white-space: pre-wrap;
+}
 
 .settings-theme-selector-button {
 	width: 128px;
