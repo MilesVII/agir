@@ -1,59 +1,47 @@
-import { RampikePicker } from "@rampike/filepicker";
 import { RampikeUnit } from "@units/types";
 import { getBlobLink, idb, listen } from "@root/persist";
 import { mudcrack } from "rampike";
 import { Persona } from "@root/types";
+import type { RampikeImagePicker } from "@rampike/imagepicker";
 
 const PLACHEOLDER = "assets/gfx/placeholder.png";
 
 export const personaUnit: RampikeUnit = {
 	init: () => {
-		const filePicker = document.querySelector<RampikePicker>("#settings-persona-picture")!;
-		const personaPicture = filePicker.querySelector("img")!;
+		const filePicker = document.querySelector<RampikeImagePicker>("#settings-persona-picture")!;
 		const clearButton = document.querySelector<HTMLButtonElement>("#settings-persona-picture-clear")!;
 		const nameInput = document.querySelector<HTMLInputElement>("#settings-persona-name")!;
 		const descInput = document.querySelector<HTMLTextAreaElement>("#settings-persona-desc")!;
 		const personaList = document.querySelector<HTMLElement>("#settings-persona-list")!;
 		const submitButton = document.querySelector<HTMLButtonElement>("#settings-add-persona")!;
 		const form = document.querySelector<HTMLElement>("#settings-persona-form")!;
-		let editingPersonaID: string | null = null;
-		let editingPersonaPicture: string | null = null;
-		let editingPersonaPictureChanged = false;
+		let editingPersona: Persona | null = null;
 
 		function clear() {
-			if (personaPicture.src.startsWith("blob")) {
-				URL.revokeObjectURL(personaPicture.src);
-				personaPicture.src = PLACHEOLDER;
-				clearButton.hidden = true;
-			}
-		}
-		function updatePictureInput() {
+			filePicker.usePlaceholder();
 			clearButton.hidden = true;
-			if (!filePicker.input.files) return;
-			const file = filePicker.input.files[0];
-			if (!file) return;
-			if (!file.type.startsWith("image/")) return;
-
-			clear();
-			personaPicture.src = URL.createObjectURL(file);
-			clearButton.hidden = false;
-			if (editingPersonaID) editingPersonaPictureChanged = true;
 		}
-		filePicker.addEventListener("input", updatePictureInput);
 		clearButton.addEventListener("click", () => {
-			filePicker.input.value = "";
 			clear();
 		});
+		filePicker.onDirty = () => {
+			clearButton.hidden = filePicker.value === "";
+		};
 		submitButton.addEventListener("click", async () => {
 			const name = nameInput.value;
 			const desc = descInput.value;
 			if (!name || !desc) return;
-			const editing = Boolean(editingPersonaID);
+			const editing = Boolean(editingPersona);
 
-			const file = filePicker.input.files?.[0];
-			let picture: string | null = editing ? editingPersonaPicture : null;
-			if (file && (editing == editingPersonaPictureChanged)) {
-				picture = crypto.randomUUID();
+			const file = filePicker.value;
+			
+			const picture = typeof file !== "string"
+				? crypto.randomUUID()
+				: file === ""
+					? null
+					: editingPersona?.picture ?? null;
+
+			if (typeof file !== "string" && picture) {
 				await idb.set("media", {
 					id: picture,
 					media: file,
@@ -62,7 +50,7 @@ export const personaUnit: RampikeUnit = {
 			}
 
 			await idb.set("personas", {
-				id: editingPersonaID ?? crypto.randomUUID(),
+				id: editingPersona?.id ?? crypto.randomUUID(),
 				name,
 				description: desc,
 				picture
@@ -72,21 +60,15 @@ export const personaUnit: RampikeUnit = {
 			clear();
 			nameInput.value = "";
 			descInput.value = "";
-			editingPersonaID = null;
-			editingPersonaPicture = null;
-			editingPersonaPictureChanged = false;
+			editingPersona = null;
 		});
 
 		form.addEventListener("paste", e => {
 			const file = e.clipboardData?.files[0];
 			if (!file) return;
-
 			e.preventDefault();
 
-			const container = new DataTransfer();
-			container.items.add(file);
-			filePicker.input.files = container.files;
-			updatePictureInput();
+			filePicker.paste(file);
 		});
 
 		function removePersona(id: string) {
@@ -94,15 +76,13 @@ export const personaUnit: RampikeUnit = {
 			return idb.del("personas", id);
 		}
 		async function startEditing(persona: Persona) {
-			editingPersonaID = persona.id;
-			editingPersonaPicture = persona.picture;
+			editingPersona = persona;
 			nameInput.value = persona.name;
 			descInput.value = persona.description;
-			personaPicture.src = persona.picture
-				? (await getBlobLink(persona.picture))!
-				: PLACHEOLDER;
-			editingPersonaPictureChanged = false;
-			clearButton.hidden = !persona.picture;
+			if (persona.picture) {
+				const link = await getBlobLink(persona.picture);
+				filePicker.value = link!;
+			}
 			nameInput.scrollIntoView({ behavior: "smooth" });
 		}
 		async function updatePersonaList() {

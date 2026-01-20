@@ -27,6 +27,10 @@
 						<button class="lineout fit" data-to="settings">settings</button>
 						<button class="lineout fit" data-to="library">library</button>
 					</div>
+					<ram-file-picker id="main-chats-import" accept=".jsonl">
+						<!-- <img src="assets/gfx/placeholder.png" /> -->
+						<div class="lineout fit">import a chat in SillyTavern format</div>
+					</ram-file-picker>
 					<div class="placeholder">no chats found</div>
 					<button class="lineout fit" data-to="play">play (test)</button>
 				</div>
@@ -42,9 +46,7 @@
 							<div id="settings-persona-list" class="virtual"></div>
 							<hr/>
 							<div class="row">
-								<ram-file-picker id="settings-persona-picture" class="lineout">
-									<img src="assets/gfx/placeholder.png" />
-								</ram-file-picker>
+								<ram-image-picker id="settings-persona-picture" class="lineout"></ram-image-picker>
 								<div class="list wide">
 									<input type="text" id="settings-persona-name" class="lineout wide" placeholder="Persona name" />
 									<button id="settings-persona-picture-clear" class="lineout" hidden>Clear picture</button>

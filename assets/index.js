@@ -387,7 +387,7 @@
   }
 
   // src/components/filepicker.ts
-  var RampikeFilePicker = class extends HTMLElement {
+  var _RampikeFilePicker = class extends HTMLElement {
     get input() {
       return this.querySelector(`input[type="file"]`);
     }
@@ -405,7 +405,8 @@
           d({
             tagName: "input",
             attributes: {
-              type: "file"
+              type: "file",
+              accept: this.getAttribute("accept") ?? ""
             },
             style: {
               display: "none"
@@ -418,7 +419,7 @@
     }
   };
   function define6(tagName) {
-    window.customElements.define(tagName, RampikeFilePicker);
+    window.customElements.define(tagName, _RampikeFilePicker);
   }
 
   // src/components/fieldset.ts
@@ -454,6 +455,95 @@
     window.customElements.define(tagName, RampikeLabeled);
   }
 
+  // src/components/imagepicker.ts
+  var PLACHEOLDER = "assets/gfx/placeholder.png";
+  var _RampikeImagePicker = class extends HTMLElement {
+    get value() {
+      return this.file ?? this.getAttribute("value") ?? "";
+    }
+    set value(v) {
+      this.setAttribute("value", v);
+      this.image = v;
+      this.input.value = "";
+    }
+    get input() {
+      return this.querySelector(`input[type="file"]`);
+    }
+    get file() {
+      return this.input.files?.[0];
+    }
+    set image(v) {
+      const img = this.querySelector(`img`);
+      this.revokeBlob?.();
+      img.src = v;
+      this.onDirty?.();
+    }
+    usePlaceholder() {
+      this.image = this.getAttribute("placeholder") || PLACHEOLDER;
+      this.input.value = "";
+      this.setAttribute("value", "");
+    }
+    finish() {
+      this.usePlaceholder();
+      return this.file;
+    }
+    paste(file) {
+      const container = new DataTransfer();
+      container.items.add(file);
+      this.input.files = container.files;
+      this.setFile(file);
+    }
+    onDirty = null;
+    revokeBlob = null;
+    setFile(file) {
+      const link = URL.createObjectURL(file);
+      this.image = link;
+      this.revokeBlob = () => {
+        URL.revokeObjectURL(link);
+        this.revokeBlob = null;
+      };
+      this.setAttribute("value", "");
+      this.onDirty?.();
+    }
+    constructor() {
+      super();
+      const image = d({
+        tagName: "img",
+        attributes: {
+          src: this.getAttribute("value") || this.getAttribute("placeholder") || PLACHEOLDER
+        }
+      });
+      const input = d({
+        tagName: "input",
+        attributes: {
+          type: "file",
+          accept: this.getAttribute("accept") ?? ""
+        },
+        style: {
+          display: "none"
+        },
+        events: {
+          input: (_ev, el) => {
+            const file = el.files?.[0];
+            if (!file?.type.startsWith("image/")) return;
+            this.setFile(file);
+          }
+        }
+      });
+      const contents = d({
+        tagName: "label",
+        style: {
+          display: "contents"
+        },
+        contents: [input, image]
+      });
+      this.append(contents);
+    }
+  };
+  function define8(tagName) {
+    window.customElements.define(tagName, _RampikeImagePicker);
+  }
+
   // src/units/navigation.ts
   var navigationUnit = {
     init: () => {
@@ -466,8 +556,6 @@
       if (hash) nav(hash);
       const buttons = document.querySelectorAll("button[data-to]");
       buttons.forEach((b) => b.addEventListener("click", () => nav(b.dataset.to)));
-    },
-    update: () => {
     }
   };
 
@@ -478,6 +566,11 @@
     } catch (error) {
       return { success: false, error };
     }
+  }
+  function nothrowAsync(cb) {
+    return new Promise((resolve) => {
+      cb.then((value) => resolve({ success: true, value })).catch((error) => resolve({ success: false, error }));
+    });
   }
   function revolvers() {
     let _resolve;
@@ -695,52 +788,35 @@
   }
 
   // src/units/settings/persona.ts
-  var PLACHEOLDER = "assets/gfx/placeholder.png";
+  var PLACHEOLDER2 = "assets/gfx/placeholder.png";
   var personaUnit = {
     init: () => {
       const filePicker = document.querySelector("#settings-persona-picture");
-      const personaPicture = filePicker.querySelector("img");
       const clearButton = document.querySelector("#settings-persona-picture-clear");
       const nameInput = document.querySelector("#settings-persona-name");
       const descInput = document.querySelector("#settings-persona-desc");
       const personaList = document.querySelector("#settings-persona-list");
       const submitButton = document.querySelector("#settings-add-persona");
       const form = document.querySelector("#settings-persona-form");
-      let editingPersonaID = null;
-      let editingPersonaPicture = null;
-      let editingPersonaPictureChanged = false;
+      let editingPersona = null;
       function clear() {
-        if (personaPicture.src.startsWith("blob")) {
-          URL.revokeObjectURL(personaPicture.src);
-          personaPicture.src = PLACHEOLDER;
-          clearButton.hidden = true;
-        }
-      }
-      function updatePictureInput() {
+        filePicker.usePlaceholder();
         clearButton.hidden = true;
-        if (!filePicker.input.files) return;
-        const file = filePicker.input.files[0];
-        if (!file) return;
-        if (!file.type.startsWith("image/")) return;
-        clear();
-        personaPicture.src = URL.createObjectURL(file);
-        clearButton.hidden = false;
-        if (editingPersonaID) editingPersonaPictureChanged = true;
       }
-      filePicker.addEventListener("input", updatePictureInput);
       clearButton.addEventListener("click", () => {
-        filePicker.input.value = "";
         clear();
       });
+      filePicker.onDirty = () => {
+        clearButton.hidden = filePicker.value === "";
+      };
       submitButton.addEventListener("click", async () => {
         const name = nameInput.value;
         const desc = descInput.value;
         if (!name || !desc) return;
-        const editing = Boolean(editingPersonaID);
-        const file = filePicker.input.files?.[0];
-        let picture = editing ? editingPersonaPicture : null;
-        if (file && editing == editingPersonaPictureChanged) {
-          picture = crypto.randomUUID();
+        const editing = Boolean(editingPersona);
+        const file = filePicker.value;
+        const picture = typeof file !== "string" ? crypto.randomUUID() : file === "" ? null : editingPersona?.picture ?? null;
+        if (typeof file !== "string" && picture) {
           await idb.set("media", {
             id: picture,
             media: file,
@@ -748,7 +824,7 @@
           });
         }
         await idb.set("personas", {
-          id: editingPersonaID ?? crypto.randomUUID(),
+          id: editingPersona?.id ?? crypto.randomUUID(),
           name,
           description: desc,
           picture
@@ -757,31 +833,26 @@
         clear();
         nameInput.value = "";
         descInput.value = "";
-        editingPersonaID = null;
-        editingPersonaPicture = null;
-        editingPersonaPictureChanged = false;
+        editingPersona = null;
       });
       form.addEventListener("paste", (e) => {
         const file = e.clipboardData?.files[0];
         if (!file) return;
         e.preventDefault();
-        const container = new DataTransfer();
-        container.items.add(file);
-        filePicker.input.files = container.files;
-        updatePictureInput();
+        filePicker.paste(file);
       });
       function removePersona(id) {
         if (!confirm("confirm deletion")) return;
         return idb.del("personas", id);
       }
       async function startEditing(persona) {
-        editingPersonaID = persona.id;
-        editingPersonaPicture = persona.picture;
+        editingPersona = persona;
         nameInput.value = persona.name;
         descInput.value = persona.description;
-        personaPicture.src = persona.picture ? await getBlobLink(persona.picture) : PLACHEOLDER;
-        editingPersonaPictureChanged = false;
-        clearButton.hidden = !persona.picture;
+        if (persona.picture) {
+          const link = await getBlobLink(persona.picture);
+          filePicker.value = link;
+        }
         nameInput.scrollIntoView({ behavior: "smooth" });
       }
       async function updatePersonaList() {
@@ -789,7 +860,7 @@
         if (!personas.success) return;
         const imageLinks = await Promise.all(
           personas.value.map(
-            (p) => p.picture ? getBlobLink(p.picture) : PLACHEOLDER
+            (p) => p.picture ? getBlobLink(p.picture) : PLACHEOLDER2
           )
         );
         personaList.innerHTML = "";
@@ -906,6 +977,30 @@
     }
   };
 
+  // src/units/main.ts
+  var mainUnit = {
+    init: () => {
+      const chatImport = document.querySelector("#main-chats-import");
+      chatImport.addEventListener("input", async () => {
+        const file = chatImport.input.files?.[0];
+        if (!file) return;
+        const raw = await nothrowAsync(file.text());
+        if (!raw.success) return;
+        const messages = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(JSON.parse(l2))).filter((c2) => c2.success).map((c2) => stcToInternal(c2.value));
+      });
+    }
+  };
+  function stcToInternal(stc) {
+    return {
+      id: crypto.randomUUID(),
+      from: stc.is_system ? "system" : stc.is_user ? "user" : "model",
+      name: stc.name,
+      swipes: stc.swipes ?? [stc.mes],
+      selectedSwipe: 0,
+      rember: null
+    };
+  }
+
   // src/index.ts
   define2();
   define();
@@ -913,17 +1008,22 @@
   define4();
   define5("ram-import");
   define6("ram-file-picker");
+  define8("ram-image-picker");
   define7("ram-labeled");
   window.addEventListener("DOMContentLoaded", main);
   var units = [
     navigationUnit,
     settingsUnit,
-    chatUnit
+    chatUnit,
+    mainUnit
   ];
   async function main() {
     units.forEach((u) => u.init?.(void 0));
     const dbAvailable = init();
     if (!dbAvailable) alert("indexeddb init failed");
+    window.addEventListener("popstate", (e) => {
+      e.preventDefault();
+    });
   }
 })();
 //# sourceMappingURL=index.js.map

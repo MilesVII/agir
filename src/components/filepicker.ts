@@ -1,6 +1,6 @@
 import { mudcrack } from "rampike";
 
-class RampikeFilePicker extends HTMLElement {
+class _RampikeFilePicker extends HTMLElement {
 	get input() {
 		return this.querySelector<HTMLInputElement>(`input[type="file"]`)!;
 	}
@@ -21,6 +21,7 @@ class RampikeFilePicker extends HTMLElement {
 					tagName: "input",
 					attributes: {
 						type: "file",
+						accept: this.getAttribute("accept") ?? ""
 					},
 					style: {
 						display: "none"
@@ -34,7 +35,7 @@ class RampikeFilePicker extends HTMLElement {
 };
 
 export function define(tagName: string) {
-	window.customElements.define(tagName, RampikeFilePicker);
+	window.customElements.define(tagName, _RampikeFilePicker);
 }
 
-export type RampikePicker = RampikeFilePicker;
+export type RampikeFilePicker = _RampikeFilePicker;

@@ -14,8 +14,5 @@ export const navigationUnit: RampikeUnit = {
 
 		const buttons = document.querySelectorAll<HTMLButtonElement>("button[data-to]");
 		buttons.forEach(b => b.addEventListener("click", () => nav(b.dataset.to!)));
-	},
-	update: () => {
-
 	}
 }

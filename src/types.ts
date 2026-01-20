@@ -24,3 +24,34 @@ export type Engine = {
 	context: number
 };
 export type EngineMap = Record<string, Engine>;
+
+export type ScenarioCard = {
+	id: string,
+	card: {
+		picture: string,
+		title: string,
+		description: string,
+	},
+	chat: {
+		picture: string,
+		name: string,
+		definition: string
+	}
+}
+
+export type Chat = {
+	id: string,
+	messages: ChatMessage[],
+	userPersona: Persona,
+	scenario: {
+		id: string,
+	} & ScenarioCard["chat"]
+};
+export type ChatMessage = {
+	id: string,
+	name: string,
+	from: "user" | "model" | "system",
+	swipes: string[],
+	selectedSwipe: number,
+	rember: string | null
+};

@@ -1,14 +1,16 @@
-import { define as defineRadio }     from "@rampike/radio";
-import { define as defineTabs }      from "@rampike/tabs";
-import { define as defineModal }     from "@rampike/modal";
-import { define as definePages }     from "@rampike/pagination";
-import { define as defineSVGImport } from "@rampike/import";
-import { define as defineFilePicker} from "@rampike/filepicker";
-import { define as defineLabeled } from "@rampike/fieldset";
+import { define as defineRadio }       from "@rampike/radio";
+import { define as defineTabs }        from "@rampike/tabs";
+import { define as defineModal }       from "@rampike/modal";
+import { define as definePages }       from "@rampike/pagination";
+import { define as defineSVGImport }   from "@rampike/import";
+import { define as defineFilePicker}   from "@rampike/filepicker";
+import { define as defineLabeled }     from "@rampike/fieldset";
+import { define as defineImagePicker } from "@rampike/imagepicker";
 import { navigationUnit } from "@units/navigation";
 import { RampikeUnit }    from "@units/types";
 import { settingsUnit }   from "@units/settings";
 import { chatUnit }       from "@units/chat";
+import { mainUnit }       from "@units/main";
 import { init as initPersist } from "./persist";
 
 defineTabs();
@@ -17,6 +19,7 @@ defineModal("ram-modal");
 definePages();
 defineSVGImport("ram-import");
 defineFilePicker("ram-file-picker");
+defineImagePicker("ram-image-picker");
 defineLabeled("ram-labeled");
 
 window.addEventListener("DOMContentLoaded", main);
@@ -24,7 +27,8 @@ window.addEventListener("DOMContentLoaded", main);
 const units: RampikeUnit[] = [
 	navigationUnit,
 	settingsUnit,
-	chatUnit
+	chatUnit,
+	mainUnit
 ];
 
 async function main() {
@@ -32,4 +36,8 @@ async function main() {
 
 	const dbAvailable = initPersist();
 	if (!dbAvailable) alert("indexeddb init failed");
+
+	window.addEventListener("popstate", e => {
+		e.preventDefault();
+	});
 }
