@@ -36,8 +36,4 @@ async function main() {
 
 	const dbAvailable = initPersist();
 	if (!dbAvailable) alert("indexeddb init failed");
-
-	window.addEventListener("popstate", e => {
-		e.preventDefault();
-	});
 }

@@ -545,6 +545,11 @@
   }
 
   // src/units/navigation.ts
+  var backMap = {
+    "settings": "chats",
+    "library": "chats",
+    "play": "chats"
+  };
   var navigationUnit = {
     init: () => {
       const tabs = document.querySelector("ram-tabs#tabs-main");
@@ -552,8 +557,19 @@
         tabs.tab = to;
         window.location.hash = to;
       }
-      const hash = window.location.hash.slice(1);
-      if (hash) nav(hash);
+      let oldHistory = window.history.length;
+      window.addEventListener("popstate", (e) => {
+        if (oldHistory < window.history.length) {
+          oldHistory = window.history.length;
+          return;
+        }
+        oldHistory = window.history.length;
+        e.preventDefault();
+        const target = backMap[tabs.tab];
+        if (target) nav(target);
+      });
+      const hash = window.location.hash.slice(1).split(".");
+      if (hash[0]) nav(hash[0]);
       const buttons = document.querySelectorAll("button[data-to]");
       buttons.forEach((b) => b.addEventListener("click", () => nav(b.dataset.to)));
     }
@@ -1021,9 +1037,6 @@
     units.forEach((u) => u.init?.(void 0));
     const dbAvailable = init();
     if (!dbAvailable) alert("indexeddb init failed");
-    window.addEventListener("popstate", (e) => {
-      e.preventDefault();
-    });
   }
 })();
 //# sourceMappingURL=index.js.map
