@@ -25,3 +25,16 @@ export function revolvers<T = void>() {
 	const promise = new Promise<T>(resolve => _resolve = resolve);
 	return { promise, resolve: _resolve as ((v: T) => void) };
 }
+
+export function makeResizable(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
+	const update = () => {
+		textarea.style.height = "auto";
+		textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight)}px`;
+	};
+	textarea.addEventListener("input", update);
+	update();
+}
+
+export function getRoute() {
+	return window.location.hash.slice(1).split(".");
+}

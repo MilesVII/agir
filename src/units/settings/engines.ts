@@ -95,7 +95,13 @@ export const enginesUnit: RampikeUnit = {
 					}
 				})
 			);
-			list.append(...items);
+			if (items.length > 0)
+				list.append(...items);
+			else
+				list.append(mudcrack({
+					className: "placeholder",
+					contents: "No engines found"
+				}));
 		}
 		listen(update => {
 			if (update.storage !== "local") return;

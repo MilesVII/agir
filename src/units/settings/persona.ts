@@ -1,5 +1,5 @@
 import { RampikeUnit } from "@units/types";
-import { getBlobLink, idb, listen } from "@root/persist";
+import { getBlobLink, idb, listen, upload } from "@root/persist";
 import { mudcrack } from "rampike";
 import { Persona } from "@root/types";
 import type { RampikeImagePicker } from "@rampike/imagepicker";
@@ -31,23 +31,12 @@ export const personaUnit: RampikeUnit = {
 			const name = nameInput.value;
 			const desc = descInput.value;
 			if (!name || !desc) return;
-			const editing = Boolean(editingPersona);
 
 			const file = filePicker.value;
 			
-			const picture = typeof file !== "string"
-				? crypto.randomUUID()
-				: file === ""
-					? null
-					: editingPersona?.picture ?? null;
-
-			if (typeof file !== "string" && picture) {
-				await idb.set("media", {
-					id: picture,
-					media: file,
-					mime: file.type
-				});
-			}
+			const picture = typeof file === "string"
+				? file || null
+				: (await upload(file));
 
 			await idb.set("personas", {
 				id: editingPersona?.id ?? crypto.randomUUID(),
@@ -80,8 +69,7 @@ export const personaUnit: RampikeUnit = {
 			nameInput.value = persona.name;
 			descInput.value = persona.description;
 			if (persona.picture) {
-				const link = await getBlobLink(persona.picture);
-				filePicker.value = link!;
+				filePicker.value = persona.picture;
 			}
 			nameInput.scrollIntoView({ behavior: "smooth" });
 		}
@@ -145,7 +133,13 @@ export const personaUnit: RampikeUnit = {
 					})
 				]
 			}));
-			personaList.append(...items);
+			if (items.length > 0)
+				personaList.append(...items);
+			else
+				personaList.append(mudcrack({
+					className: "placeholder",
+					contents: "No personas found"
+				}));
 		}
 		listen(async update => {
 			if (update.storage !== "idb") return;

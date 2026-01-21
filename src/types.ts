@@ -28,12 +28,12 @@ export type EngineMap = Record<string, Engine>;
 export type ScenarioCard = {
 	id: string,
 	card: {
-		picture: string,
+		picture: string | null,
 		title: string,
 		description: string,
 	},
 	chat: {
-		picture: string,
+		picture: string | null,
 		name: string,
 		definition: string
 	}
@@ -41,11 +41,12 @@ export type ScenarioCard = {
 
 export type Chat = {
 	id: string,
-	messages: ChatMessage[],
 	userPersona: Persona,
 	scenario: {
 		id: string,
-	} & ScenarioCard["chat"]
+	} & ScenarioCard["chat"],
+	lastUpdate: number,
+	messageCount: number
 };
 export type ChatMessage = {
 	id: string,
@@ -54,4 +55,8 @@ export type ChatMessage = {
 	swipes: string[],
 	selectedSwipe: number,
 	rember: string | null
+};
+export type ChatContents = {
+	id: string,
+	messages: ChatMessage[],
 };

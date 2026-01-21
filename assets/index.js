@@ -455,126 +455,6 @@
     window.customElements.define(tagName, RampikeLabeled);
   }
 
-  // src/components/imagepicker.ts
-  var PLACHEOLDER = "assets/gfx/placeholder.png";
-  var _RampikeImagePicker = class extends HTMLElement {
-    get value() {
-      return this.file ?? this.getAttribute("value") ?? "";
-    }
-    set value(v) {
-      this.setAttribute("value", v);
-      this.image = v;
-      this.input.value = "";
-    }
-    get input() {
-      return this.querySelector(`input[type="file"]`);
-    }
-    get file() {
-      return this.input.files?.[0];
-    }
-    set image(v) {
-      const img = this.querySelector(`img`);
-      this.revokeBlob?.();
-      img.src = v;
-      this.onDirty?.();
-    }
-    usePlaceholder() {
-      this.image = this.getAttribute("placeholder") || PLACHEOLDER;
-      this.input.value = "";
-      this.setAttribute("value", "");
-    }
-    finish() {
-      this.usePlaceholder();
-      return this.file;
-    }
-    paste(file) {
-      const container = new DataTransfer();
-      container.items.add(file);
-      this.input.files = container.files;
-      this.setFile(file);
-    }
-    onDirty = null;
-    revokeBlob = null;
-    setFile(file) {
-      const link = URL.createObjectURL(file);
-      this.image = link;
-      this.revokeBlob = () => {
-        URL.revokeObjectURL(link);
-        this.revokeBlob = null;
-      };
-      this.setAttribute("value", "");
-      this.onDirty?.();
-    }
-    constructor() {
-      super();
-      const image = d({
-        tagName: "img",
-        attributes: {
-          src: this.getAttribute("value") || this.getAttribute("placeholder") || PLACHEOLDER
-        }
-      });
-      const input = d({
-        tagName: "input",
-        attributes: {
-          type: "file",
-          accept: this.getAttribute("accept") ?? ""
-        },
-        style: {
-          display: "none"
-        },
-        events: {
-          input: (_ev, el) => {
-            const file = el.files?.[0];
-            if (!file?.type.startsWith("image/")) return;
-            this.setFile(file);
-          }
-        }
-      });
-      const contents = d({
-        tagName: "label",
-        style: {
-          display: "contents"
-        },
-        contents: [input, image]
-      });
-      this.append(contents);
-    }
-  };
-  function define8(tagName) {
-    window.customElements.define(tagName, _RampikeImagePicker);
-  }
-
-  // src/units/navigation.ts
-  var backMap = {
-    "settings": "chats",
-    "library": "chats",
-    "play": "chats"
-  };
-  var navigationUnit = {
-    init: () => {
-      const tabs = document.querySelector("ram-tabs#tabs-main");
-      function nav(to) {
-        tabs.tab = to;
-        window.location.hash = to;
-      }
-      let oldHistory = window.history.length;
-      window.addEventListener("popstate", (e) => {
-        if (oldHistory < window.history.length) {
-          oldHistory = window.history.length;
-          return;
-        }
-        oldHistory = window.history.length;
-        e.preventDefault();
-        const target = backMap[tabs.tab];
-        if (target) nav(target);
-      });
-      const hash = window.location.hash.slice(1).split(".");
-      if (hash[0]) nav(hash[0]);
-      const buttons = document.querySelectorAll("button[data-to]");
-      buttons.forEach((b) => b.addEventListener("click", () => nav(b.dataset.to)));
-    }
-  };
-
   // src/utils.ts
   function nothrow(cb) {
     try {
@@ -592,6 +472,17 @@
     let _resolve;
     const promise = new Promise((resolve) => _resolve = resolve);
     return { promise, resolve: _resolve };
+  }
+  function makeResizable(textarea, initialHeight = 52) {
+    const update = () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight)}px`;
+    };
+    textarea.addEventListener("input", update);
+    update();
+  }
+  function getRoute() {
+    return window.location.hash.slice(1).split(".");
   }
 
   // src/persist.ts
@@ -664,6 +555,7 @@
         db.createObjectStore("media", { keyPath: "id" });
         db.createObjectStore("personas", { keyPath: "id" });
         db.createObjectStore("chats", { keyPath: "id" });
+        db.createObjectStore("chatContents", { keyPath: "id" });
         db.createObjectStore("scenarios", { keyPath: "id" });
       };
     });
@@ -677,6 +569,15 @@
     bc.postMessage(update);
     storageListeners.forEach((l2) => l2(update));
   }
+  async function upload(blob) {
+    const id = crypto.randomUUID();
+    await set("media", {
+      id,
+      media: blob,
+      mime: blob.type
+    });
+    return id;
+  }
   var map = /* @__PURE__ */ new Map();
   async function getBlobLink(imageRef) {
     if (map.has(imageRef)) {
@@ -688,6 +589,120 @@
     map.set(imageRef, link);
     return link;
   }
+
+  // src/components/imagepicker.ts
+  var PLACHEOLDER = "assets/gfx/placeholder.png";
+  var _RampikeImagePicker = class extends HTMLElement {
+    get value() {
+      return this.file ?? this.getAttribute("value") ?? "";
+    }
+    set value(v) {
+      this.setAttribute("value", v);
+      this.input.value = "";
+      getBlobLink(v).then((src) => {
+        if (!src) return;
+        this.image = src;
+      });
+    }
+    get input() {
+      return this.querySelector(`input[type="file"]`);
+    }
+    get file() {
+      return this.input.files?.[0];
+    }
+    set image(v) {
+      const img = this.querySelector(`img`);
+      this.revokeBlob?.();
+      img.src = v;
+      this.onDirty?.();
+    }
+    usePlaceholder() {
+      this.image = this.getAttribute("placeholder") || PLACHEOLDER;
+      this.input.value = "";
+      this.setAttribute("value", "");
+    }
+    paste(file) {
+      const container = new DataTransfer();
+      container.items.add(file);
+      this.input.files = container.files;
+      this.setFile(file);
+    }
+    async valueHandle() {
+      return typeof this.value === "string" ? this.value || null : await upload(this.value);
+    }
+    onDirty = null;
+    revokeBlob = null;
+    setFile(file) {
+      const link = URL.createObjectURL(file);
+      this.image = link;
+      this.revokeBlob = () => {
+        URL.revokeObjectURL(link);
+        this.revokeBlob = null;
+      };
+      this.setAttribute("value", "");
+      this.onDirty?.();
+    }
+    constructor() {
+      super();
+      const image = d({
+        tagName: "img",
+        attributes: {
+          src: this.getAttribute("placeholder") || PLACHEOLDER
+        }
+      });
+      const preview = this.getAttribute("value");
+      if (preview) getBlobLink(preview).then((src) => {
+        if (!src) return;
+        image.src = src;
+      });
+      const input = d({
+        tagName: "input",
+        attributes: {
+          type: "file",
+          accept: this.getAttribute("accept") ?? ""
+        },
+        style: {
+          display: "none"
+        },
+        events: {
+          input: (_ev, el) => {
+            const file = el.files?.[0];
+            if (!file?.type.startsWith("image/")) return;
+            this.setFile(file);
+          }
+        }
+      });
+      const contents = d({
+        tagName: "label",
+        style: {
+          display: "contents"
+        },
+        contents: [input, image]
+      });
+      this.append(contents);
+    }
+  };
+  function define8(tagName) {
+    window.customElements.define(tagName, _RampikeImagePicker);
+  }
+
+  // src/units/navigation.ts
+  var navigationUnit = {
+    init: () => {
+      const tabs = document.querySelector("ram-tabs#tabs-main");
+      function nav(to) {
+        tabs.tab = to;
+        window.location.hash = to;
+      }
+      window.addEventListener("hashchange", (e) => {
+        tabs.tab = getRoute()[0] ?? "chats";
+      });
+      const hash = getRoute()[0];
+      if (hash) nav(hash);
+      const buttons = document.querySelectorAll("button[data-to]");
+      buttons.forEach((b) => b.addEventListener("click", () => nav(b.dataset.to)));
+    }
+  };
 
   // src/units/settings/engines.ts
   var enginesUnit = {
@@ -776,7 +791,13 @@
             }
           })
         );
-        list.append(...items);
+        if (items.length > 0)
+          list.append(...items);
+        else
+          list.append(d({
+            className: "placeholder",
+            contents: "No engines found"
+          }));
       }
       listen((update) => {
         if (update.storage !== "local") return;
@@ -829,16 +850,8 @@
         const name = nameInput.value;
         const desc = descInput.value;
         if (!name || !desc) return;
-        const editing = Boolean(editingPersona);
         const file = filePicker.value;
-        const picture = typeof file !== "string" ? crypto.randomUUID() : file === "" ? null : editingPersona?.picture ?? null;
-        if (typeof file !== "string" && picture) {
-          await idb.set("media", {
-            id: picture,
-            media: file,
-            mime: file.type
-          });
-        }
+        const picture = typeof file === "string" ? file || null : await upload(file);
         await idb.set("personas", {
           id: editingPersona?.id ?? crypto.randomUUID(),
           name,
@@ -866,8 +879,7 @@
         nameInput.value = persona.name;
         descInput.value = persona.description;
         if (persona.picture) {
-          const link = await getBlobLink(persona.picture);
-          filePicker.value = link;
+          filePicker.value = persona.picture;
         }
         nameInput.scrollIntoView({ behavior: "smooth" });
       }
@@ -928,7 +940,13 @@
             })
           ]
         }));
-        personaList.append(...items);
+        if (items.length > 0)
+          personaList.append(...items);
+        else
+          personaList.append(d({
+            className: "placeholder",
+            contents: "No personas found"
+          }));
       }
       listen(async (update) => {
         if (update.storage !== "idb") return;
@@ -983,13 +1001,7 @@
   var chatUnit = {
     init: () => {
       const textarea = document.querySelector("#chat-textarea");
-      const initialHeight = 52;
-      const update = () => {
-        textarea.style.height = "auto";
-        textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight)}px`;
-      };
-      textarea.addEventListener("input", update);
-      update();
+      makeResizable(textarea);
     }
   };
 
@@ -1017,6 +1029,68 @@
     };
   }
 
+  // src/units/scenario.ts
+  var scenarioUnit = {
+    init: () => {
+      const chatIcon = document.querySelector("#scenario-chat-picture");
+      const cardIcon = document.querySelector("#scenario-card-picture");
+      const cardTitle = document.querySelector("#scenario-card-title");
+      const cardDescription = document.querySelector("#scenario-description");
+      const characterName = document.querySelector("#scenario-character-name");
+      const defintion = document.querySelector("#scenario-defintion");
+      const previewButton = document.querySelector("#scenario-preview-button");
+      const submitButton = document.querySelector("#scenario-submit-button");
+      makeResizable(cardDescription);
+      makeResizable(defintion);
+      window.addEventListener("hashchange", async () => {
+        const path = getRoute();
+        if (path[0] !== "scenario-editor") return;
+        if (path[1]) {
+          const scenario = await idb.get("scenarios", path[1]);
+          if (!scenario.success) return;
+          cardIcon.value = scenario.value.card.picture ?? "";
+          cardTitle.value = scenario.value.card.title;
+          cardDescription.value = scenario.value.card.description;
+          chatIcon.value = scenario.value.chat.picture ?? "";
+          characterName.value = scenario.value.chat.name;
+          defintion.value = scenario.value.chat.definition;
+        } else {
+          cardIcon.value = "";
+          cardTitle.value = "";
+          cardDescription.value = "";
+          chatIcon.value = "";
+          characterName.value = "";
+          defintion.value = "";
+        }
+      });
+      submitButton.addEventListener("click", async () => {
+        const required = [
+          cardTitle.value,
+          defintion.value
+        ];
+        if (required.some((v) => !v)) return;
+        const cardPicture = await cardIcon.valueHandle();
+        const chatPicture = await chatIcon.valueHandle();
+        const id = getRoute()[1] ?? crypto.randomUUID();
+        const payload = {
+          id,
+          card: {
+            picture: cardPicture,
+            title: cardTitle.value,
+            description: cardDescription.value
+          },
+          chat: {
+            picture: chatPicture,
+            name: characterName.value || cardTitle.value,
+            definition: defintion.value
+          }
+        };
+        await idb.set("scenarios", payload);
+        window.location.hash = "library";
+      });
+    }
+  };
+
   // src/index.ts
   define2();
   define();
@@ -1031,7 +1105,8 @@
     navigationUnit,
     settingsUnit,
     chatUnit,
-    mainUnit
+    mainUnit,
+    scenarioUnit
   ];
   async function main() {
     units.forEach((u) => u.init?.(void 0));

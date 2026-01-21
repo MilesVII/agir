@@ -20,11 +20,10 @@
 }
 
 .placeholder {
-	width: fit-content;
-	padding: 2em;
+	border: 2px solid var(--color-accent);
+	color: var(--color-accent);
+	padding: var(--dims-smol);
 	border-radius: var(--dims-smol);
-	color: var(--color-base);
-	background-color: var(--color-secondary);
 }
 
 .hint {
@@ -89,6 +88,12 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	border: 2px solid var(--color-secondary);
 	border-radius: var(--dims-smol);
 	cursor: pointer;
+}
+
+.scenario-pictures {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--dims-reg);
 }
 
 .chat-layout {

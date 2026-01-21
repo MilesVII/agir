@@ -137,7 +137,31 @@
 			</ram-tab>
 			<ram-tab key="library">
 				<div class="main col pad float-center">
+					<div class="row">
+						<button class="lineout fit" data-to="chats">back</button>
+						<button class="lineout fit" data-to="scenario-editor">new scenario</button>
+					</div>
+				</div>
+			</ram-tab>
+			<ram-tab key="scenario-editor">
+				<div class="main col pad float-center">
 					<button class="lineout fit" data-to="chats">back</button>
+					<div class="scenario-pictures">
+						<div class="list">
+							<div>Card icon</div>
+							<ram-image-picker id="scenario-card-picture" class="lineout"></ram-image-picker>
+						</div>
+						<div class="list">
+							<div>Chat icon</div>
+							<ram-image-picker id="scenario-chat-picture" class="lineout"></ram-image-picker>
+						</div>
+					</div>
+					<input type="text" id="scenario-card-title" class="lineout" placeholder="Card title"></input>
+					<textarea id="scenario-description" class="lineout" placeholder="Card description"></textarea>
+					<input type="text" id="scenario-character-name" class="lineout" placeholder="Character name"></input>
+					<textarea id="scenario-defintion" class="lineout" placeholder="Scenario definition"></textarea>
+					<button id="scenario-preview-button" class="lineout">Preview</button>
+					<button id="scenario-submit-button" class="lineout">Save scenario</button>
 				</div>
 			</ram-tab>
 			<ram-tab key="play">

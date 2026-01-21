@@ -11,6 +11,7 @@ import { RampikeUnit }    from "@units/types";
 import { settingsUnit }   from "@units/settings";
 import { chatUnit }       from "@units/chat";
 import { mainUnit }       from "@units/main";
+import { scenarioUnit }   from "@units/scenario";
 import { init as initPersist } from "./persist";
 
 defineTabs();
@@ -28,7 +29,8 @@ const units: RampikeUnit[] = [
 	navigationUnit,
 	settingsUnit,
 	chatUnit,
-	mainUnit
+	mainUnit,
+	scenarioUnit
 ];
 
 async function main() {

@@ -1,5 +1,6 @@
 import { RampikeTabs } from "@rampike/tabs";
 import { RampikeUnit } from "./types";
+import { getRoute } from "@root/utils";
 
 export const navigationUnit: RampikeUnit = {
 	init: () => {
@@ -8,16 +9,13 @@ export const navigationUnit: RampikeUnit = {
 			tabs.tab = to;
 			window.location.hash = to;
 		}
-		function hashPath() {
-			return window.location.hash.slice(1).split(".");
-		}
 
 		window.addEventListener("hashchange", e => {
-			tabs.tab = hashPath()[0] ?? "chats";
+			tabs.tab = getRoute()[0] ?? "chats";
 		});
 
-		const hash = hashPath();
-		if (hash[0]) nav(hash[0]);
+		const hash = getRoute()[0];
+		if (hash) nav(hash);
 
 		const buttons = document.querySelectorAll<HTMLButtonElement>("button[data-to]");
 		buttons.forEach(b => b.addEventListener("click", () => nav(b.dataset.to!)));

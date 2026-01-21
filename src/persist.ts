@@ -1,4 +1,4 @@
-import { Engine, Persona, Result } from "./types";
+import { Chat, ChatContents, Persona, Result, ScenarioCard } from "./types";
 import { revolvers } from "./utils";
 
 type IDBStorageSchema = {
@@ -7,7 +7,10 @@ type IDBStorageSchema = {
 		media: Blob,
 		mime: string
 	},
-	personas: Persona
+	personas: Persona,
+	chats: Chat,
+	chatContents: ChatContents,
+	scenarios: ScenarioCard
 };
 export type IDBStore = keyof IDBStorageSchema;
 export type LocalKey = "theme" | "engines" | "rember";
@@ -116,10 +119,11 @@ function open() {
 		r.onupgradeneeded = () => {
 			const db = r.result;
 
-			db.createObjectStore("media",     { keyPath: "id" });
-			db.createObjectStore("personas",  { keyPath: "id" });
-			db.createObjectStore("chats",     { keyPath: "id" });
-			db.createObjectStore("scenarios", { keyPath: "id" });
+			db.createObjectStore("media",        { keyPath: "id" });
+			db.createObjectStore("personas",     { keyPath: "id" });
+			db.createObjectStore("chats",        { keyPath: "id" });
+			db.createObjectStore("chatContents", { keyPath: "id" });
+			db.createObjectStore("scenarios",    { keyPath: "id" });
 		}
 	});
 }
@@ -134,6 +138,15 @@ function localSet(key: LocalKey, value: string) {
 	storageListeners.forEach(l => l(update));
 }
 
+export async function upload(blob: Blob) {
+	const id = crypto.randomUUID();
+	await set("media", {
+		id,
+		media: blob,
+		mime: blob.type
+	});
+	return id;
+}
 const map = new Map<string, string>();
 export async function getBlobLink(imageRef: string) {
 	if (map.has(imageRef)) {

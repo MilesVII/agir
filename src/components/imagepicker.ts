@@ -1,3 +1,4 @@
+import { getBlobLink, upload } from "@root/persist";
 import { mudcrack } from "rampike";
 
 const PLACHEOLDER = "assets/gfx/placeholder.png";
@@ -9,8 +10,11 @@ class _RampikeImagePicker extends HTMLElement {
 	}
 	set value(v: string) {
 		this.setAttribute("value", v);
-		this.image = v;
 		this.input.value = "";
+		getBlobLink(v).then(src => {
+			if (!src) return;
+			this.image = src
+		});
 	}
 	get input() {
 		return this.querySelector<HTMLInputElement>(`input[type="file"]`)!;
@@ -30,15 +34,16 @@ class _RampikeImagePicker extends HTMLElement {
 		this.input.value = "";
 		this.setAttribute("value", "");
 	}
-	finish() {
-		this.usePlaceholder();
-		return this.file;
-	}
 	paste(file: File) {
 		const container = new DataTransfer();
 		container.items.add(file);
 		this.input.files = container.files;
 		this.setFile(file);
+	}
+	async valueHandle(): Promise<string | null> {
+		return typeof this.value === "string"
+			? this.value || null
+			: (await upload(this.value));
 	}
 	onDirty: (() => void) | null = null;
 
@@ -60,9 +65,14 @@ class _RampikeImagePicker extends HTMLElement {
 		const image = mudcrack({
 			tagName: "img",
 			attributes: {
-				src: this.getAttribute("value") || this.getAttribute("placeholder") || PLACHEOLDER
+				src: this.getAttribute("placeholder") || PLACHEOLDER
 			}
 		});
+		const preview = this.getAttribute("value");
+		if (preview) getBlobLink(preview).then(src => {
+			if (!src) return;
+			image.src = src;
+		})
 		const input = mudcrack({
 			tagName: "input",
 			attributes: {
