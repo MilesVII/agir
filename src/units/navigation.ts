@@ -1,12 +1,6 @@
 import { RampikeTabs } from "@rampike/tabs";
 import { RampikeUnit } from "./types";
 
-const backMap = {
-	"settings": "chats",
-	"library": "chats",
-	"play": "chats"
-};
-
 export const navigationUnit: RampikeUnit = {
 	init: () => {
 		const tabs = document.querySelector<RampikeTabs>("ram-tabs#tabs-main")!;
@@ -14,20 +8,15 @@ export const navigationUnit: RampikeUnit = {
 			tabs.tab = to;
 			window.location.hash = to;
 		}
-		let oldHistory = window.history.length;
+		function hashPath() {
+			return window.location.hash.slice(1).split(".");
+		}
 
-		window.addEventListener("popstate", e => {
-			if (oldHistory < window.history.length) {
-				oldHistory = window.history.length
-				return;
-			}
-			oldHistory = window.history.length
-			e.preventDefault();
-			const target = backMap[tabs.tab as keyof typeof backMap];
-			if (target) nav(target);
+		window.addEventListener("hashchange", e => {
+			tabs.tab = hashPath()[0] ?? "chats";
 		});
 
-		const hash = window.location.hash.slice(1).split(".");
+		const hash = hashPath();
 		if (hash[0]) nav(hash[0]);
 
 		const buttons = document.querySelectorAll<HTMLButtonElement>("button[data-to]");
