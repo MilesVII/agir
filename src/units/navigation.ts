@@ -6,13 +6,14 @@ export const navigationUnit: RampikeUnit = {
 	init: () => {
 		const tabs = document.querySelector<RampikeTabs>("ram-tabs#tabs-main")!;
 		function nav(to: string) {
-			tabs.tab = to;
 			window.location.hash = to;
 		}
-
-		window.addEventListener("hashchange", e => {
+		function readHash() {
 			tabs.tab = getRoute()[0] ?? "chats";
-		});
+		}
+
+		window.addEventListener("hashchange", readHash);
+		readHash();
 
 		const hash = getRoute()[0];
 		if (hash) nav(hash);

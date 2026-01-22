@@ -11,10 +11,12 @@ class _RampikeImagePicker extends HTMLElement {
 	set value(v: string) {
 		this.setAttribute("value", v);
 		this.input.value = "";
-		getBlobLink(v).then(src => {
-			if (!src) return;
-			this.image = src
-		});
+		if (v) {
+			getBlobLink(v).then(src => {
+				if (!src) return;
+				this.image = src
+			});
+		}
 	}
 	get input() {
 		return this.querySelector<HTMLInputElement>(`input[type="file"]`)!;

@@ -68,6 +68,7 @@ a, a:visited {
 
 h1, h2, h3, h4, h5, h6 {
 	margin: 0;
+	line-height: 1em;
 }
 
 img {
@@ -90,6 +91,7 @@ ul, ol {
 
 textarea {
 	resize: vertical;
+	max-height: 50vh;
 }
 
 dialog {

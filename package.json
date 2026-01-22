@@ -14,6 +14,8 @@
 		"typescript": "^5.5.2"
 	},
 	"dependencies": {
+		"dompurify": "^3.3.1",
+		"marked": "^17.0.1",
 		"rampike": "^0.0.12"
 	}
 }

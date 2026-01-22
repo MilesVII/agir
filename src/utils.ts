@@ -29,7 +29,7 @@ export function revolvers<T = void>() {
 export function makeResizable(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
 	const update = () => {
 		textarea.style.height = "auto";
-		textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight)}px`;
+		textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
 	};
 	textarea.addEventListener("input", update);
 	update();

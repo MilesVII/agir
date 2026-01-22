@@ -145,7 +145,7 @@
 			</ram-tab>
 			<ram-tab key="scenario-editor">
 				<div class="main col pad float-center">
-					<button class="lineout fit" data-to="chats">back</button>
+					<button class="lineout fit" data-to="library">back</button>
 					<div class="scenario-pictures">
 						<div class="list">
 							<div>Card icon</div>
@@ -157,10 +157,22 @@
 						</div>
 					</div>
 					<input type="text" id="scenario-card-title" class="lineout" placeholder="Card title"></input>
-					<textarea id="scenario-description" class="lineout" placeholder="Card description"></textarea>
 					<input type="text" id="scenario-character-name" class="lineout" placeholder="Character name"></input>
-					<textarea id="scenario-defintion" class="lineout" placeholder="Scenario definition"></textarea>
+					<textarea id="scenario-description" class="lineout" placeholder="Card description"></textarea>
+					<textarea id="scenario-tags" class="lineout" placeholder="Tags (comma separated)" rows="1"></textarea>
 					<button id="scenario-preview-button" class="lineout">Preview</button>
+					<div id="scenario-preview" class="lineout" hidden></div>
+					<textarea id="scenario-defintion" class="lineout" placeholder="Scenario definition"></textarea>
+					<div class="list">
+						<div id="scenario-messages-clicker" class="row">
+							<button class="lineout">&lt;</button>
+							<div>1/1</div>
+							<button class="lineout">&gt;</button>
+						</div>
+						<textarea id="scenario-messages" class="lineout" placeholder="First messages"></textarea>
+					</div>
+
+					<!--<textarea>INITIAL MESSAGES</textarea>-->
 					<button id="scenario-submit-button" class="lineout">Save scenario</button>
 				</div>
 			</ram-tab>

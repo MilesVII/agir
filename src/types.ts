@@ -31,11 +31,13 @@ export type ScenarioCard = {
 		picture: string | null,
 		title: string,
 		description: string,
+		tags: string[]
 	},
 	chat: {
 		picture: string | null,
 		name: string,
-		definition: string
+		definition: string,
+		initials: string[]
 	}
 }
 

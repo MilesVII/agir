@@ -95,6 +95,13 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	grid-template-columns: 1fr 1fr;
 	gap: var(--dims-reg);
 }
+#scenario-messages-clicker {
+	justify-content: center;
+	align-items: center;
+}
+#scenario-messages-clicker > button {
+	min-width: 2em;
+}
 
 .chat-layout {
 	display: grid;
