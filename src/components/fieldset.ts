@@ -5,7 +5,7 @@ class RampikeLabeled extends HTMLElement {
 		super();
 
 		const legend = this.getAttribute("legend") ?? "";
-		const multiline = this.getAttribute("multiline");
+		const multiline = this.hasAttribute("multiline");
 		const attributes = Object.fromEntries(
 			this
 				.getAttributeNames()

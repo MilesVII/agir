@@ -8,7 +8,6 @@
 	transition: box-shadow .2s ease, border-color .2s ease;
 	padding: var(--dims-smol);
 	border-radius: var(--dims-smol);
-	cursor: pointer;
 }
 .lineout:hover, .lineout:focus, fieldset:has(*:focus), fieldset:hover {
 	border-color: var(--color-accent);
@@ -17,6 +16,10 @@
 }
 .lineout:active {
 	border-color: var(--color-base);
+}
+
+button.lineout, .pointer {
+	cursor: pointer;
 }
 
 .placeholder {

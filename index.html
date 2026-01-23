@@ -46,7 +46,7 @@
 							<div id="settings-persona-list" class="virtual"></div>
 							<hr/>
 							<div class="row">
-								<ram-image-picker id="settings-persona-picture" class="lineout"></ram-image-picker>
+								<ram-image-picker id="settings-persona-picture" class="lineout pointer"></ram-image-picker>
 								<div class="list wide">
 									<input type="text" id="settings-persona-name" class="lineout wide" placeholder="Persona name" />
 									<button id="settings-persona-picture-clear" class="lineout" hidden>Clear picture</button>
@@ -149,30 +149,66 @@
 					<div class="scenario-pictures">
 						<div class="list">
 							<div>Card icon</div>
-							<ram-image-picker id="scenario-card-picture" class="lineout"></ram-image-picker>
+							<ram-image-picker id="scenario-card-picture" class="lineout pointer"></ram-image-picker>
 						</div>
 						<div class="list">
 							<div>Chat icon</div>
-							<ram-image-picker id="scenario-chat-picture" class="lineout"></ram-image-picker>
+							<ram-image-picker id="scenario-chat-picture" class="lineout pointer"></ram-image-picker>
 						</div>
 					</div>
-					<input type="text" id="scenario-card-title" class="lineout" placeholder="Card title"></input>
-					<input type="text" id="scenario-character-name" class="lineout" placeholder="Character name"></input>
-					<textarea id="scenario-description" class="lineout" placeholder="Card description"></textarea>
-					<textarea id="scenario-tags" class="lineout" placeholder="Tags (comma separated)" rows="1"></textarea>
-					<button id="scenario-preview-button" class="lineout">Preview</button>
+					
+					<ram-labeled
+						legend="Card title"
+						id="scenario-card-title"
+						class="strip wide"
+						placeholder=""
+					></ram-labeled>
+					<ram-labeled
+						legend="Character name"
+						id="scenario-character-name"
+						class="strip wide"
+						placeholder=""
+					></ram-labeled>
+					<ram-labeled
+						legend="Card description"
+						id="scenario-description"
+						class="strip wide"
+						placeholder=""
+						multiline
+					></ram-labeled>
+					<button id="scenario-preview-button" class="lineout">Card description preview</button>
 					<div id="scenario-preview" class="lineout" hidden></div>
-					<textarea id="scenario-defintion" class="lineout" placeholder="Scenario definition"></textarea>
+					<ram-labeled
+						legend="Tags"
+						id="scenario-tags"
+						class="strip wide"
+						placeholder="comma separated"
+						multiline
+						rows="1"
+					></ram-labeled>
+					<ram-labeled
+						legend="Scenario definition"
+						id="scenario-defintion"
+						class="strip wide"
+						placeholder=""
+						multiline
+						rows="1"
+					></ram-labeled>
 					<div class="list">
 						<div id="scenario-messages-clicker" class="row">
 							<button class="lineout">&lt;</button>
 							<div>1/1</div>
 							<button class="lineout">&gt;</button>
 						</div>
-						<textarea id="scenario-messages" class="lineout" placeholder="First messages"></textarea>
+						<ram-labeled
+							legend="First message"
+							id="scenario-messages"
+							class="strip wide"
+							placeholder=""
+							multiline
+							rows="1"
+						></ram-labeled>
 					</div>
-
-					<!--<textarea>INITIAL MESSAGES</textarea>-->
 					<button id="scenario-submit-button" class="lineout">Save scenario</button>
 				</div>
 			</ram-tab>
