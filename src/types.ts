@@ -12,6 +12,7 @@ export type Persona = {
 	name: string,
 	description: string,
 	picture: string | null
+	lastUpdate: number
 };
 
 export type Engine = {

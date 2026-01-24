@@ -2683,8 +2683,18 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function renderMD(content) {
     return purify.sanitize(d2.parse(content, { async: false }));
   }
+  var PLACHEOLDER = "assets/gfx/placeholder.png";
+  function placeholder(url) {
+    return url || PLACHEOLDER;
+  }
 
   // src/persist.ts
+  var IDB_INDESEX = {
+    personas: "lastUpdate",
+    chats: "lastUpdate",
+    scenarios: "lastUpdate"
+  };
+  var INDEX_SORTED = "sorted";
   var storageListeners = [];
   var bc = new BroadcastChannel("storage-updates");
   bc.onmessage = ({ data }) => {
@@ -2712,7 +2722,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   async function getAll(store) {
     const db = await dbInitPromise;
-    const r = db.transaction(store, "readonly").objectStore(store).getAll();
+    const r = store in IDB_INDESEX ? db.transaction(store, "readonly").objectStore(store).index("sorted").getAll() : db.transaction(store, "readonly").objectStore(store).getAll();
     return await new Promise((resolve) => {
       r.onsuccess = () => resolve({ success: true, value: r.result });
       r.onerror = () => resolve({ success: false, error: "read error" });
@@ -2752,10 +2762,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       r.onupgradeneeded = () => {
         const db = r.result;
         db.createObjectStore("media", { keyPath: "id" });
-        db.createObjectStore("personas", { keyPath: "id" });
-        db.createObjectStore("chats", { keyPath: "id" });
+        const personas = db.createObjectStore("personas", { keyPath: "id" });
+        const chats = db.createObjectStore("chats", { keyPath: "id" });
         db.createObjectStore("chatContents", { keyPath: "id" });
-        db.createObjectStore("scenarios", { keyPath: "id" });
+        const scenarios = db.createObjectStore("scenarios", { keyPath: "id" });
+        personas.createIndex(INDEX_SORTED, IDB_INDESEX.personas);
+        chats.createIndex(INDEX_SORTED, IDB_INDESEX.chats);
+        scenarios.createIndex(INDEX_SORTED, IDB_INDESEX.scenarios);
       };
     });
   }
@@ -2783,14 +2796,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       return map.get(imageRef);
     }
     const blob = await get("media", imageRef);
-    if (!blob.success) return null;
+    if (!blob.success || !blob.value) return null;
     const link = URL.createObjectURL(blob.value.media);
     map.set(imageRef, link);
     return link;
   }
 
   // src/components/imagepicker.ts
-  var PLACHEOLDER = "assets/gfx/placeholder.png";
   var _RampikeImagePicker = class extends HTMLElement {
     get value() {
       return this.file ?? this.getAttribute("value") ?? "";
@@ -2818,7 +2830,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       this.onDirty?.();
     }
     usePlaceholder() {
-      this.image = this.getAttribute("placeholder") || PLACHEOLDER;
+      this.image = placeholder(this.getAttribute("placeholder"));
       this.input.value = "";
       this.setAttribute("value", "");
     }
@@ -2848,7 +2860,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const image = d({
         tagName: "img",
         attributes: {
-          src: this.getAttribute("placeholder") || PLACHEOLDER
+          src: placeholder(this.getAttribute("placeholder"))
         }
       });
       const preview = this.getAttribute("value");
@@ -3027,7 +3039,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/settings/persona.ts
-  var PLACHEOLDER2 = "assets/gfx/placeholder.png";
   var personaUnit = {
     init: () => {
       const filePicker = document.querySelector("#settings-persona-picture");
@@ -3058,7 +3069,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           id: editingPersona?.id ?? crypto.randomUUID(),
           name,
           description: desc,
-          picture
+          picture,
+          lastUpdate: Date.now()
         });
         filePicker.input.value = "";
         clear();
@@ -3087,14 +3099,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }
       async function updatePersonaList() {
         const personas = await idb.getAll("personas");
+        console.log(personas);
         if (!personas.success) return;
-        const imageLinks = await Promise.all(
-          personas.value.map(
-            (p) => p.picture ? getBlobLink(p.picture) : PLACHEOLDER2
-          )
-        );
         personaList.innerHTML = "";
-        const items = personas.value.map((p, ix) => d({
+        const items = personas.value.map((p) => d({
           className: "lineout row settings-persona-item",
           attributes: {
             "data-id": p.id
@@ -3104,7 +3112,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
               tagName: "img",
               className: "shadow",
               attributes: {
-                src: imageLinks[ix]
+                src: placeholder(null)
               }
             }),
             d({
@@ -3142,6 +3150,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             })
           ]
         }));
+        personas.value.forEach(async ({ picture }, ix) => {
+          if (!picture) return;
+          const src = await getBlobLink(picture);
+          if (src)
+            items[ix].querySelector("img").src = src;
+        });
         if (items.length > 0)
           personaList.append(...items);
         else
@@ -3190,12 +3204,57 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
+  // src/units/settings/backup.ts
+  function initBackup() {
+    const saveButton = document.querySelector("#settings-backup-save");
+    saveButton.addEventListener("click", backup);
+    const importPicker = document.querySelector("#settings-backup-import");
+    importPicker.addEventListener("input", () => restore(importPicker));
+  }
+  async function backup() {
+    const [chatContents, chats, personas, scenarios] = (await Promise.all([
+      idb.getAll("chatContents"),
+      idb.getAll("chats"),
+      idb.getAll("personas"),
+      idb.getAll("scenarios")
+    ])).filter((v2) => v2.success).map((v2) => v2.value);
+    const localData = {
+      engines: local.get("engines"),
+      rember: local.get("rember"),
+      theme: local.get("theme")
+    };
+    const payload = JSON.stringify({ idb: { chatContents, chats, personas, scenarios }, local: localData });
+    const blob = new Blob([payload], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    d({
+      tagName: "a",
+      attributes: {
+        href: url,
+        download: `backup-${(/* @__PURE__ */ new Date()).toLocaleString()}.json`
+      }
+    }).click();
+    URL.revokeObjectURL(url);
+  }
+  async function restore(picker) {
+    const file = picker.input.files?.[0];
+    if (!file) return;
+    const raw = await file.text();
+    const parsed = JSON.parse(raw);
+    console.log(parsed.idb);
+    for (const [store, data] of Object.entries(parsed.idb)) {
+      for (const item of data) {
+        await idb.set(store, item);
+      }
+    }
+  }
+
   // src/units/settings.ts
   var settingsUnit = {
     init: () => {
       initTheme();
       personaUnit.init(void 0);
       enginesUnit.init(void 0);
+      initBackup();
     }
   };
 
@@ -3355,7 +3414,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/library.ts
-  var PLACHEOLDER3 = "assets/gfx/placeholder.png";
   var libraryUnit = {
     init: () => {
       listen(async (u3) => {
@@ -3375,7 +3433,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       let icon = d({
         tagName: "img",
         attributes: {
-          src: PLACHEOLDER3
+          src: placeholder(null)
         }
       });
       if (item.card.picture) {

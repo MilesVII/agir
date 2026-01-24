@@ -1,9 +1,7 @@
 import { getBlobLink, idb, listen } from "@root/persist";
 import { RampikeUnit } from "./types";
 import { mudcrack } from "rampike";
-import { renderMD } from "@root/utils";
-
-var PLACHEOLDER = "assets/gfx/placeholder.png";
+import { placeholder, renderMD } from "@root/utils";
 
 export const libraryUnit: RampikeUnit = {
 	init: () => {
@@ -28,7 +26,7 @@ async function update() {
 		let icon = mudcrack({
 			tagName: "img",
 			attributes: {
-				src: PLACHEOLDER
+				src: placeholder(null)
 			}
 		});
 		if (item.card.picture) {

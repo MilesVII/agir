@@ -3,8 +3,7 @@ import { getBlobLink, idb, listen, upload } from "@root/persist";
 import { mudcrack } from "rampike";
 import { Persona } from "@root/types";
 import type { RampikeImagePicker } from "@rampike/imagepicker";
-
-const PLACHEOLDER = "assets/gfx/placeholder.png";
+import { placeholder } from "@root/utils";
 
 export const personaUnit: RampikeUnit = {
 	init: () => {
@@ -42,7 +41,8 @@ export const personaUnit: RampikeUnit = {
 				id: editingPersona?.id ?? crypto.randomUUID(),
 				name,
 				description: desc,
-				picture
+				picture,
+				lastUpdate: Date.now()
 			});
 
 			filePicker.input.value = "";
@@ -75,17 +75,18 @@ export const personaUnit: RampikeUnit = {
 		}
 		async function updatePersonaList() {
 			const personas = await idb.getAll("personas");
+			console.log(personas);
 			if (!personas.success) return;
-			const imageLinks = await Promise.all(
-				personas.value.map(p =>
-					p.picture
-						? getBlobLink(p.picture)
-						: PLACHEOLDER
-				)
-			);
+			// const imageLinks = await Promise.all(
+			// 	personas.value.map(p =>
+			// 		p.picture
+			// 			? getBlobLink(p.picture)
+			// 			: null
+			// 	)
+			// );
 
 			personaList.innerHTML = "";
-			const items = personas.value.map((p, ix) => mudcrack({
+			const items = personas.value.map(p => mudcrack({
 				className: "lineout row settings-persona-item",
 				attributes: {
 					"data-id": p.id
@@ -95,7 +96,7 @@ export const personaUnit: RampikeUnit = {
 						tagName: "img",
 						className: "shadow",
 						attributes: {
-							src: imageLinks[ix]!
+							src: placeholder(null)
 						}
 					}),
 					mudcrack({
@@ -133,6 +134,14 @@ export const personaUnit: RampikeUnit = {
 					})
 				]
 			}));
+
+			personas.value.forEach(async ({ picture }, ix) => {
+				if (!picture) return;
+				const src = await getBlobLink(picture);
+				if (src)
+					items[ix].querySelector("img")!.src = src;
+			});
+
 			if (items.length > 0)
 				personaList.append(...items);
 			else

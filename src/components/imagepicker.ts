@@ -1,7 +1,6 @@
 import { getBlobLink, upload } from "@root/persist";
+import { placeholder } from "@root/utils";
 import { mudcrack } from "rampike";
-
-const PLACHEOLDER = "assets/gfx/placeholder.png";
 
 // value, placeholder, accept
 class _RampikeImagePicker extends HTMLElement {
@@ -32,7 +31,7 @@ class _RampikeImagePicker extends HTMLElement {
 	}
 
 	usePlaceholder() {
-		this.image = this.getAttribute("placeholder") || PLACHEOLDER;
+		this.image = placeholder(this.getAttribute("placeholder"));
 		this.input.value = "";
 		this.setAttribute("value", "");
 	}
@@ -67,7 +66,7 @@ class _RampikeImagePicker extends HTMLElement {
 		const image = mudcrack({
 			tagName: "img",
 			attributes: {
-				src: this.getAttribute("placeholder") || PLACHEOLDER
+				src: placeholder(this.getAttribute("placeholder"))
 			}
 		});
 		const preview = this.getAttribute("value");

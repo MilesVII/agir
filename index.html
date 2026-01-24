@@ -127,9 +127,36 @@
 							rEmber
 						</summary>
 						<div class="list">
-							<div>Stride</div>
-							<div>Prompt</div>
-							<div>Tempalte</div>
+							<div class="hint">Stride is a number of message pairs (model + user) that will be summarized. 0 to disable automatic runs</div>
+							<ram-labeled
+								legend="Stride"
+								id="settings-rember-stride"
+								class="strip wide"
+								placeholder="2"
+							></ram-labeled>
+							<ram-labeled
+								legend="Prompt"
+								id="settings-rember-prompt"
+								class="strip wide"
+								multiline
+							></ram-labeled>
+							<ram-labeled
+								legend="State template"
+								id="settings-rember-template"
+								class="strip wide"
+								multiline
+							></ram-labeled>
+						</div>
+					</details>
+					<details>
+						<summary>
+							Backup & Sync
+						</summary>
+						<div class="list">
+							<button id="settings-backup-save" class="lineout">Save all</button>
+							<ram-file-picker id="settings-backup-import">
+								<div class="lineout">Import</div>
+							</ram-file-picker>
 						</div>
 					</details>
 					<details>

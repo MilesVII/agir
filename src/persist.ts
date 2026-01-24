@@ -12,6 +12,14 @@ type IDBStorageSchema = {
 	chatContents: ChatContents,
 	scenarios: ScenarioCard
 };
+const IDB_INDESEX = {
+	personas: "lastUpdate",
+	chats: "lastUpdate",
+	scenarios: "lastUpdate"
+} satisfies {
+	[T in keyof IDBStorageSchema]?: keyof IDBStorageSchema[T]
+};
+const INDEX_SORTED = "sorted";
 export type IDBStore = keyof IDBStorageSchema;
 export type LocalKey = "theme" | "engines" | "rember";
 
@@ -62,10 +70,16 @@ async function get<T extends IDBStore>(store: T, key: IDBStorageSchema[T]["id"])
 async function getAll<T extends IDBStore>(store: T): Promise<Result<IDBStorageSchema[T][], any>> {
 	const db = await dbInitPromise;
 
-	const r = db
-		.transaction(store, "readonly")
-		.objectStore(store)
-		.getAll();
+	const r = (store in IDB_INDESEX)
+		? db
+			.transaction(store, "readonly")
+			.objectStore(store)
+			.index("sorted")
+			.getAll()
+		: db
+			.transaction(store, "readonly")
+			.objectStore(store)
+			.getAll();
 
 	return await new Promise(resolve => {
 		r.onsuccess = () => resolve({ success: true, value: r.result });
@@ -119,11 +133,15 @@ function open() {
 		r.onupgradeneeded = () => {
 			const db = r.result;
 
-			db.createObjectStore("media",        { keyPath: "id" });
-			db.createObjectStore("personas",     { keyPath: "id" });
-			db.createObjectStore("chats",        { keyPath: "id" });
-			db.createObjectStore("chatContents", { keyPath: "id" });
-			db.createObjectStore("scenarios",    { keyPath: "id" });
+			                  db.createObjectStore("media",        { keyPath: "id" });
+			const personas =  db.createObjectStore("personas",     { keyPath: "id" });
+			const chats =     db.createObjectStore("chats",        { keyPath: "id" });
+			                  db.createObjectStore("chatContents", { keyPath: "id" });
+			const scenarios = db.createObjectStore("scenarios",    { keyPath: "id" });
+			
+			 personas.createIndex(INDEX_SORTED, IDB_INDESEX.personas);
+			    chats.createIndex(INDEX_SORTED, IDB_INDESEX.chats);
+			scenarios.createIndex(INDEX_SORTED, IDB_INDESEX.scenarios);
 		}
 	});
 }
@@ -153,7 +171,7 @@ export async function getBlobLink(imageRef: string) {
 		return map.get(imageRef)!;
 	}
 	const blob = await get("media", imageRef);
-	if (!blob.success) return null;
+	if (!blob.success || !blob.value) return null;
 
 	const link = URL.createObjectURL(blob.value.media);
 	map.set(imageRef, link);
