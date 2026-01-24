@@ -11,8 +11,16 @@ export type Persona = {
 	id: string,
 	name: string,
 	description: string,
+	pronouns?: Pronouns,
 	picture: string | null
 	lastUpdate: number
+};
+export type Pronouns = {
+	subjective: string,
+	objective: string,
+	possessiveAdj: string,
+	possessivePro: string,
+	reflexive: string
 };
 
 export type Engine = {
@@ -53,7 +61,7 @@ export type Chat = {
 	messageCount: number
 };
 export type ChatMessage = {
-	id: string,
+	id: number,
 	name: string,
 	from: "user" | "model" | "system",
 	swipes: string[],

@@ -1,9 +1,31 @@
 import { RampikeUnit } from "@units/types";
 import { getBlobLink, idb, listen, upload } from "@root/persist";
 import { mudcrack } from "rampike";
-import { Persona } from "@root/types";
+import { Persona, Pronouns } from "@root/types";
 import type { RampikeImagePicker } from "@rampike/imagepicker";
 import { placeholder } from "@root/utils";
+
+const PRONOUNS_HE: Pronouns = {
+	subjective: "he",
+	objective: "him",
+	possessiveAdj: "his",
+	possessivePro: "his",
+	reflexive: "himself"
+};
+const PRONOUNS_SHE: Pronouns = {
+	subjective: "she",
+	objective: "her",
+	possessiveAdj: "her",
+	possessivePro: "hers",
+	reflexive: "herself"
+};
+export const PRONOUNS_THEY: Pronouns = {
+	subjective: "they",
+	objective: "them",
+	possessiveAdj: "their",
+	possessivePro: "theirs",
+	reflexive: "themselves"
+};
 
 export const personaUnit: RampikeUnit = {
 	init: () => {
@@ -41,6 +63,7 @@ export const personaUnit: RampikeUnit = {
 				id: editingPersona?.id ?? crypto.randomUUID(),
 				name,
 				description: desc,
+				pronouns: PRONOUNS_THEY,
 				picture,
 				lastUpdate: Date.now()
 			});
@@ -75,7 +98,6 @@ export const personaUnit: RampikeUnit = {
 		}
 		async function updatePersonaList() {
 			const personas = await idb.getAll("personas");
-			console.log(personas);
 			if (!personas.success) return;
 
 			personaList.innerHTML = "";

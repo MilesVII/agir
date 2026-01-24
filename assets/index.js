@@ -248,7 +248,6 @@
       const contents = Array.from(this.childNodes);
       const form = d({
         tagName: "form",
-        className: "shadow",
         attributes: {
           method: "dialog"
         },
@@ -2659,11 +2658,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       return { success: false, error };
     }
   }
-  function nothrowAsync(cb) {
-    return new Promise((resolve) => {
-      cb.then((value) => resolve({ success: true, value })).catch((error) => resolve({ success: false, error }));
-    });
-  }
   function revolvers() {
     let _resolve;
     const promise = new Promise((resolve) => _resolve = resolve);
@@ -2911,8 +2905,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }
       window.addEventListener("hashchange", readHash);
       readHash();
-      const hash = getRoute()[0];
-      if (hash) nav(hash);
       const buttons = document.querySelectorAll("button[data-to]");
       buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
     }
@@ -3039,6 +3031,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/settings/persona.ts
+  var PRONOUNS_THEY = {
+    subjective: "they",
+    objective: "them",
+    possessiveAdj: "their",
+    possessivePro: "theirs",
+    reflexive: "themselves"
+  };
   var personaUnit = {
     init: () => {
       const filePicker = document.querySelector("#settings-persona-picture");
@@ -3069,6 +3068,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           id: editingPersona?.id ?? crypto.randomUUID(),
           name,
           description: desc,
+          pronouns: PRONOUNS_THEY,
           picture,
           lastUpdate: Date.now()
         });
@@ -3099,7 +3099,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }
       async function updatePersonaList() {
         const personas = await idb.getAll("personas");
-        console.log(personas);
         if (!personas.success) return;
         personaList.innerHTML = "";
         const items = personas.value.reverse().map((p) => d({
@@ -3269,25 +3268,66 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   // src/units/main.ts
   var mainUnit = {
     init: () => {
-      const chatImport = document.querySelector("#main-chats-import");
-      chatImport.addEventListener("input", async () => {
-        const file = chatImport.input.files?.[0];
-        if (!file) return;
-        const raw = await nothrowAsync(file.text());
-        if (!raw.success) return;
-        const messages = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(JSON.parse(l2))).filter((c2) => c2.success).map((c2) => stcToInternal(c2.value));
+      listen((update2) => {
+        if (update2.storage !== "idb") return;
+        if (update2.store !== "chats") return;
+        updateChatHandles();
       });
+      updateChatHandles();
     }
   };
-  function stcToInternal(stc) {
-    return {
-      id: crypto.randomUUID(),
-      from: stc.is_system ? "system" : stc.is_user ? "user" : "model",
-      name: stc.name,
-      swipes: stc.swipes ?? [stc.mes],
-      selectedSwipe: 0,
-      rember: null
-    };
+  async function updateChatHandles() {
+    const list = document.querySelector("#main-chats");
+    const handles = await idb.getAll("chats");
+    if (!handles.success) return;
+    list.innerHTML = "";
+    const items = handles.value.reverse().map((handle) => d({
+      className: "lineout row main-chats-item",
+      contents: [
+        d({
+          tagName: "img",
+          attributes: {
+            src: placeholder(null)
+          }
+        }),
+        d({
+          className: "list wide",
+          contents: [
+            d({
+              tagName: "h2",
+              contents: handle.scenario.name
+            }),
+            d({
+              className: "hint",
+              contents: messagesCaption(handle.messageCount)
+            })
+          ]
+        }),
+        d({
+          className: "list",
+          contents: [
+            d({
+              tagName: "button",
+              className: "lineout",
+              contents: "play",
+              events: {
+                click: () => window.location.hash = `play.${handle.id}`
+              }
+            }),
+            d({
+              tagName: "button",
+              className: "lineout",
+              contents: "delete"
+            })
+          ]
+        })
+      ]
+    }));
+    if (items.length === 0) list.append(d({ className: "placeholder", contents: "No chats found" }));
+    list.append(...items);
+  }
+  function messagesCaption(count) {
+    return count % 10 === 1 ? `${count} message` : `${count} messages`;
   }
 
   // src/units/scenario.ts
@@ -3353,7 +3393,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           },
           chat: {
             picture: chatPicture,
-            name: characterName.value || cardTitle.value,
+            name: characterName.value,
             definition: defintion.value,
             initials: firstMessages
           }
@@ -3413,9 +3453,79 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     };
   }
 
+  // src/units/chat/start.ts
+  var PRON_MACROS = {
+    "{{sub}}": "subjective",
+    "{{obj}}": "objective",
+    "{{poss}}": "possessiveAdj",
+    "{{poss_p}}": "possessivePro",
+    "{{ref}}": "reflexive"
+  };
+  var CHAR_NAME_MACRO = "{{char}}";
+  var USER_NAME_MACRO = "{{user}}";
+  async function start(personaId, scenarioId) {
+    const [persona, scenario] = await Promise.all([
+      idb.get("personas", personaId),
+      idb.get("scenarios", scenarioId)
+    ]);
+    if (!persona.success || !scenario.success) return;
+    const preparedScenario = prepareScenario(scenario.value, persona.value);
+    const chatId = crypto.randomUUID();
+    await Promise.all([
+      idb.set("chats", {
+        id: chatId,
+        lastUpdate: Date.now(),
+        messageCount: 1,
+        scenario: preparedScenario,
+        userPersona: persona.value
+      }),
+      idb.set("chatContents", {
+        id: chatId,
+        messages: [{
+          id: 0,
+          from: "model",
+          name: scenario.value.chat.name,
+          rember: null,
+          selectedSwipe: 0,
+          swipes: preparedScenario.initials
+        }]
+      })
+    ]);
+    window.location.hash = `play.${chatId}`;
+  }
+  function macros(template, pronouns, charName, userName) {
+    for (const [from, toKey] of Object.entries(PRON_MACROS)) {
+      template = template.replaceAll(from, pronouns[toKey]);
+    }
+    template = template.replaceAll(CHAR_NAME_MACRO, charName);
+    template = template.replaceAll(USER_NAME_MACRO, userName);
+    return template;
+  }
+  function prepareScenario(origin, persona) {
+    const runMacros = (template) => macros(template, persona.pronouns ?? PRONOUNS_THEY, origin.chat.name, persona.name);
+    return {
+      id: origin.id,
+      picture: origin.chat.picture || origin.card.picture,
+      name: origin.chat.name || origin.card.title,
+      definition: runMacros(origin.chat.definition),
+      initials: origin.chat.initials.map(runMacros)
+    };
+  }
+
   // src/units/library.ts
+  var openerRelay = null;
   var libraryUnit = {
     init: () => {
+      const startButton = document.querySelector("#library-start-button");
+      const startPersonaPicker = document.querySelector("#library-start-persona");
+      const modal = document.querySelector("#library-start");
+      startButton.addEventListener("click", async () => {
+        if (!openerRelay) return;
+        const personaId = startPersonaPicker.value;
+        if (!personaId) return;
+        await start(personaId, openerRelay.scenarioId);
+        modal.close();
+      });
       listen(async (u3) => {
         if (u3.storage !== "idb") return;
         if (u3.store !== "scenarios") return;
@@ -3481,9 +3591,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                     tagName: "button",
                     className: "lineout",
                     events: {
-                      click: () => {
-                        document.location.hash = `chat.${item.id}`;
-                      }
+                      click: () => openStartModal(item.id)
                     },
                     contents: "play"
                   })
@@ -3514,6 +3622,28 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const ok = confirm(`scenario "${name}" will be deleted`);
     if (!ok) return;
     idb.del("scenarios", id);
+  }
+  async function openStartModal(scenario) {
+    const modal = document.querySelector("#library-start");
+    const form = modal.querySelector("form");
+    const picker = modal.querySelector("#library-start-persona");
+    const personas = await idb.getAll("personas");
+    if (!personas.success) return;
+    const options = personas.value.map((p) => d({
+      tagName: "option",
+      attributes: {
+        value: p.id
+      },
+      contents: p.name
+    }));
+    picker.innerHTML = "";
+    picker.append(...options);
+    if (personas.value.length > 0)
+      picker.value = personas.value[0].id;
+    openerRelay = {
+      scenarioId: scenario
+    };
+    modal.open();
   }
 
   // src/index.ts

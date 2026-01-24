@@ -135,8 +135,8 @@ dialog {
 dialog > form {
 	display: flex;
 	margin: auto;
-	width: fit-content;
-	min-width: 80vw;
+	width: var(--content-width);
+	/* min-width: 80vw; */
 	max-height: 80vh;
 	overflow-y: auto;
 	position: absolute;
@@ -145,11 +145,13 @@ dialog > form {
 	transform: translate(-50%, -50%);
 
 	flex-flow: column nowrap;
-	/* gap: var(--padding-block);
-	padding: var(--padding-block);
+	background: var(--color-base);
+	border-radius: var(--dims-reg);
+	padding: var(--dims-reg);
+	gap: var(--dims-smol);
 
-	background: var(--color-fore);
-	border-radius: var(--radius-block); */
+	border: 2px solid var(--color-accent);
+	box-shadow: 0 0 var(--dims-smol) var(--color-accent);
 }
 
 details > div {

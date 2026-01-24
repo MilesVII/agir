@@ -20,7 +20,6 @@ export class RampikeModal extends HTMLElement {
 
 		const form = mudcrack({
 			tagName: "form",
-			className: "shadow",
 			attributes: {
 				method: "dialog"
 			},

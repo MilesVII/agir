@@ -1,31 +1,94 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { RampikeUnit } from "./types";
-import { nothrow, nothrowAsync } from "@root/utils";
+import { nothrow, nothrowAsync, placeholder } from "@root/utils";
 import { ChatMessage } from "@root/types";
+import { idb, listen } from "@root/persist";
+import { mudcrack } from "rampike";
 
 export const mainUnit: RampikeUnit = {
 	init: () => {
-		const chatImport = document.querySelector<RampikeFilePicker>("#main-chats-import")!;
-		chatImport.addEventListener("input", async () => {
-			// todo ask to pick a persona
-			const file = chatImport.input.files?.[0];
-			if (!file) return;
+		// const chatImport = document.querySelector<RampikeFilePicker>("#main-chats-import")!;
+		// chatImport.addEventListener("input", async () => {
+		// 	// todo ask to pick a persona
+		// 	const file = chatImport.input.files?.[0];
+		// 	if (!file) return;
 
-			const raw = await nothrowAsync(file.text());
-			if (!raw.success) return;
-			const messages = raw.value
-				.split("\n")
-				.filter(l => l.trim())
-				.map(l => nothrow<STCMessage>(JSON.parse(l)))
-				.filter(c => c.success)
-				.map(c => stcToInternal(c.value));
-		})
+		// 	const raw = await nothrowAsync(file.text());
+		// 	if (!raw.success) return;
+		// 	const messages = raw.value
+		// 		.split("\n")
+		// 		.filter(l => l.trim())
+		// 		.map(l => nothrow<STCMessage>(JSON.parse(l)))
+		// 		.filter(c => c.success)
+		// 		.map((c, ix) => stcToInternal(c.value, ix));
+		// });
+
+		listen(update => {
+			if (update.storage !== "idb") return;
+			if (update.store !== "chats") return;
+
+			updateChatHandles();
+		});
+		updateChatHandles();
 	}
 }
 
-function stcToInternal(stc: STCMessage): ChatMessage {
+async function updateChatHandles() {
+	const list = document.querySelector("#main-chats")!;
+	const handles = await idb.getAll("chats");
+	if (!handles.success) return;
+	list.innerHTML = "";
+
+	const items = handles.value.reverse().map(handle => mudcrack({
+		className: "lineout row main-chats-item",
+		contents: [
+			mudcrack({
+				tagName: "img",
+				attributes: {
+					src: placeholder(null)
+				}
+			}),
+			mudcrack({
+				className: "list wide",
+				contents: [
+					mudcrack({
+						tagName: "h2",
+						contents: handle.scenario.name,
+					}),
+					mudcrack({
+						className: "hint",
+						contents: messagesCaption(handle.messageCount),
+					})
+				]
+			}),
+			mudcrack({
+				className: "list",
+				contents: [
+					mudcrack({
+						tagName: "button",
+						className: "lineout",
+						contents: "play",
+						events: {
+							click: () => window.location.hash = `play.${handle.id}`
+						}
+					}),
+					mudcrack({
+						tagName: "button",
+						className: "lineout",
+						contents: "delete"
+					})
+				]
+			})
+		]
+	}));
+
+	if (items.length === 0) list.append(mudcrack({ className: "placeholder", contents: "No chats found" }));
+	list.append(...items);
+}
+
+function stcToInternal(stc: STCMessage, index: number): ChatMessage {
 	return {
-		id: crypto.randomUUID(),
+		id: index,
 		from: stc.is_system
 			? "system"
 			: stc.is_user
@@ -44,4 +107,8 @@ type STCMessage = {
 	is_system: boolean,
 	mes: string,
 	swipes?: string[]
+}
+
+function messagesCaption(count: number) {
+	return (count % 10 === 1) ? `${count} message` : `${count} messages`;
 }

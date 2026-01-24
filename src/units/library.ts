@@ -2,9 +2,27 @@ import { getBlobLink, idb, listen } from "@root/persist";
 import { RampikeUnit } from "./types";
 import { mudcrack } from "rampike";
 import { placeholder, renderMD } from "@root/utils";
+import { RampikeModal } from "@rampike/modal";
+import { start } from "./chat/start";
+
+let openerRelay: {
+	scenarioId: string
+} | null = null;
 
 export const libraryUnit: RampikeUnit = {
 	init: () => {
+		const startButton = document.querySelector<HTMLButtonElement>("#library-start-button")!;
+		const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
+		const modal = document.querySelector<RampikeModal>("#library-start")!;
+
+		startButton.addEventListener("click", async () => {
+			if (!openerRelay) return;
+			const personaId = startPersonaPicker.value;
+			if (!personaId) return;
+			await start(personaId, openerRelay.scenarioId);
+			modal.close();
+		});
+
 		listen(async u => {
 			if (u.storage !== "idb") return;
 			if (u.store !== "scenarios") return;
@@ -73,9 +91,7 @@ async function update() {
 									tagName: "button",
 									className: "lineout",
 									events: {
-										click: () => {
-											document.location.hash = `chat.${item.id}`
-										}
+										click: () => openStartModal(item.id)
 									},
 									contents: "play"
 								})
@@ -109,4 +125,31 @@ function deleteScenario(id: string, name: string) {
 	if (!ok) return;
 
 	idb.del("scenarios", id);
+}
+
+async function openStartModal(scenario: string) {
+	const modal = document.querySelector<RampikeModal>("#library-start")!;
+	const form = modal.querySelector("form")!;
+	const picker = modal.querySelector<HTMLSelectElement>("#library-start-persona")!;
+
+	const personas = await idb.getAll("personas");
+	if (!personas.success) return;
+
+	const options = personas.value.map(p => mudcrack({
+		tagName: "option",
+		attributes: {
+			value: p.id
+		},
+		contents: p.name
+	}));
+	picker.innerHTML = "";
+	picker.append(...options);
+	if (personas.value.length > 0)
+		picker.value = personas.value[0].id;
+
+	openerRelay = {
+		scenarioId: scenario
+	};
+
+	modal.open();
 }

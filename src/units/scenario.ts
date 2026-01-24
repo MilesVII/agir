@@ -74,7 +74,7 @@ export const scenarioUnit: RampikeUnit = {
 				},
 				chat: {
 					picture: chatPicture,
-					name: characterName.value || cardTitle.value,
+					name: characterName.value,
 					definition: defintion.value,
 					initials: firstMessages
 				}

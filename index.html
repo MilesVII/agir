@@ -27,12 +27,10 @@
 						<button class="lineout fit" data-to="settings">settings</button>
 						<button class="lineout fit" data-to="library">library</button>
 					</div>
-					<ram-file-picker id="main-chats-import" accept=".jsonl">
-						<!-- <img src="assets/gfx/placeholder.png" /> -->
+					<!-- <ram-file-picker id="main-chats-import" accept=".jsonl">
 						<div class="lineout fit">import a chat in SillyTavern format</div>
-					</ram-file-picker>
-					<div class="placeholder">no chats found</div>
-					<button class="lineout fit" data-to="play">play (test)</button>
+					</ram-file-picker> -->
+					<div id="main-chats" class="list"></div>
 				</div>
 			</ram-tab>
 			<ram-tab key="settings">
@@ -293,6 +291,11 @@
 				</div>
 			</ram-tab>
 		</ram-tabs>
+		<ram-modal id="library-start">
+			<div>Pick a persona to start the chat</div>
+			<select id="library-start-persona" class="lineout"></select>
+			<button id="library-start-button" class="lineout">Start</button>
+		</ram-modal>
 	</body>
 
 	<template id="template-theme-selector">

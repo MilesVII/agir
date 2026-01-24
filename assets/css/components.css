@@ -48,6 +48,11 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	color: var(--color-text);
 }
 
+.main-chats-item > img {
+	width: 32%;
+	border-radius: var(--dims-smol);
+}
+
 #settings-persona-picture {
 	overflow: hidden;
 	padding: 0;
