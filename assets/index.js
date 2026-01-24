@@ -455,583 +455,6 @@
     window.customElements.define(tagName, RampikeLabeled);
   }
 
-  // src/utils.ts
-  function nothrow(cb) {
-    try {
-      return { success: true, value: cb() };
-    } catch (error) {
-      return { success: false, error };
-    }
-  }
-  function nothrowAsync(cb) {
-    return new Promise((resolve) => {
-      cb.then((value) => resolve({ success: true, value })).catch((error) => resolve({ success: false, error }));
-    });
-  }
-  function revolvers() {
-    let _resolve;
-    const promise = new Promise((resolve) => _resolve = resolve);
-    return { promise, resolve: _resolve };
-  }
-  function makeResizable(textarea, initialHeight = 52) {
-    const update = () => {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
-    };
-    textarea.addEventListener("input", update);
-    update();
-  }
-  function getRoute() {
-    return window.location.hash.slice(1).split(".");
-  }
-
-  // src/persist.ts
-  var storageListeners = [];
-  var bc = new BroadcastChannel("storage-updates");
-  bc.onmessage = ({ data }) => {
-    storageListeners.forEach((l2) => l2(data));
-  };
-  var { promise: dbInitPromise, resolve: dbInitComplete } = revolvers();
-  function listen(listener) {
-    storageListeners.push(listener);
-  }
-  async function init() {
-    const result = await open();
-    if (result.success) dbInitComplete(result.value);
-    else console.error(result.error);
-    return result.success;
-  }
-  var idb = { get, set, getAll, del };
-  var local = { get: localGet, set: localSet };
-  async function get(store, key) {
-    const db = await dbInitPromise;
-    const r = db.transaction(store, "readonly").objectStore(store).get(key);
-    return await new Promise((resolve) => {
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: "read error" });
-    });
-  }
-  async function getAll(store) {
-    const db = await dbInitPromise;
-    const r = db.transaction(store, "readonly").objectStore(store).getAll();
-    return await new Promise((resolve) => {
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: "read error" });
-    });
-  }
-  async function set(store, value) {
-    const db = await dbInitPromise;
-    const r = db.transaction(store, "readwrite").objectStore(store).put(value);
-    return await new Promise((resolve) => {
-      r.onsuccess = () => {
-        resolve({ success: true, value: r.result });
-        const update = { storage: "idb", store };
-        bc.postMessage(update);
-        storageListeners.forEach((l2) => l2(update));
-      };
-      r.onerror = () => resolve({ success: false, error: "write error" });
-    });
-  }
-  async function del(store, id) {
-    const db = await dbInitPromise;
-    const r = db.transaction(store, "readwrite").objectStore(store).delete(id);
-    return await new Promise((resolve) => {
-      r.onsuccess = () => {
-        resolve({ success: true, value: r.result });
-        const update = { storage: "idb", store };
-        bc.postMessage(update);
-        storageListeners.forEach((l2) => l2(update));
-      };
-      r.onerror = () => resolve({ success: false, error: "write error" });
-    });
-  }
-  function open() {
-    return new Promise((resolve) => {
-      const r = window.indexedDB.open("ehh", 1);
-      r.onsuccess = () => resolve({ success: true, value: r.result });
-      r.onerror = () => resolve({ success: false, error: r.error });
-      r.onupgradeneeded = () => {
-        const db = r.result;
-        db.createObjectStore("media", { keyPath: "id" });
-        db.createObjectStore("personas", { keyPath: "id" });
-        db.createObjectStore("chats", { keyPath: "id" });
-        db.createObjectStore("chatContents", { keyPath: "id" });
-        db.createObjectStore("scenarios", { keyPath: "id" });
-      };
-    });
-  }
-  function localGet(key) {
-    return window.localStorage.getItem(key);
-  }
-  function localSet(key, value) {
-    window.localStorage.setItem(key, value);
-    const update = { storage: "local", key };
-    bc.postMessage(update);
-    storageListeners.forEach((l2) => l2(update));
-  }
-  async function upload(blob) {
-    const id = crypto.randomUUID();
-    await set("media", {
-      id,
-      media: blob,
-      mime: blob.type
-    });
-    return id;
-  }
-  var map = /* @__PURE__ */ new Map();
-  async function getBlobLink(imageRef) {
-    if (map.has(imageRef)) {
-      return map.get(imageRef);
-    }
-    const blob = await get("media", imageRef);
-    if (!blob.success) return null;
-    const link = URL.createObjectURL(blob.value.media);
-    map.set(imageRef, link);
-    return link;
-  }
-
-  // src/components/imagepicker.ts
-  var PLACHEOLDER = "assets/gfx/placeholder.png";
-  var _RampikeImagePicker = class extends HTMLElement {
-    get value() {
-      return this.file ?? this.getAttribute("value") ?? "";
-    }
-    set value(v2) {
-      this.setAttribute("value", v2);
-      this.input.value = "";
-      if (v2) {
-        getBlobLink(v2).then((src) => {
-          if (!src) return;
-          this.image = src;
-        });
-      }
-    }
-    get input() {
-      return this.querySelector(`input[type="file"]`);
-    }
-    get file() {
-      return this.input.files?.[0];
-    }
-    set image(v2) {
-      const img = this.querySelector(`img`);
-      this.revokeBlob?.();
-      img.src = v2;
-      this.onDirty?.();
-    }
-    usePlaceholder() {
-      this.image = this.getAttribute("placeholder") || PLACHEOLDER;
-      this.input.value = "";
-      this.setAttribute("value", "");
-    }
-    paste(file) {
-      const container = new DataTransfer();
-      container.items.add(file);
-      this.input.files = container.files;
-      this.setFile(file);
-    }
-    async valueHandle() {
-      return typeof this.value === "string" ? this.value || null : await upload(this.value);
-    }
-    onDirty = null;
-    revokeBlob = null;
-    setFile(file) {
-      const link = URL.createObjectURL(file);
-      this.image = link;
-      this.revokeBlob = () => {
-        URL.revokeObjectURL(link);
-        this.revokeBlob = null;
-      };
-      this.setAttribute("value", "");
-      this.onDirty?.();
-    }
-    constructor() {
-      super();
-      const image = d({
-        tagName: "img",
-        attributes: {
-          src: this.getAttribute("placeholder") || PLACHEOLDER
-        }
-      });
-      const preview = this.getAttribute("value");
-      if (preview) getBlobLink(preview).then((src) => {
-        if (!src) return;
-        image.src = src;
-      });
-      const input = d({
-        tagName: "input",
-        attributes: {
-          type: "file",
-          accept: this.getAttribute("accept") ?? ""
-        },
-        style: {
-          display: "none"
-        },
-        events: {
-          input: (_ev, el) => {
-            const file = el.files?.[0];
-            if (!file?.type.startsWith("image/")) return;
-            this.setFile(file);
-          }
-        }
-      });
-      const contents = d({
-        tagName: "label",
-        style: {
-          display: "contents"
-        },
-        contents: [input, image]
-      });
-      this.append(contents);
-    }
-  };
-  function define8(tagName) {
-    window.customElements.define(tagName, _RampikeImagePicker);
-  }
-
-  // src/units/navigation.ts
-  var navigationUnit = {
-    init: () => {
-      const tabs = document.querySelector("ram-tabs#tabs-main");
-      function nav(to) {
-        window.location.hash = to;
-      }
-      function readHash() {
-        tabs.tab = getRoute()[0] ?? "chats";
-      }
-      window.addEventListener("hashchange", readHash);
-      readHash();
-      const hash = getRoute()[0];
-      if (hash) nav(hash);
-      const buttons = document.querySelectorAll("button[data-to]");
-      buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
-    }
-  };
-
-  // src/units/settings/engines.ts
-  var enginesUnit = {
-    init: () => {
-      const inputs = {
-        name: document.querySelector("#settings-engines-name"),
-        url: document.querySelector("#settings-engines-url"),
-        key: document.querySelector("#settings-engines-key"),
-        model: document.querySelector("#settings-engines-model"),
-        temp: document.querySelector("#settings-engines-temp"),
-        max: document.querySelector("#settings-engines-max"),
-        context: document.querySelector("#settings-engines-context")
-      };
-      const defaults = {
-        temp: 0.9,
-        max: 720,
-        context: 16384
-      };
-      const submitButton = document.querySelector("#settings-engines-submit");
-      const list = document.querySelector("#settings-engines-list");
-      let editing = null;
-      submitButton.addEventListener("click", submit);
-      function submit() {
-        const id = editing ?? crypto.randomUUID();
-        function parseNumber(key) {
-          const f = parseFloat(inputs[key].value);
-          if (isNaN(f) || f < 0) return defaults[key];
-          return f;
-        }
-        const e = {
-          name: inputs.name.value,
-          url: inputs.url.value,
-          key: inputs.key.value,
-          model: inputs.model.value,
-          temp: parseNumber("temp"),
-          max: parseNumber("max"),
-          context: parseNumber("context")
-        };
-        const missing = ["name", "url", "model"].some((k2) => !e[k2]);
-        if (missing) return;
-        const eMap = readEngines();
-        eMap[id] = e;
-        saveEngines(eMap);
-        editing = null;
-        inputs.name.value = "";
-        inputs.url.value = "";
-        inputs.key.value = "";
-        inputs.model.value = "";
-        inputs.temp.value = String(defaults.temp);
-        inputs.max.value = String(defaults.max);
-        inputs.context.value = String(defaults.context);
-      }
-      function edit(id, e) {
-        editing = id;
-        inputs.name.value = e.name;
-        inputs.url.value = e.url;
-        inputs.key.value = e.key;
-        inputs.model.value = e.model;
-        inputs.temp.value = String(e.temp);
-        inputs.max.value = String(e.max);
-        inputs.context.value = String(e.context);
-        inputs.name.scrollIntoView({ behavior: "smooth" });
-      }
-      function updateList() {
-        list.innerHTML = "";
-        const enginesMap = readEngines();
-        const engines = Object.entries(enginesMap);
-        const items = engines.map(
-          ([id, e]) => d({
-            className: "lineout row settings-engine-item",
-            contents: [
-              d({
-                contents: e.name
-              }),
-              d({
-                tagName: "button",
-                className: "lineout",
-                events: {
-                  click: () => deleteEngine(id)
-                },
-                contents: "delete"
-              })
-            ],
-            events: {
-              click: () => edit(id, e)
-            }
-          })
-        );
-        if (items.length > 0)
-          list.append(...items);
-        else
-          list.append(d({
-            className: "placeholder",
-            contents: "No engines found"
-          }));
-      }
-      listen((update) => {
-        if (update.storage !== "local") return;
-        if (update.key !== "engines") return;
-        updateList();
-      });
-      updateList();
-    }
-  };
-  function readEngines() {
-    const enginesRaw = local.get("engines");
-    if (!enginesRaw) return {};
-    const engines = nothrow(() => JSON.parse(enginesRaw));
-    if (!engines.success) return {};
-    return engines.value;
-  }
-  function saveEngines(eMap) {
-    local.set("engines", JSON.stringify(eMap));
-  }
-  function deleteEngine(id) {
-    if (!confirm("confirm deletion")) return;
-    const e = readEngines();
-    delete e[id];
-    saveEngines(e);
-  }
-
-  // src/units/settings/persona.ts
-  var PLACHEOLDER2 = "assets/gfx/placeholder.png";
-  var personaUnit = {
-    init: () => {
-      const filePicker = document.querySelector("#settings-persona-picture");
-      const clearButton = document.querySelector("#settings-persona-picture-clear");
-      const nameInput = document.querySelector("#settings-persona-name");
-      const descInput = document.querySelector("#settings-persona-desc");
-      const personaList = document.querySelector("#settings-persona-list");
-      const submitButton = document.querySelector("#settings-add-persona");
-      const form = document.querySelector("#settings-persona-form");
-      let editingPersona = null;
-      function clear() {
-        filePicker.usePlaceholder();
-        clearButton.hidden = true;
-      }
-      clearButton.addEventListener("click", () => {
-        clear();
-      });
-      filePicker.onDirty = () => {
-        clearButton.hidden = filePicker.value === "";
-      };
-      submitButton.addEventListener("click", async () => {
-        const name = nameInput.value;
-        const desc = descInput.value;
-        if (!name || !desc) return;
-        const file = filePicker.value;
-        const picture = typeof file === "string" ? file || null : await upload(file);
-        await idb.set("personas", {
-          id: editingPersona?.id ?? crypto.randomUUID(),
-          name,
-          description: desc,
-          picture
-        });
-        filePicker.input.value = "";
-        clear();
-        nameInput.value = "";
-        descInput.value = "";
-        editingPersona = null;
-      });
-      form.addEventListener("paste", (e) => {
-        const file = e.clipboardData?.files[0];
-        if (!file) return;
-        e.preventDefault();
-        filePicker.paste(file);
-      });
-      function removePersona(id) {
-        if (!confirm("confirm deletion")) return;
-        return idb.del("personas", id);
-      }
-      async function startEditing(persona) {
-        editingPersona = persona;
-        nameInput.value = persona.name;
-        descInput.value = persona.description;
-        if (persona.picture) {
-          filePicker.value = persona.picture;
-        }
-        nameInput.scrollIntoView({ behavior: "smooth" });
-      }
-      async function updatePersonaList() {
-        const personas = await idb.getAll("personas");
-        if (!personas.success) return;
-        const imageLinks = await Promise.all(
-          personas.value.map(
-            (p) => p.picture ? getBlobLink(p.picture) : PLACHEOLDER2
-          )
-        );
-        personaList.innerHTML = "";
-        const items = personas.value.map((p, ix) => d({
-          className: "lineout row settings-persona-item",
-          attributes: {
-            "data-id": p.id
-          },
-          contents: [
-            d({
-              tagName: "img",
-              className: "shadow",
-              attributes: {
-                src: imageLinks[ix]
-              }
-            }),
-            d({
-              className: "list settings-persona-item-main",
-              contents: [
-                d({
-                  className: "row-compact",
-                  contents: [
-                    d({
-                      tagName: "h6",
-                      contents: p.name
-                    }),
-                    d({
-                      tagName: "button",
-                      className: "lineout",
-                      events: {
-                        click: () => startEditing(p)
-                      },
-                      contents: "edit"
-                    }),
-                    d({
-                      tagName: "button",
-                      className: "lineout",
-                      events: {
-                        click: () => removePersona(p.id)
-                      },
-                      contents: "delete"
-                    })
-                  ]
-                }),
-                d({
-                  contents: p.description
-                })
-              ]
-            })
-          ]
-        }));
-        if (items.length > 0)
-          personaList.append(...items);
-        else
-          personaList.append(d({
-            className: "placeholder",
-            contents: "No personas found"
-          }));
-      }
-      listen(async (update) => {
-        if (update.storage !== "idb") return;
-        if (update.store !== "personas") return;
-        updatePersonaList();
-      });
-      updatePersonaList();
-    }
-  };
-
-  // src/units/settings/themes.ts
-  var STORAGE_KEY_THEME = "theme";
-  var CSS_THEMES_FILE = "theme.css";
-  function initTheme() {
-    const theme = window.localStorage.getItem(STORAGE_KEY_THEME);
-    if (theme) switchTheme(theme);
-    const rules = [];
-    for (const ss of Array.from(document.styleSheets))
-      if (ss.href?.includes(CSS_THEMES_FILE)) {
-        const raw = [...Array.from(ss.cssRules)];
-        rules.push(...raw.filter((r) => r.constructor.name === "CSSStyleRule"));
-      }
-    const themes = rules.map((r) => r.selectorText.match(/\.theme-(.*)/)).filter((r) => r);
-    document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
-  }
-  function selectorItem(name) {
-    const template = document.querySelector("#template-theme-selector");
-    const button = c(template);
-    const themeClassName = `theme-${name}`;
-    button.classList.add(themeClassName);
-    button.addEventListener("click", () => switchTheme(themeClassName));
-    return button;
-  }
-  function switchTheme(themeClassName) {
-    document.body.classList.forEach((c2) => {
-      if (c2.startsWith("theme-")) document.body.classList.remove(c2);
-    });
-    document.body.classList.add(themeClassName);
-    window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
-  }
-
-  // src/units/settings.ts
-  var settingsUnit = {
-    init: () => {
-      initTheme();
-      personaUnit.init(void 0);
-      enginesUnit.init(void 0);
-    }
-  };
-
-  // src/units/chat.ts
-  var chatUnit = {
-    init: () => {
-      const textarea = document.querySelector("#chat-textarea");
-      makeResizable(textarea);
-    }
-  };
-
-  // src/units/main.ts
-  var mainUnit = {
-    init: () => {
-      const chatImport = document.querySelector("#main-chats-import");
-      chatImport.addEventListener("input", async () => {
-        const file = chatImport.input.files?.[0];
-        if (!file) return;
-        const raw = await nothrowAsync(file.text());
-        if (!raw.success) return;
-        const messages = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(JSON.parse(l2))).filter((c2) => c2.success).map((c2) => stcToInternal(c2.value));
-      });
-    }
-  };
-  function stcToInternal(stc) {
-    return {
-      id: crypto.randomUUID(),
-      from: stc.is_system ? "system" : stc.is_user ? "user" : "model",
-      name: stc.name,
-      swipes: stc.swipes ?? [stc.mes],
-      selectedSwipe: 0,
-      rember: null
-    };
-  }
-
   // node_modules/marked/lib/marked.esm.js
   function L() {
     return { async: false, breaks: false, extensions: null, gfm: true, hooks: null, pedantic: false, renderer: null, silent: false, tokenizer: null, walkTokens: null };
@@ -3228,6 +2651,586 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   var purify = createDOMPurify();
 
+  // src/utils.ts
+  function nothrow(cb) {
+    try {
+      return { success: true, value: cb() };
+    } catch (error) {
+      return { success: false, error };
+    }
+  }
+  function nothrowAsync(cb) {
+    return new Promise((resolve) => {
+      cb.then((value) => resolve({ success: true, value })).catch((error) => resolve({ success: false, error }));
+    });
+  }
+  function revolvers() {
+    let _resolve;
+    const promise = new Promise((resolve) => _resolve = resolve);
+    return { promise, resolve: _resolve };
+  }
+  function makeResizable(textarea, initialHeight = 52) {
+    const update2 = () => {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
+    };
+    textarea.addEventListener("input", update2);
+    update2();
+  }
+  function getRoute() {
+    return window.location.hash.slice(1).split(".");
+  }
+  function renderMD(content) {
+    return purify.sanitize(d2.parse(content, { async: false }));
+  }
+
+  // src/persist.ts
+  var storageListeners = [];
+  var bc = new BroadcastChannel("storage-updates");
+  bc.onmessage = ({ data }) => {
+    storageListeners.forEach((l2) => l2(data));
+  };
+  var { promise: dbInitPromise, resolve: dbInitComplete } = revolvers();
+  function listen(listener) {
+    storageListeners.push(listener);
+  }
+  async function init() {
+    const result = await open();
+    if (result.success) dbInitComplete(result.value);
+    else console.error(result.error);
+    return result.success;
+  }
+  var idb = { get, set, getAll, del };
+  var local = { get: localGet, set: localSet };
+  async function get(store, key) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readonly").objectStore(store).get(key);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: "read error" });
+    });
+  }
+  async function getAll(store) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readonly").objectStore(store).getAll();
+    return await new Promise((resolve) => {
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: "read error" });
+    });
+  }
+  async function set(store, value) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readwrite").objectStore(store).put(value);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => {
+        resolve({ success: true, value: r.result });
+        const update2 = { storage: "idb", store };
+        bc.postMessage(update2);
+        storageListeners.forEach((l2) => l2(update2));
+      };
+      r.onerror = () => resolve({ success: false, error: "write error" });
+    });
+  }
+  async function del(store, id) {
+    const db = await dbInitPromise;
+    const r = db.transaction(store, "readwrite").objectStore(store).delete(id);
+    return await new Promise((resolve) => {
+      r.onsuccess = () => {
+        resolve({ success: true, value: r.result });
+        const update2 = { storage: "idb", store };
+        bc.postMessage(update2);
+        storageListeners.forEach((l2) => l2(update2));
+      };
+      r.onerror = () => resolve({ success: false, error: "write error" });
+    });
+  }
+  function open() {
+    return new Promise((resolve) => {
+      const r = window.indexedDB.open("ehh", 1);
+      r.onsuccess = () => resolve({ success: true, value: r.result });
+      r.onerror = () => resolve({ success: false, error: r.error });
+      r.onupgradeneeded = () => {
+        const db = r.result;
+        db.createObjectStore("media", { keyPath: "id" });
+        db.createObjectStore("personas", { keyPath: "id" });
+        db.createObjectStore("chats", { keyPath: "id" });
+        db.createObjectStore("chatContents", { keyPath: "id" });
+        db.createObjectStore("scenarios", { keyPath: "id" });
+      };
+    });
+  }
+  function localGet(key) {
+    return window.localStorage.getItem(key);
+  }
+  function localSet(key, value) {
+    window.localStorage.setItem(key, value);
+    const update2 = { storage: "local", key };
+    bc.postMessage(update2);
+    storageListeners.forEach((l2) => l2(update2));
+  }
+  async function upload(blob) {
+    const id = crypto.randomUUID();
+    await set("media", {
+      id,
+      media: blob,
+      mime: blob.type
+    });
+    return id;
+  }
+  var map = /* @__PURE__ */ new Map();
+  async function getBlobLink(imageRef) {
+    if (map.has(imageRef)) {
+      return map.get(imageRef);
+    }
+    const blob = await get("media", imageRef);
+    if (!blob.success) return null;
+    const link = URL.createObjectURL(blob.value.media);
+    map.set(imageRef, link);
+    return link;
+  }
+
+  // src/components/imagepicker.ts
+  var PLACHEOLDER = "assets/gfx/placeholder.png";
+  var _RampikeImagePicker = class extends HTMLElement {
+    get value() {
+      return this.file ?? this.getAttribute("value") ?? "";
+    }
+    set value(v2) {
+      this.setAttribute("value", v2);
+      this.input.value = "";
+      if (v2) {
+        getBlobLink(v2).then((src) => {
+          if (!src) return;
+          this.image = src;
+        });
+      }
+    }
+    get input() {
+      return this.querySelector(`input[type="file"]`);
+    }
+    get file() {
+      return this.input.files?.[0];
+    }
+    set image(v2) {
+      const img = this.querySelector(`img`);
+      this.revokeBlob?.();
+      img.src = v2;
+      this.onDirty?.();
+    }
+    usePlaceholder() {
+      this.image = this.getAttribute("placeholder") || PLACHEOLDER;
+      this.input.value = "";
+      this.setAttribute("value", "");
+    }
+    paste(file) {
+      const container = new DataTransfer();
+      container.items.add(file);
+      this.input.files = container.files;
+      this.setFile(file);
+    }
+    async valueHandle() {
+      return typeof this.value === "string" ? this.value || null : await upload(this.value);
+    }
+    onDirty = null;
+    revokeBlob = null;
+    setFile(file) {
+      const link = URL.createObjectURL(file);
+      this.image = link;
+      this.revokeBlob = () => {
+        URL.revokeObjectURL(link);
+        this.revokeBlob = null;
+      };
+      this.setAttribute("value", "");
+      this.onDirty?.();
+    }
+    constructor() {
+      super();
+      const image = d({
+        tagName: "img",
+        attributes: {
+          src: this.getAttribute("placeholder") || PLACHEOLDER
+        }
+      });
+      const preview = this.getAttribute("value");
+      if (preview) getBlobLink(preview).then((src) => {
+        if (!src) return;
+        image.src = src;
+      });
+      const input = d({
+        tagName: "input",
+        attributes: {
+          type: "file",
+          accept: this.getAttribute("accept") ?? ""
+        },
+        style: {
+          display: "none"
+        },
+        events: {
+          input: (_ev, el) => {
+            const file = el.files?.[0];
+            if (!file?.type.startsWith("image/")) return;
+            this.setFile(file);
+          }
+        }
+      });
+      const contents = d({
+        tagName: "label",
+        style: {
+          display: "contents"
+        },
+        contents: [input, image]
+      });
+      this.append(contents);
+    }
+  };
+  function define8(tagName) {
+    window.customElements.define(tagName, _RampikeImagePicker);
+  }
+
+  // src/units/navigation.ts
+  var navigationUnit = {
+    init: () => {
+      const tabs = document.querySelector("ram-tabs#tabs-main");
+      function nav(to) {
+        window.location.hash = to;
+      }
+      function readHash() {
+        tabs.tab = getRoute()[0] ?? "chats";
+      }
+      window.addEventListener("hashchange", readHash);
+      readHash();
+      const hash = getRoute()[0];
+      if (hash) nav(hash);
+      const buttons = document.querySelectorAll("button[data-to]");
+      buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
+    }
+  };
+
+  // src/units/settings/engines.ts
+  var enginesUnit = {
+    init: () => {
+      const inputs = {
+        name: document.querySelector("#settings-engines-name"),
+        url: document.querySelector("#settings-engines-url"),
+        key: document.querySelector("#settings-engines-key"),
+        model: document.querySelector("#settings-engines-model"),
+        temp: document.querySelector("#settings-engines-temp"),
+        max: document.querySelector("#settings-engines-max"),
+        context: document.querySelector("#settings-engines-context")
+      };
+      const defaults = {
+        temp: 0.9,
+        max: 720,
+        context: 16384
+      };
+      const submitButton = document.querySelector("#settings-engines-submit");
+      const list = document.querySelector("#settings-engines-list");
+      let editing = null;
+      submitButton.addEventListener("click", submit);
+      function submit() {
+        const id = editing ?? crypto.randomUUID();
+        function parseNumber(key) {
+          const f = parseFloat(inputs[key].value);
+          if (isNaN(f) || f < 0) return defaults[key];
+          return f;
+        }
+        const e = {
+          name: inputs.name.value,
+          url: inputs.url.value,
+          key: inputs.key.value,
+          model: inputs.model.value,
+          temp: parseNumber("temp"),
+          max: parseNumber("max"),
+          context: parseNumber("context")
+        };
+        const missing = ["name", "url", "model"].some((k2) => !e[k2]);
+        if (missing) return;
+        const eMap = readEngines();
+        eMap[id] = e;
+        saveEngines(eMap);
+        editing = null;
+        inputs.name.value = "";
+        inputs.url.value = "";
+        inputs.key.value = "";
+        inputs.model.value = "";
+        inputs.temp.value = String(defaults.temp);
+        inputs.max.value = String(defaults.max);
+        inputs.context.value = String(defaults.context);
+      }
+      function edit(id, e) {
+        editing = id;
+        inputs.name.value = e.name;
+        inputs.url.value = e.url;
+        inputs.key.value = e.key;
+        inputs.model.value = e.model;
+        inputs.temp.value = String(e.temp);
+        inputs.max.value = String(e.max);
+        inputs.context.value = String(e.context);
+        inputs.name.scrollIntoView({ behavior: "smooth" });
+      }
+      function updateList() {
+        list.innerHTML = "";
+        const enginesMap = readEngines();
+        const engines = Object.entries(enginesMap);
+        const items = engines.map(
+          ([id, e]) => d({
+            className: "lineout row settings-engine-item",
+            contents: [
+              d({
+                contents: e.name
+              }),
+              d({
+                tagName: "button",
+                className: "lineout",
+                events: {
+                  click: () => deleteEngine(id)
+                },
+                contents: "delete"
+              })
+            ],
+            events: {
+              click: () => edit(id, e)
+            }
+          })
+        );
+        if (items.length > 0)
+          list.append(...items);
+        else
+          list.append(d({
+            className: "placeholder",
+            contents: "No engines found"
+          }));
+      }
+      listen((update2) => {
+        if (update2.storage !== "local") return;
+        if (update2.key !== "engines") return;
+        updateList();
+      });
+      updateList();
+    }
+  };
+  function readEngines() {
+    const enginesRaw = local.get("engines");
+    if (!enginesRaw) return {};
+    const engines = nothrow(() => JSON.parse(enginesRaw));
+    if (!engines.success) return {};
+    return engines.value;
+  }
+  function saveEngines(eMap) {
+    local.set("engines", JSON.stringify(eMap));
+  }
+  function deleteEngine(id) {
+    if (!confirm("confirm deletion")) return;
+    const e = readEngines();
+    delete e[id];
+    saveEngines(e);
+  }
+
+  // src/units/settings/persona.ts
+  var PLACHEOLDER2 = "assets/gfx/placeholder.png";
+  var personaUnit = {
+    init: () => {
+      const filePicker = document.querySelector("#settings-persona-picture");
+      const clearButton = document.querySelector("#settings-persona-picture-clear");
+      const nameInput = document.querySelector("#settings-persona-name");
+      const descInput = document.querySelector("#settings-persona-desc");
+      const personaList = document.querySelector("#settings-persona-list");
+      const submitButton = document.querySelector("#settings-add-persona");
+      const form = document.querySelector("#settings-persona-form");
+      let editingPersona = null;
+      function clear() {
+        filePicker.usePlaceholder();
+        clearButton.hidden = true;
+      }
+      clearButton.addEventListener("click", () => {
+        clear();
+      });
+      filePicker.onDirty = () => {
+        clearButton.hidden = filePicker.value === "";
+      };
+      submitButton.addEventListener("click", async () => {
+        const name = nameInput.value;
+        const desc = descInput.value;
+        if (!name || !desc) return;
+        const file = filePicker.value;
+        const picture = typeof file === "string" ? file || null : await upload(file);
+        await idb.set("personas", {
+          id: editingPersona?.id ?? crypto.randomUUID(),
+          name,
+          description: desc,
+          picture
+        });
+        filePicker.input.value = "";
+        clear();
+        nameInput.value = "";
+        descInput.value = "";
+        editingPersona = null;
+      });
+      form.addEventListener("paste", (e) => {
+        const file = e.clipboardData?.files[0];
+        if (!file) return;
+        e.preventDefault();
+        filePicker.paste(file);
+      });
+      function removePersona(id) {
+        if (!confirm("confirm deletion")) return;
+        return idb.del("personas", id);
+      }
+      async function startEditing(persona) {
+        editingPersona = persona;
+        nameInput.value = persona.name;
+        descInput.value = persona.description;
+        if (persona.picture) {
+          filePicker.value = persona.picture;
+        }
+        nameInput.scrollIntoView({ behavior: "smooth" });
+      }
+      async function updatePersonaList() {
+        const personas = await idb.getAll("personas");
+        if (!personas.success) return;
+        const imageLinks = await Promise.all(
+          personas.value.map(
+            (p) => p.picture ? getBlobLink(p.picture) : PLACHEOLDER2
+          )
+        );
+        personaList.innerHTML = "";
+        const items = personas.value.map((p, ix) => d({
+          className: "lineout row settings-persona-item",
+          attributes: {
+            "data-id": p.id
+          },
+          contents: [
+            d({
+              tagName: "img",
+              className: "shadow",
+              attributes: {
+                src: imageLinks[ix]
+              }
+            }),
+            d({
+              className: "list settings-persona-item-main",
+              contents: [
+                d({
+                  className: "row-compact",
+                  contents: [
+                    d({
+                      tagName: "h6",
+                      contents: p.name
+                    }),
+                    d({
+                      tagName: "button",
+                      className: "lineout",
+                      events: {
+                        click: () => startEditing(p)
+                      },
+                      contents: "edit"
+                    }),
+                    d({
+                      tagName: "button",
+                      className: "lineout",
+                      events: {
+                        click: () => removePersona(p.id)
+                      },
+                      contents: "delete"
+                    })
+                  ]
+                }),
+                d({
+                  contents: p.description
+                })
+              ]
+            })
+          ]
+        }));
+        if (items.length > 0)
+          personaList.append(...items);
+        else
+          personaList.append(d({
+            className: "placeholder",
+            contents: "No personas found"
+          }));
+      }
+      listen(async (update2) => {
+        if (update2.storage !== "idb") return;
+        if (update2.store !== "personas") return;
+        updatePersonaList();
+      });
+      updatePersonaList();
+    }
+  };
+
+  // src/units/settings/themes.ts
+  var STORAGE_KEY_THEME = "theme";
+  var CSS_THEMES_FILE = "theme.css";
+  function initTheme() {
+    const theme = window.localStorage.getItem(STORAGE_KEY_THEME);
+    if (theme) switchTheme(theme);
+    const rules = [];
+    for (const ss of Array.from(document.styleSheets))
+      if (ss.href?.includes(CSS_THEMES_FILE)) {
+        const raw = [...Array.from(ss.cssRules)];
+        rules.push(...raw.filter((r) => r.constructor.name === "CSSStyleRule"));
+      }
+    const themes = rules.map((r) => r.selectorText.match(/\.theme-(.*)/)).filter((r) => r);
+    document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
+  }
+  function selectorItem(name) {
+    const template = document.querySelector("#template-theme-selector");
+    const button = c(template);
+    const themeClassName = `theme-${name}`;
+    button.classList.add(themeClassName);
+    button.addEventListener("click", () => switchTheme(themeClassName));
+    return button;
+  }
+  function switchTheme(themeClassName) {
+    document.body.classList.forEach((c2) => {
+      if (c2.startsWith("theme-")) document.body.classList.remove(c2);
+    });
+    document.body.classList.add(themeClassName);
+    window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
+  }
+
+  // src/units/settings.ts
+  var settingsUnit = {
+    init: () => {
+      initTheme();
+      personaUnit.init(void 0);
+      enginesUnit.init(void 0);
+    }
+  };
+
+  // src/units/chat.ts
+  var chatUnit = {
+    init: () => {
+      const textarea = document.querySelector("#chat-textarea");
+      makeResizable(textarea);
+    }
+  };
+
+  // src/units/main.ts
+  var mainUnit = {
+    init: () => {
+      const chatImport = document.querySelector("#main-chats-import");
+      chatImport.addEventListener("input", async () => {
+        const file = chatImport.input.files?.[0];
+        if (!file) return;
+        const raw = await nothrowAsync(file.text());
+        if (!raw.success) return;
+        const messages = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(JSON.parse(l2))).filter((c2) => c2.success).map((c2) => stcToInternal(c2.value));
+      });
+    }
+  };
+  function stcToInternal(stc) {
+    return {
+      id: crypto.randomUUID(),
+      from: stc.is_system ? "system" : stc.is_user ? "user" : "model",
+      name: stc.name,
+      swipes: stc.swipes ?? [stc.mes],
+      selectedSwipe: 0,
+      rember: null
+    };
+  }
+
   // src/units/scenario.ts
   var scenarioUnit = {
     init: () => {
@@ -3282,6 +3285,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         const id = getRoute()[1] ?? crypto.randomUUID();
         const payload = {
           id,
+          lastUpdate: Date.now(),
           card: {
             picture: cardPicture,
             title: cardTitle.value,
@@ -3300,7 +3304,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
       previewButton.addEventListener("click", () => {
         const content = cardDescription.value;
-        preview.innerHTML = purify.sanitize(d2.parse(content, { async: false }));
+        preview.innerHTML = renderMD(content);
         preview.hidden = false;
       });
     }
@@ -3341,11 +3345,104 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         messagesState.splice(0, messagesState.length);
         messagesState.push(...values);
         messageIndex = 0;
+        messages.value = messagesState[messageIndex];
+        updateMessagesPager();
       },
       get: () => {
         return messagesState.map((v2) => v2.trim()).filter((v2) => v2);
       }
     };
+  }
+
+  // src/units/library.ts
+  var PLACHEOLDER3 = "assets/gfx/placeholder.png";
+  var libraryUnit = {
+    init: () => {
+      listen(async (u3) => {
+        if (u3.storage !== "idb") return;
+        if (u3.store !== "scenarios") return;
+        update();
+      });
+      update();
+    }
+  };
+  async function update() {
+    const list = document.querySelector("#library-cards");
+    list.innerHTML = "";
+    const items = await idb.getAll("scenarios");
+    if (!items.success) return;
+    const contents = items.value.map((item) => {
+      let icon = d({
+        tagName: "img",
+        attributes: {
+          src: PLACHEOLDER3
+        }
+      });
+      if (item.card.picture) {
+        getBlobLink(item.card.picture).then((src) => {
+          if (src) icon.src = src;
+        });
+      }
+      const description = d({
+        className: "scenario-card-description"
+      });
+      description.innerHTML = renderMD(item.card.description);
+      return d({
+        className: "scenario-card lineout row",
+        contents: [
+          icon,
+          d({
+            className: "list",
+            contents: [
+              d({
+                className: "row",
+                contents: [
+                  d({
+                    tagName: "h6",
+                    contents: item.card.title
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: () => {
+                        document.location.hash = `scenario-editor.${item.id}`;
+                      }
+                    },
+                    contents: "edit"
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: () => {
+                        document.location.hash = `chat.${item.id}`;
+                      }
+                    },
+                    contents: "play"
+                  })
+                ]
+              }),
+              d({
+                tagName: "hr"
+              }),
+              description,
+              d({
+                className: "scenario-card-tags row-wrap",
+                contents: item.card.tags.map(
+                  (tag) => d({
+                    tagName: "span",
+                    className: "pointer",
+                    contents: tag
+                  })
+                )
+              })
+            ]
+          })
+        ]
+      });
+    });
+    list.append(...contents);
   }
 
   // src/index.ts
@@ -3363,6 +3460,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     settingsUnit,
     chatUnit,
     mainUnit,
+    libraryUnit,
     scenarioUnit
   ];
   async function main() {

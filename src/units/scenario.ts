@@ -1,10 +1,8 @@
 import { idb, upload } from "@root/persist";
 import { RampikeUnit } from "./types";
-import { getRoute, makeResizable } from "@root/utils";
+import { getRoute, makeResizable, renderMD } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
-import { marked } from "marked";
-import * as dompurify from "dompurify";
 
 export const scenarioUnit: RampikeUnit = {
 	init: () => {
@@ -67,6 +65,7 @@ export const scenarioUnit: RampikeUnit = {
 			const id = getRoute()[1] ?? crypto.randomUUID();
 			const payload: ScenarioCard = {
 				id,
+				lastUpdate: Date.now(),
 				card: {
 					picture: cardPicture,
 					title: cardTitle.value,
@@ -87,7 +86,7 @@ export const scenarioUnit: RampikeUnit = {
 
 		previewButton.addEventListener("click", () => {
 			const content = cardDescription.value;
-			preview.innerHTML = dompurify.default.sanitize(marked.parse(content, { async: false }));
+			preview.innerHTML = renderMD(content);
 			preview.hidden = false;
 		});
 	}
@@ -132,6 +131,8 @@ function initFirstMessages() {
 			messagesState.splice(0, messagesState.length);
 			messagesState.push(...values);
 			messageIndex = 0;
+			messages.value = messagesState[messageIndex];
+			updateMessagesPager();
 		},
 		get: () => {
 			return messagesState.map(v => v.trim()).filter(v => v);

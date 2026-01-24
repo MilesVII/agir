@@ -13,6 +13,7 @@ import { chatUnit }       from "@units/chat";
 import { mainUnit }       from "@units/main";
 import { scenarioUnit }   from "@units/scenario";
 import { init as initPersist } from "./persist";
+import { libraryUnit } from "@units/library";
 
 defineTabs();
 defineRadio();
@@ -30,6 +31,7 @@ const units: RampikeUnit[] = [
 	settingsUnit,
 	chatUnit,
 	mainUnit,
+	libraryUnit,
 	scenarioUnit
 ];
 

@@ -7,11 +7,23 @@
 	:root {
 		--content-width: calc(min(120vh, 50vw) - var(--min-content-pad));
 	}
+
+	.grid-list {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: var(--dims-smol);
+	}
 }
 
 @media screen and (max-aspect-ratio: 1.2) {
 	:root {
 		--content-width: calc(100vw - var(--min-content-pad));
+	}
+
+	.grid-list {
+		display: flex;
+		flex-flow: column nowrap;
+		gap: var(--dims-smol);
 	}
 }
 

@@ -106,6 +106,37 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	min-width: 2em;
 }
 
+.scenario-card img {
+	width: 20%;
+	flex-shrink: 0;
+	aspect-ratio: 1/1;
+	object-fit: cover;
+}
+.scenario-card > div {
+	flex-grow: 1;
+}
+.scenario-card h6 {
+	font: var(--font-bold);
+	flex-grow: 1;
+}
+.scenario-card .row {
+	align-items: center;
+}
+.scenario-card-description {
+	overflow: hidden;
+	max-height: 7em;
+}
+.scenario-card-tags > span {
+	background-color: var(--color-secondary);
+	transition: background-color .2s ease;
+	padding-inline: var(--dims-reg);
+	padding-block: var(--dims-smol);
+	border-radius: var(--dims-smol);
+}
+.scenario-card-tags > span:hover {
+	background-color: var(--color-accent);
+}
+
 .chat-layout {
 	display: grid;
 	grid-template-rows: min-content auto min-content;

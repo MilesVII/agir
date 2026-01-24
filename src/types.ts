@@ -27,6 +27,7 @@ export type EngineMap = Record<string, Engine>;
 
 export type ScenarioCard = {
 	id: string,
+	lastUpdate: number,
 	card: {
 		picture: string | null,
 		title: string,

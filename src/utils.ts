@@ -1,3 +1,6 @@
+import { marked } from "marked";
+import * as dompurify from "dompurify";
+
 import type { Result } from "./types";
 
 export function nothrow<T>(cb: () => T): Result<T, any> {
@@ -37,4 +40,8 @@ export function makeResizable(textarea: HTMLTextAreaElement, initialHeight: numb
 
 export function getRoute() {
 	return window.location.hash.slice(1).split(".");
+}
+
+export function renderMD(content: string) {
+	return dompurify.default.sanitize(marked.parse(content, { async: false }));
 }
