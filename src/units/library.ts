@@ -22,7 +22,7 @@ async function update() {
 	const items = await idb.getAll("scenarios");
 	if (!items.success) return;
 
-	const contents = items.value.map(item => {
+	const contents = items.value.reverse().map(item => {
 		let icon = mudcrack({
 			tagName: "img",
 			attributes: {
@@ -38,18 +38,26 @@ async function update() {
 		});
 		description.innerHTML = renderMD(item.card.description);
 		return mudcrack({
-			className: "scenario-card lineout row",
+			className: "scenario-card lineout",
 			contents: [
 				icon,
 				mudcrack({
 					className: "list",
 					contents: [
 						mudcrack({
-							className: "row",
+							className: "row-compact",
 							contents: [
 								mudcrack({
 									tagName: "h6",
 									contents: item.card.title
+								}),
+								mudcrack({
+									tagName: "button",
+									className: "lineout",
+									events: {
+										click: () => deleteScenario(item.id, item.card.title)
+									},
+									contents: "delete"
 								}),
 								mudcrack({
 									tagName: "button",
@@ -78,14 +86,14 @@ async function update() {
 						}),
 						description,
 						mudcrack({
-							className: "scenario-card-tags row-wrap",
+							className: "scenario-card-tags",
 							contents: item.card.tags.map(tag =>
 								mudcrack({
 									tagName: "span",
 									className: "pointer",
 									contents: tag
 								})
-							)
+							).toReversed()
 						})
 					]
 				})
@@ -94,4 +102,11 @@ async function update() {
 	});
 
 	list.append(...contents);
+}
+
+function deleteScenario(id: string, name: string) {
+	const ok = confirm(`scenario "${name}" will be deleted`);
+	if (!ok) return;
+
+	idb.del("scenarios", id);
 }

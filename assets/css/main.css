@@ -10,8 +10,15 @@
 
 	.grid-list {
 		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: var(--dims-smol);
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		padding-inline: var(--dims-huge);
+		gap: var(--dims-reg);
+	}
+	.scenario-card {
+		flex-flow: column nowrap;
+	}
+	.scenario-card img {
+		width: 100%;
 	}
 }
 
@@ -23,7 +30,14 @@
 	.grid-list {
 		display: flex;
 		flex-flow: column nowrap;
-		gap: var(--dims-smol);
+		padding-inline: var(--dims-huge);
+		gap: var(--dims-reg);
+	}
+	.scenario-card {
+		flex-flow: row nowrap;
+	}
+	.scenario-card img {
+		width: 20%;
 	}
 }
 

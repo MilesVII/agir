@@ -106,11 +106,16 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	min-width: 2em;
 }
 
+.scenario-card {
+	display: flex;
+	gap: var(--dims-reg);
+	/* height: fit-content; */
+}
 .scenario-card img {
-	width: 20%;
 	flex-shrink: 0;
 	aspect-ratio: 1/1;
 	object-fit: cover;
+	border-radius: var(--dims-smol);
 }
 .scenario-card > div {
 	flex-grow: 1;
@@ -119,12 +124,18 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	font: var(--font-bold);
 	flex-grow: 1;
 }
-.scenario-card .row {
+.scenario-card .row-compact {
 	align-items: center;
 }
 .scenario-card-description {
 	overflow: hidden;
 	max-height: 7em;
+}
+.scenario-card-tags {
+	display: flex;
+	flex-flow: row-reverse wrap;
+	margin-top: auto;
+	gap: var(--dims-smol);
 }
 .scenario-card-tags > span {
 	background-color: var(--color-secondary);

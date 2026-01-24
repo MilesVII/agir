@@ -77,16 +77,9 @@ export const personaUnit: RampikeUnit = {
 			const personas = await idb.getAll("personas");
 			console.log(personas);
 			if (!personas.success) return;
-			// const imageLinks = await Promise.all(
-			// 	personas.value.map(p =>
-			// 		p.picture
-			// 			? getBlobLink(p.picture)
-			// 			: null
-			// 	)
-			// );
 
 			personaList.innerHTML = "";
-			const items = personas.value.map(p => mudcrack({
+			const items = personas.value.reverse().map(p => mudcrack({
 				className: "lineout row settings-persona-item",
 				attributes: {
 					"data-id": p.id

@@ -3102,7 +3102,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         console.log(personas);
         if (!personas.success) return;
         personaList.innerHTML = "";
-        const items = personas.value.map((p) => d({
+        const items = personas.value.reverse().map((p) => d({
           className: "lineout row settings-persona-item",
           attributes: {
             "data-id": p.id
@@ -3429,7 +3429,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     list.innerHTML = "";
     const items = await idb.getAll("scenarios");
     if (!items.success) return;
-    const contents = items.value.map((item) => {
+    const contents = items.value.reverse().map((item) => {
       let icon = d({
         tagName: "img",
         attributes: {
@@ -3446,18 +3446,26 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
       description.innerHTML = renderMD(item.card.description);
       return d({
-        className: "scenario-card lineout row",
+        className: "scenario-card lineout",
         contents: [
           icon,
           d({
             className: "list",
             contents: [
               d({
-                className: "row",
+                className: "row-compact",
                 contents: [
                   d({
                     tagName: "h6",
                     contents: item.card.title
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: () => deleteScenario(item.id, item.card.title)
+                    },
+                    contents: "delete"
                   }),
                   d({
                     tagName: "button",
@@ -3486,14 +3494,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
               }),
               description,
               d({
-                className: "scenario-card-tags row-wrap",
+                className: "scenario-card-tags",
                 contents: item.card.tags.map(
                   (tag) => d({
                     tagName: "span",
                     className: "pointer",
                     contents: tag
                   })
-                )
+                ).toReversed()
               })
             ]
           })
@@ -3501,6 +3509,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
     });
     list.append(...contents);
+  }
+  function deleteScenario(id, name) {
+    const ok = confirm(`scenario "${name}" will be deleted`);
+    if (!ok) return;
+    idb.del("scenarios", id);
   }
 
   // src/index.ts

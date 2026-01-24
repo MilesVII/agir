@@ -154,7 +154,7 @@
 						</summary>
 						<div class="list">
 							<button id="settings-backup-save" class="lineout">Save all</button>
-							<ram-file-picker id="settings-backup-import">
+							<ram-file-picker id="settings-backup-import" accept=".json">
 								<div class="lineout">Import</div>
 							</ram-file-picker>
 						</div>
@@ -173,12 +173,15 @@
 						<button class="lineout fit" data-to="chats">back</button>
 						<button class="lineout fit" data-to="scenario-editor">new scenario</button>
 					</div>
-					<div id="library-cards" class="grid-list"></div>
 				</div>
+				<div id="library-cards" class="grid-list"></div>
 			</ram-tab>
 			<ram-tab key="scenario-editor">
 				<div class="main col pad float-center">
-					<button class="lineout fit" data-to="library">back</button>
+					<div class="row">
+						<button class="lineout fit" data-to="library">back</button>
+						<button id="scenario-submit-button" class="lineout">Save scenario</button>
+					</div>
 					<div class="scenario-pictures">
 						<div class="list">
 							<div>Card icon</div>
@@ -246,7 +249,6 @@
 							rows="1"
 						></ram-labeled>
 					</div>
-					<button id="scenario-submit-button" class="lineout">Save scenario</button>
 				</div>
 			</ram-tab>
 			<ram-tab key="play">
