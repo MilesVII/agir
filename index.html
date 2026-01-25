@@ -163,6 +163,7 @@
 						<summary>
 							Options
 						</summary>
+						<div>Chat tail length</div>
 						<div id="settings-themes" class="row-wrap"></div>
 					</details>
 				</div>
@@ -264,7 +265,9 @@
 							<ram-tabs id="chat-controls" tab="main">
 								<ram-tab key="main">
 									<textarea id="chat-textarea" class="lineout"></textarea>
-									<ram-import path="assets/gfx/send.svg" class="chat-send"></ram-import>
+									<div id="chat-send-button">
+										<ram-import path="assets/gfx/send.svg" class="chat-send"></ram-import>
+									</div>
 								</ram-tab>
 								<ram-tab key="pending">
 									<button class="lineout float-center">abort</button>

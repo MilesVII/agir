@@ -221,6 +221,11 @@
   function i(e) {
     return Object.keys(e);
   }
+  var T = { skipInitialRender: false };
+  function y(e, t, r, n) {
+    let { skipInitialRender: p } = { ...T, ...n }, o = e;
+    return o.rampike = { params: t, render: () => r(o.rampike.params, o) }, p || o.rampike.render(), o;
+  }
   function c(e) {
     return s(e)[0] ?? null;
   }
@@ -458,9 +463,9 @@
   function L() {
     return { async: false, breaks: false, extensions: null, gfm: true, hooks: null, pedantic: false, renderer: null, silent: false, tokenizer: null, walkTokens: null };
   }
-  var T = L();
+  var T2 = L();
   function Z(u3) {
-    T = u3;
+    T2 = u3;
   }
   var C = { exec: () => null };
   function k(u3, e = "") {
@@ -603,12 +608,12 @@
     }).join(`
 `);
   }
-  var y = class {
+  var y2 = class {
     options;
     rules;
     lexer;
     constructor(e) {
-      this.options = e || T;
+      this.options = e || T2;
     }
     space(e) {
       let t = this.rules.block.newline.exec(e);
@@ -909,7 +914,7 @@ ${c2}` : c2;
     inlineQueue;
     tokenizer;
     constructor(e) {
-      this.tokens = [], this.tokens.links = /* @__PURE__ */ Object.create(null), this.options = e || T, this.options.tokenizer = this.options.tokenizer || new y(), this.tokenizer = this.options.tokenizer, this.tokenizer.options = this.options, this.tokenizer.lexer = this, this.inlineQueue = [], this.state = { inLink: false, inRawBlock: false, top: true };
+      this.tokens = [], this.tokens.links = /* @__PURE__ */ Object.create(null), this.options = e || T2, this.options.tokenizer = this.options.tokenizer || new y2(), this.tokenizer = this.options.tokenizer, this.tokenizer.options = this.options, this.tokenizer.lexer = this, this.inlineQueue = [], this.state = { inLink: false, inRawBlock: false, top: true };
       let t = { other: m, block: E.normal, inline: M.normal };
       this.options.pedantic ? (t.block = E.pedantic, t.inline = M.pedantic) : this.options.gfm && (t.block = E.gfm, this.options.breaks ? t.inline = M.breaks : t.inline = M.gfm), this.tokenizer.rules = t;
     }
@@ -1114,7 +1119,7 @@ ${c2}` : c2;
     options;
     parser;
     constructor(e) {
-      this.options = e || T;
+      this.options = e || T2;
     }
     space(e) {
       return "";
@@ -1265,7 +1270,7 @@ ${e}</tr>
     renderer;
     textRenderer;
     constructor(e) {
-      this.options = e || T, this.options.renderer = this.options.renderer || new P(), this.renderer = this.options.renderer, this.renderer.options = this.options, this.renderer.parser = this, this.textRenderer = new $();
+      this.options = e || T2, this.options.renderer = this.options.renderer || new P(), this.renderer = this.options.renderer, this.renderer.options = this.options, this.renderer.parser = this, this.textRenderer = new $();
     }
     static parse(e, t) {
       return new u2(t).parse(e);
@@ -1414,7 +1419,7 @@ ${e}</tr>
     options;
     block;
     constructor(e) {
-      this.options = e || T;
+      this.options = e || T2;
     }
     static passThroughHooks = /* @__PURE__ */ new Set(["preprocess", "postprocess", "processAllTokens", "emStrongMask"]);
     static passThroughHooksRespectAsync = /* @__PURE__ */ new Set(["preprocess", "postprocess", "processAllTokens"]);
@@ -1446,7 +1451,7 @@ ${e}</tr>
     Renderer = P;
     TextRenderer = $;
     Lexer = x;
-    Tokenizer = y;
+    Tokenizer = y2;
     Hooks = S;
     constructor(...e) {
       this.use(...e);
@@ -1508,7 +1513,7 @@ ${e}</tr>
           r.renderer = i2;
         }
         if (n.tokenizer) {
-          let i2 = this.defaults.tokenizer || new y(this.defaults);
+          let i2 = this.defaults.tokenizer || new y2(this.defaults);
           for (let s2 in n.tokenizer) {
             if (!(s2 in i2)) throw new Error(`tokenizer '${s2}' does not exist`);
             if (["options", "rules", "lexer"].includes(s2)) continue;
@@ -1606,7 +1611,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return _.setOptions(u3), d2.defaults = _.defaults, Z(d2.defaults), d2;
   };
   d2.getDefaults = L;
-  d2.defaults = T;
+  d2.defaults = T2;
   d2.use = function(...u3) {
     return _.use(...u3), d2.defaults = _.defaults, Z(d2.defaults), d2;
   };
@@ -1620,7 +1625,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   d2.TextRenderer = $;
   d2.Lexer = x;
   d2.lexer = x.lex;
-  d2.Tokenizer = y;
+  d2.Tokenizer = y2;
   d2.Hooks = S;
   d2.parse = d2;
   var Dt = d2.options;
@@ -3260,59 +3265,76 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
   };
 
-  // src/units/chat/load.ts
-  async function loadMessages(chatId) {
-    const list = document.querySelector("#play-messages");
-    list.innerHTML = "";
-    const [contents, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !meta.success) return;
-    const [userPic, modelPic] = await Promise.all([
-      meta.value.userPersona.picture && getBlobLink(meta.value.userPersona.picture),
-      meta.value.scenario.picture && getBlobLink(meta.value.scenario.picture)
-    ]);
-    console.log(userPic, modelPic);
-    const messages = contents.value.messages;
-    const items = messages.map((item) => message(item, meta.value, [userPic, modelPic]));
-    list.append(...items);
+  // src/units/chat/utils.ts
+  async function updateSwipe(chatId, messageId, swipeIx, value) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const tix = contents.value.messages.findIndex((m2) => m2.id === messageId);
+    if (tix < 0) return;
+    contents.value.messages[tix].swipes[swipeIx] = value;
+    await idb.set("chatContents", contents.value);
   }
-  function message(msg, meta, [userPic, modelPic]) {
+  async function pushSwipe(chatId, value, fromUser, name) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return null;
+    const messages = contents.value.messages;
+    let updatedMessage;
+    let makeNew;
+    const lix = messages.findLastIndex(() => true);
+    if (!fromUser && lix > -1 && messages[lix].from === "model") {
+      contents.value.messages[lix].selectedSwipe = contents.value.messages[lix].swipes.length;
+      contents.value.messages[lix].swipes.push(value);
+      updatedMessage = contents.value.messages[lix];
+      makeNew = false;
+    } else {
+      updatedMessage = {
+        from: fromUser ? "user" : "model",
+        id: contents.value.messages.length,
+        name,
+        rember: null,
+        selectedSwipe: 0,
+        swipes: [value]
+      };
+      contents.value.messages.push(updatedMessage);
+      makeNew = true;
+    }
+    await idb.set("chatContents", contents.value);
+    return { updatedMessage, makeNew };
+  }
+  function makeMessageView(_msg, meta, [userPic, modelPic], isLast) {
+    let msg = _msg;
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = d({
       tagName: "div",
       className: "message-text",
       contents: text2
     });
-    const swipesControl = [
-      d({
-        tagName: "button",
-        className: "strip pointer",
-        contents: "<",
-        events: {
-          click: () => changeSwipe(-1)
-        }
-      }),
-      d({
-        tagName: "span",
-        className: "",
-        contents: ""
-      }),
-      d({
-        tagName: "button",
-        className: "strip pointer",
-        contents: ">",
-        events: {
-          click: () => changeSwipe(-1)
-        }
-      })
-    ];
-    const [, swipesCaption] = swipesControl;
-    const swipesControlContainer = d({
+    const swipesCaption = d({
+      tagName: "span",
+      contents: ""
+    });
+    const swipesControl = d({
       tagName: "div",
       className: "row-compact",
-      contents: swipesControl,
+      contents: [
+        d({
+          tagName: "button",
+          className: "strip pointer",
+          contents: "<",
+          events: {
+            click: () => changeSwipe(-1)
+          }
+        }),
+        swipesCaption,
+        d({
+          tagName: "button",
+          className: "strip pointer",
+          contents: ">",
+          events: {
+            click: () => changeSwipe(-1)
+          }
+        })
+      ],
       style: {
         visibility: "hidden"
       }
@@ -3323,9 +3345,15 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       if (msg.selectedSwipe >= msg.swipes.length) msg.selectedSwipe = 0;
       textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
-      swipesControlContainer.style.visibility = msg.swipes.length > 1 ? "visible" : "hidden";
+      swipesControl.style.display = !isLast && msg.swipes.length > 1 ? "contents" : "none";
     }
-    function ramTab(contents) {
+    async function setSwipeToLast() {
+      msg.selectedSwipe = msg.swipes.length - 1;
+      textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+      swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
+      swipesControl.style.display = msg.swipes.length > 1 ? "contents" : "none";
+    }
+    function tab(contents) {
       return d({
         tagName: "div",
         className: "virtual",
@@ -3333,8 +3361,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
     }
     const controls = [
-      ramTab([
-        swipesControlContainer,
+      tab([
+        swipesControl,
         d({
           tagName: "button",
           className: "strip pointer",
@@ -3348,7 +3376,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             }
           }
         }),
-        d({
+        msg.from === "model" && isLast ? d({
           tagName: "button",
           className: "strip pointer",
           contents: "reroll",
@@ -3357,9 +3385,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
               alert("TODO");
             }
           }
-        })
-      ]),
-      ramTab([
+        }) : null
+      ].filter((e) => e)),
+      tab([
         d({
           tagName: "button",
           className: "strip pointer",
@@ -3389,18 +3417,22 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           }
         })
       ]),
-      ramTab([])
+      tab([])
     ];
     function changeControlsState(state) {
       const tix = {
         main: 0,
         editing: 1,
-        loading: 2
+        streaming: 2
       }[state];
-      controls.forEach((tab, i2) => tab.style.display = i2 === tix ? "contents" : "none");
+      controls.forEach((tab2, i2) => tab2.style.display = i2 === tix ? "contents" : "none");
     }
     const element = d({
+      tagName: "div",
       className: "message",
+      attributes: {
+        "data-mid": String(msg.id)
+      },
       contents: [
         d({
           tagName: "img",
@@ -3427,31 +3459,228 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     });
     changeSwipe(0);
     changeControlsState("main");
-    return element;
+    function updateMessage(value) {
+      msg = value;
+    }
+    function startStreaming() {
+      textBox.removeAttribute("contenteditable");
+      textBox.innerHTML = "";
+      changeControlsState("streaming");
+      return (value) => {
+        textBox.innerText += value;
+      };
+    }
+    function endStreaming() {
+      setSwipeToLast();
+      changeControlsState("main");
+    }
+    function setIsLast(value) {
+      isLast = value;
+      changeSwipe(0);
+    }
+    const viewControls = {
+      updateSwipe: changeSwipe,
+      changeControlsState,
+      updateMessage,
+      startStreaming,
+      endStreaming,
+      setIsLast
+    };
+    const wrapped = y(
+      element,
+      { controls: viewControls },
+      () => {
+      },
+      { skipInitialRender: true }
+    );
+    return wrapped;
   }
-  async function updateSwipe(chatId, messageId, swipeIx, value) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const tix = contents.value.messages.findIndex((m2) => m2.id === messageId);
-    if (tix < 0) return;
-    contents.value.messages[tix].swipes[swipeIx] = value;
-    await idb.set("chatContents", contents.value);
+  async function loadPictures(chat) {
+    return await Promise.all([
+      chat.userPersona.picture && getBlobLink(chat.userPersona.picture),
+      chat.scenario.picture && getBlobLink(chat.scenario.picture)
+    ]);
+  }
+
+  // src/units/chat/load.ts
+  async function loadMessages(chatId) {
+    const list = document.querySelector("#play-messages");
+    list.innerHTML = "";
+    const [contents, meta] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !meta.success) return;
+    const [userPic, modelPic] = await loadPictures(meta.value);
+    const messages = contents.value.messages;
+    const items = messages.map((item, ix) => {
+      return makeMessageView(
+        item,
+        meta.value,
+        [userPic, modelPic],
+        ix === messages.length - 1
+      );
+    });
+    list.append(...items);
+  }
+
+  // src/run.ts
+  var controller = new AbortController();
+  async function runEngine(chat, engine, onChunk) {
+    const response = await fetch(engine.url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${engine.key}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: engine.model,
+        messages: chat.map((m2) => ({
+          role: m2.from === "model" ? "assistant" : m2.from,
+          content: m2.swipes[m2.selectedSwipe]
+        })),
+        stream: true
+      }),
+      signal: controller.signal
+    });
+    const reader = response.body?.getReader();
+    if (!reader) {
+      return {
+        success: false,
+        error: "Response body is not readable"
+      };
+    }
+    const decoder = new TextDecoder();
+    let buffer = "";
+    const chonks = [];
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        while (true) {
+          const lineEnd = buffer.indexOf("\n");
+          if (lineEnd === -1) break;
+          const line = buffer.slice(0, lineEnd).trim();
+          buffer = buffer.slice(lineEnd + 1);
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices[0].delta.content;
+              if (content) {
+                chonks.push(content);
+                onChunk(content);
+              }
+            } catch (e) {
+            }
+          }
+        }
+      }
+    } finally {
+      reader.cancel();
+    }
+    return { success: true, value: chonks.join("") };
+  }
+
+  // src/units/chat/send.ts
+  async function sendMessage() {
+    const list = document.querySelector("#play-messages");
+    const textarea = document.querySelector("#chat-textarea");
+    const inputModes = document.querySelector("#chat-controls");
+    const message = textarea.value?.trim();
+    if (!message) return;
+    const [, chatId] = getRoute();
+    if (!chatId) return;
+    const [messages, meta] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!messages.success || !meta.success) return;
+    const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
+    inputModes.tab = "pending";
+    const lastMessageId = messages.value.messages.findLast(() => true)?.id;
+    list.querySelector(`.message[data-mid="${lastMessageId}"]`)?.rampike.params.controls.setIsLast(false);
+    const pushedResult = await pushSwipe(meta.value.id, message, true, meta.value.userPersona.name);
+    if (!pushedResult) {
+      console.error("failed to save user message");
+      return;
+    }
+    const userMessage = makeMessageView(pushedResult.updatedMessage, meta.value, await loadPictures(meta.value), false);
+    const responseMessage = makeMessageView({
+      from: "model",
+      id: -1,
+      name: meta.value.scenario.name,
+      rember: null,
+      selectedSwipe: 0,
+      swipes: [""]
+    }, meta.value, await loadPictures(meta.value), true);
+    list.append(userMessage, responseMessage);
+    await gainResponse(payload, responseMessage, meta.value.id, meta.value.scenario.name);
+    textarea.value = "";
+    inputModes.tab = "main";
+  }
+  async function preparePayload(contents, systemPrompt, userMessage) {
+    const system = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
+    const payload = [
+      system,
+      ...contents.slice(-10)
+    ];
+    if (!userMessage) return payload;
+    const user = { from: "user", id: -1, name: "", rember: null, swipes: [userMessage], selectedSwipe: 0 };
+    payload.push(user);
+    return payload;
+  }
+  async function gainResponse(payload, responseMessage, chatId, name) {
+    const [, engine] = Object.entries(readEngines())[0];
+    const responseMessageControls = responseMessage.rampike.params.controls;
+    const responseStreamingUpdater = responseMessageControls.startStreaming();
+    const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
+    if (streamingResult.success) {
+      const pushedResponseResult = await pushSwipe(chatId, streamingResult.value, false, name);
+      if (!pushedResponseResult) {
+        console.error("failed to save response message");
+        return;
+      }
+      responseMessageControls.updateMessage(pushedResponseResult.updatedMessage);
+    } else {
+      console.error("response issues");
+    }
+    responseMessageControls.endStreaming();
   }
 
   // src/units/chat.ts
   var chatUnit = {
     init: () => {
       const textarea = document.querySelector("#chat-textarea");
+      const sendButton = document.querySelector("#chat-send-button");
       makeResizable(textarea);
       window.addEventListener("hashchange", update);
+      listen((u3) => {
+        if (u3.storage !== "local") return;
+        if (u3.key !== "engines") return;
+        updateEngines();
+      });
+      sendButton.addEventListener("click", sendMessage);
       update();
+      updateEngines();
     }
   };
-  function update() {
+  async function update() {
     const route = getRoute();
     if (route[0] !== "play") return;
     if (!route[1]) return;
-    loadMessages(route[1]);
+    await loadMessages(route[1]);
+  }
+  function updateEngines() {
+    const inputModes = document.querySelector("#chat-controls");
+    const engineMap = readEngines();
+    const engineOptions = Object.entries(engineMap);
+    if (engineOptions.length > 0)
+      inputModes.tab = "main";
+    else
+      inputModes.tab = "disabled";
   }
 
   // src/units/main.ts
@@ -3661,6 +3890,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   };
   var CHAR_NAME_MACRO = "{{char}}";
   var USER_NAME_MACRO = "{{user}}";
+  var PERSONA_MACRO = "{{persona}}";
   async function start(personaId, scenarioId) {
     const [persona, scenario] = await Promise.all([
       idb.get("personas", personaId),
@@ -3691,16 +3921,23 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ]);
     window.location.hash = `play.${chatId}`;
   }
-  function macros(template, pronouns, charName, userName) {
+  function macros(template, pronouns, charName, userName, persona) {
     for (const [from, toKey] of Object.entries(PRON_MACROS)) {
       template = template.replaceAll(from, pronouns[toKey]);
     }
     template = template.replaceAll(CHAR_NAME_MACRO, charName);
     template = template.replaceAll(USER_NAME_MACRO, userName);
+    template = template.replaceAll(PERSONA_MACRO, persona);
     return template;
   }
   function prepareScenario(origin, persona) {
-    const runMacros = (template) => macros(template, persona.pronouns ?? PRONOUNS_THEY, origin.chat.name, persona.name);
+    const runMacros = (template) => macros(
+      template,
+      persona.pronouns ?? PRONOUNS_THEY,
+      origin.chat.name,
+      persona.name,
+      persona.description
+    );
     return {
       id: origin.id,
       picture: origin.chat.picture || origin.card.picture,

@@ -176,6 +176,7 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	grid-template-columns: auto var(--send-size);
 	padding: var(--dims-smol);
 	gap: var(--dims-smol);
+	align-items: end;
 }
 .chat-low textarea {
 	resize: none;

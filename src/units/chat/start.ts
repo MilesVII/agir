@@ -11,6 +11,7 @@ const PRON_MACROS: Record<string, keyof Pronouns> = {
 };
 const CHAR_NAME_MACRO = "{{char}}";
 const USER_NAME_MACRO = "{{user}}";
+const PERSONA_MACRO = "{{persona}}";
 
 export async function start(personaId: string, scenarioId: string) {
 	const [persona, scenario] = await Promise.all([
@@ -45,18 +46,24 @@ export async function start(personaId: string, scenarioId: string) {
 	window.location.hash = `play.${chatId}`;
 }
 
-function macros(template: string, pronouns: Pronouns, charName: string, userName: string) {
+function macros(template: string, pronouns: Pronouns, charName: string, userName: string, persona: string) {
 	for (const [from, toKey] of Object.entries(PRON_MACROS)) {
 		template = template.replaceAll(from, pronouns[toKey]);
 	}
 	template = template.replaceAll(CHAR_NAME_MACRO, charName);
 	template = template.replaceAll(USER_NAME_MACRO, userName);
+	template = template.replaceAll(PERSONA_MACRO, persona);
 	return template;
 }
 
 function prepareScenario(origin: ScenarioCard, persona: Persona): Chat["scenario"] {
-	const runMacros = (template: string) => macros(template, persona.pronouns ?? PRONOUNS_THEY, origin.chat.name, persona.name);
-
+	const runMacros = (template: string) => macros(
+		template,
+		persona.pronouns ?? PRONOUNS_THEY,
+		origin.chat.name, persona.name,
+		persona.description
+	);
+	
 	return {
 		id: origin.id,
 		picture: origin.chat.picture || origin.card.picture,

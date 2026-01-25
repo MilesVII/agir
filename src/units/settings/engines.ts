@@ -113,7 +113,7 @@ export const enginesUnit: RampikeUnit = {
 	}
 }
 
-function readEngines(): EngineMap {
+export function readEngines(): EngineMap {
 	const enginesRaw = local.get("engines");
 	if (!enginesRaw) return {};
 	const engines = nothrow<EngineMap>(() => JSON.parse(enginesRaw));
