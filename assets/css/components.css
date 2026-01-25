@@ -162,10 +162,11 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	padding: var(--dims-smol);
 }
 .chat-scroll-container {
+	overflow-x: visible;
 	overflow-y: auto;
 	scrollbar-width: thin;
 	display: flex;
-	flex-flow: column-reverse nowrap;
+	flex-flow: column nowrap;
 	gap: var(--dims-huge);
 	padding-block: var(--dims-huge);
 }
@@ -215,4 +216,18 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 .message-name {
 	font: var(--font-bold);
 	margin-bottom: var(--dims-smol);
+	margin-inline-end: auto;
+}
+.message-text[contenteditable] {
+	/* width: 95%; */
+	white-space: pre-wrap;
+	border: 2px solid var(--color-accent);
+	border-radius: var(--dims-smol);
+}
+.message-text:focus {
+	box-shadow: 0 0 var(--dims-smol) var(--color-accent);
+	outline: none;
+}
+.message .row-compact {
+	align-items: center;
 }

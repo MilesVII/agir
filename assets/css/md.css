@@ -1,0 +1,7 @@
+.message-text em {
+	color: var(--color-secondary);
+}
+
+.message-text p:not(:first-child) {
+	padding-top: .42em;
+}

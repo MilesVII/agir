@@ -75,7 +75,10 @@ async function updateChatHandles() {
 					mudcrack({
 						tagName: "button",
 						className: "lineout",
-						contents: "delete"
+						contents: "delete",
+						events: {
+							click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
+						}
 					})
 				]
 			})
@@ -111,4 +114,12 @@ type STCMessage = {
 
 function messagesCaption(count: number) {
 	return (count % 10 === 1) ? `${count} message` : `${count} messages`;
+}
+
+function deleteChat(id: string, name: string, messageCount: number) {
+	const confirmed = confirm(`Chat with ${name} (${messagesCaption(messageCount)}) will be deleted`);
+	if (!confirmed) return;
+
+	idb.del("chatContents", id);
+	idb.del("chats", id);
 }

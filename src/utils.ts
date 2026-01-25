@@ -45,6 +45,9 @@ export function getRoute() {
 export function renderMD(content: string) {
 	return dompurify.default.sanitize(marked.parse(content, { async: false }));
 }
+export async function renderMDAsync(content: string) {
+	return dompurify.default.sanitize(await marked.parse(content));
+}
 
 const PLACHEOLDER = "assets/gfx/placeholder.png";
 export function placeholder(url: string | null) {

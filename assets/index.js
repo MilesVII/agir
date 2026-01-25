@@ -2664,18 +2664,21 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return { promise, resolve: _resolve };
   }
   function makeResizable(textarea, initialHeight = 52) {
-    const update2 = () => {
+    const update3 = () => {
       textarea.style.height = "auto";
       textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
     };
-    textarea.addEventListener("input", update2);
-    update2();
+    textarea.addEventListener("input", update3);
+    update3();
   }
   function getRoute() {
     return window.location.hash.slice(1).split(".");
   }
   function renderMD(content) {
     return purify.sanitize(d2.parse(content, { async: false }));
+  }
+  async function renderMDAsync(content) {
+    return purify.sanitize(await d2.parse(content));
   }
   var PLACHEOLDER = "assets/gfx/placeholder.png";
   function placeholder(url) {
@@ -2728,9 +2731,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return await new Promise((resolve) => {
       r.onsuccess = () => {
         resolve({ success: true, value: r.result });
-        const update2 = { storage: "idb", store };
-        bc.postMessage(update2);
-        storageListeners.forEach((l2) => l2(update2));
+        const update3 = { storage: "idb", store };
+        bc.postMessage(update3);
+        storageListeners.forEach((l2) => l2(update3));
       };
       r.onerror = () => resolve({ success: false, error: "write error" });
     });
@@ -2741,9 +2744,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return await new Promise((resolve) => {
       r.onsuccess = () => {
         resolve({ success: true, value: r.result });
-        const update2 = { storage: "idb", store };
-        bc.postMessage(update2);
-        storageListeners.forEach((l2) => l2(update2));
+        const update3 = { storage: "idb", store };
+        bc.postMessage(update3);
+        storageListeners.forEach((l2) => l2(update3));
       };
       r.onerror = () => resolve({ success: false, error: "write error" });
     });
@@ -2771,9 +2774,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function localSet(key, value) {
     window.localStorage.setItem(key, value);
-    const update2 = { storage: "local", key };
-    bc.postMessage(update2);
-    storageListeners.forEach((l2) => l2(update2));
+    const update3 = { storage: "local", key };
+    bc.postMessage(update3);
+    storageListeners.forEach((l2) => l2(update3));
   }
   async function upload(blob) {
     const id = crypto.randomUUID();
@@ -3005,9 +3008,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             contents: "No engines found"
           }));
       }
-      listen((update2) => {
-        if (update2.storage !== "local") return;
-        if (update2.key !== "engines") return;
+      listen((update3) => {
+        if (update3.storage !== "local") return;
+        if (update3.key !== "engines") return;
         updateList();
       });
       updateList();
@@ -3163,9 +3166,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             contents: "No personas found"
           }));
       }
-      listen(async (update2) => {
-        if (update2.storage !== "idb") return;
-        if (update2.store !== "personas") return;
+      listen(async (update3) => {
+        if (update3.storage !== "idb") return;
+        if (update3.store !== "personas") return;
         updatePersonaList();
       });
       updatePersonaList();
@@ -3257,20 +3260,206 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
   };
 
+  // src/units/chat/load.ts
+  async function loadMessages(chatId) {
+    const list = document.querySelector("#play-messages");
+    list.innerHTML = "";
+    const [contents, meta] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !meta.success) return;
+    const [userPic, modelPic] = await Promise.all([
+      meta.value.userPersona.picture && getBlobLink(meta.value.userPersona.picture),
+      meta.value.scenario.picture && getBlobLink(meta.value.scenario.picture)
+    ]);
+    console.log(userPic, modelPic);
+    const messages = contents.value.messages;
+    const items = messages.map((item) => message(item, meta.value, [userPic, modelPic]));
+    list.append(...items);
+  }
+  function message(msg, meta, [userPic, modelPic]) {
+    const text2 = msg.swipes[msg.selectedSwipe];
+    const textBox = d({
+      tagName: "div",
+      className: "message-text",
+      contents: text2
+    });
+    const swipesControl = [
+      d({
+        tagName: "button",
+        className: "strip pointer",
+        contents: "<",
+        events: {
+          click: () => changeSwipe(-1)
+        }
+      }),
+      d({
+        tagName: "span",
+        className: "",
+        contents: ""
+      }),
+      d({
+        tagName: "button",
+        className: "strip pointer",
+        contents: ">",
+        events: {
+          click: () => changeSwipe(-1)
+        }
+      })
+    ];
+    const [, swipesCaption] = swipesControl;
+    const swipesControlContainer = d({
+      tagName: "div",
+      className: "row-compact",
+      contents: swipesControl,
+      style: {
+        visibility: "hidden"
+      }
+    });
+    async function changeSwipe(delta) {
+      msg.selectedSwipe += delta;
+      if (msg.selectedSwipe < 0) msg.selectedSwipe = msg.swipes.length - 1;
+      if (msg.selectedSwipe >= msg.swipes.length) msg.selectedSwipe = 0;
+      textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+      swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
+      swipesControlContainer.style.visibility = msg.swipes.length > 1 ? "visible" : "hidden";
+    }
+    function ramTab(contents) {
+      return d({
+        tagName: "div",
+        className: "virtual",
+        contents
+      });
+    }
+    const controls = [
+      ramTab([
+        swipesControlContainer,
+        d({
+          tagName: "button",
+          className: "strip pointer",
+          contents: "edit",
+          events: {
+            click: () => {
+              textBox.setAttribute("contenteditable", "true");
+              textBox.textContent = msg.swipes[msg.selectedSwipe];
+              textBox.focus();
+              changeControlsState("editing");
+            }
+          }
+        }),
+        d({
+          tagName: "button",
+          className: "strip pointer",
+          contents: "reroll",
+          events: {
+            click: () => {
+              alert("TODO");
+            }
+          }
+        })
+      ]),
+      ramTab([
+        d({
+          tagName: "button",
+          className: "strip pointer",
+          contents: "confirm",
+          events: {
+            click: async () => {
+              const newContents = textBox.innerText;
+              console.log(newContents);
+              msg.swipes[msg.selectedSwipe] = newContents;
+              textBox.removeAttribute("contenteditable");
+              changeControlsState("main");
+              updateSwipe(meta.id, msg.id, msg.selectedSwipe, newContents);
+              textBox.innerHTML = await renderMDAsync(newContents);
+            }
+          }
+        }),
+        d({
+          tagName: "button",
+          className: "strip pointer",
+          contents: "cancel",
+          events: {
+            click: async () => {
+              textBox.removeAttribute("contenteditable");
+              changeControlsState("main");
+              textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+            }
+          }
+        })
+      ]),
+      ramTab([])
+    ];
+    function changeControlsState(state) {
+      const tix = {
+        main: 0,
+        editing: 1,
+        loading: 2
+      }[state];
+      controls.forEach((tab, i2) => tab.style.display = i2 === tix ? "contents" : "none");
+    }
+    const element = d({
+      className: "message",
+      contents: [
+        d({
+          tagName: "img",
+          attributes: {
+            src: placeholder(msg.from === "user" ? userPic : modelPic)
+          }
+        }),
+        d({
+          contents: [
+            d({
+              className: "row",
+              contents: [
+                d({
+                  className: "message-name",
+                  contents: msg.name
+                }),
+                ...controls
+              ]
+            }),
+            textBox
+          ]
+        })
+      ]
+    });
+    changeSwipe(0);
+    changeControlsState("main");
+    return element;
+  }
+  async function updateSwipe(chatId, messageId, swipeIx, value) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const tix = contents.value.messages.findIndex((m2) => m2.id === messageId);
+    if (tix < 0) return;
+    contents.value.messages[tix].swipes[swipeIx] = value;
+    await idb.set("chatContents", contents.value);
+  }
+
   // src/units/chat.ts
   var chatUnit = {
     init: () => {
       const textarea = document.querySelector("#chat-textarea");
       makeResizable(textarea);
+      window.addEventListener("hashchange", update);
+      update();
     }
   };
+  function update() {
+    const route = getRoute();
+    if (route[0] !== "play") return;
+    if (!route[1]) return;
+    loadMessages(route[1]);
+  }
 
   // src/units/main.ts
   var mainUnit = {
     init: () => {
-      listen((update2) => {
-        if (update2.storage !== "idb") return;
-        if (update2.store !== "chats") return;
+      listen((update3) => {
+        if (update3.storage !== "idb") return;
+        if (update3.store !== "chats") return;
         updateChatHandles();
       });
       updateChatHandles();
@@ -3317,7 +3506,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             d({
               tagName: "button",
               className: "lineout",
-              contents: "delete"
+              contents: "delete",
+              events: {
+                click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
+              }
             })
           ]
         })
@@ -3328,6 +3520,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function messagesCaption(count) {
     return count % 10 === 1 ? `${count} message` : `${count} messages`;
+  }
+  function deleteChat(id, name, messageCount) {
+    const confirmed = confirm(`Chat with ${name} (${messagesCaption(messageCount)}) will be deleted`);
+    if (!confirmed) return;
+    idb.del("chatContents", id);
+    idb.del("chats", id);
   }
 
   // src/units/scenario.ts
@@ -3529,12 +3727,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       listen(async (u3) => {
         if (u3.storage !== "idb") return;
         if (u3.store !== "scenarios") return;
-        update();
+        update2();
       });
-      update();
+      update2();
     }
   };
-  async function update() {
+  async function update2() {
     const list = document.querySelector("#library-cards");
     list.innerHTML = "";
     const items = await idb.getAll("scenarios");

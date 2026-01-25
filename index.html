@@ -14,9 +14,11 @@
 		<link rel="stylesheet" href="assets/css/theme.css"/>
 		<link rel="stylesheet" href="assets/css/utils.css"/>
 		<link rel="stylesheet" href="assets/css/components.css"/>
+		<link rel="stylesheet" href="assets/css/md.css"/>
 		<script type="module" src="assets/index.js"></script>
 
 		<link rel="prefetch" href="assets/gfx/send.svg" />
+		<link rel="prefetch" href="assets/gfx/placeholder.png" />
 	</head>
 
 	<body>
@@ -256,22 +258,7 @@
 							<button class="lineout fit" data-to="chats">back</button>
 						</div>
 					</div>
-					<div class="chat-scroll-container content-wide float-center">
-						<div class="message">
-							<img src="assets/gfx/aegir.png" />
-							<div>
-								<div class="message-name">Ägir</div>
-								<div class="message-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus dolor felis, tempus ac elit non, faucibus imperdiet neque. Morbi non facilisis neque. Donec molestie facilisis lobortis. Mauris sit amet erat semper, bibendum dui at, ultricies ante. Nullam id molestie dolor, in consequat velit. Sed convallis varius turpis, consequat aliquet felis fermentum a. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Integer vel leo sit amet elit aliquet molestie eget non purus. Vivamus nec rhoncus felis. Proin finibus convallis ligula, nec suscipit libero pretium vel. Nullam sit amet magna at nibh consequat molestie in in justo. Phasellus molestie neque sit amet ligula tincidunt lacinia. Cras euismod gravida felis eget aliquam. Cras lobortis sem ante, quis convallis purus luctus quis. Cras elementum vel magna nec laoreet. Quisque rhoncus est sodales, varius quam at, gravida justo.</div>
-							</div>
-						</div>
-						<div class="message">
-							<img src="assets/gfx/eh.jpeg" />
-							<div>
-								<div class="message-name">Sundowner</div>
-								<div class="message-text">*dies irae venit* poena dei venit</div>
-							</div>
-						</div>
-					</div>
+					<div id="play-messages" class="chat-scroll-container content-wide float-center"></div>
 					<div class="shadow">
 						<div class="chat-low content-wide float-center">
 							<ram-tabs id="chat-controls" tab="main">
