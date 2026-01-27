@@ -3265,8 +3265,69 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
   };
 
+  // src/run.ts
+  var abortController = new AbortController();
+  async function runEngine(chat, engine, onChunk) {
+    const chonks = [];
+    try {
+      const response = await fetch(engine.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${engine.key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: engine.model,
+          messages: chat.map((m2) => ({
+            role: m2.from === "model" ? "assistant" : m2.from,
+            content: m2.swipes[m2.selectedSwipe]
+          })),
+          stream: true,
+          reasoning: {
+            effort: "none"
+          }
+        }),
+        signal: abortController.signal
+      });
+      const reader = response.body?.getReader();
+      if (!reader) {
+        return {
+          success: false,
+          error: "Response body is not readable"
+        };
+      }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        while (true) {
+          const lineEnd = buffer.indexOf("\n");
+          if (lineEnd === -1) break;
+          const line = buffer.slice(0, lineEnd).trim();
+          buffer = buffer.slice(lineEnd + 1);
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+            const parsed = nothrow(() => JSON.parse(data));
+            if (!parsed.success) continue;
+            const content = parsed.value.choices[0].delta.content;
+            if (content) {
+              chonks.push(content);
+              onChunk(content);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return { success: true, value: chonks.join("") };
+  }
+
   // src/units/chat/utils.ts
-  async function updateSwipe(chatId, messageId, swipeIx, value) {
+  async function setSwipe(chatId, messageId, swipeIx, value) {
     const contents = await idb.get("chatContents", chatId);
     if (!contents.success) return;
     const tix = contents.value.messages.findIndex((m2) => m2.id === messageId);
@@ -3274,35 +3335,119 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     contents.value.messages[tix].swipes[swipeIx] = value;
     await idb.set("chatContents", contents.value);
   }
-  async function pushSwipe(chatId, value, fromUser, name) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return null;
+  async function pushSwipe(chatId, messageId, value) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return null;
     const messages = contents.value.messages;
-    let updatedMessage;
-    let makeNew;
-    const lix = messages.findLastIndex(() => true);
-    if (!fromUser && lix > -1 && messages[lix].from === "model") {
-      contents.value.messages[lix].selectedSwipe = contents.value.messages[lix].swipes.length;
-      contents.value.messages[lix].swipes.push(value);
-      updatedMessage = contents.value.messages[lix];
-      makeNew = false;
-    } else {
-      updatedMessage = {
-        from: fromUser ? "user" : "model",
-        id: contents.value.messages.length,
-        name,
-        rember: null,
-        selectedSwipe: 0,
-        swipes: [value]
-      };
-      contents.value.messages.push(updatedMessage);
-      makeNew = true;
-    }
-    await idb.set("chatContents", contents.value);
-    return { updatedMessage, makeNew };
+    const mix = messages.findIndex((m2) => m2.id === messageId);
+    if (mix < 0) return;
+    messages[mix].swipes = messages[mix].swipes.filter((m2) => m2.trim());
+    messages[mix].swipes.push(value);
+    messages[mix].selectedSwipe = messages[mix].swipes.length - 1;
+    chat.value.lastUpdate = Date.now();
+    await Promise.all([
+      idb.set("chatContents", contents.value),
+      idb.set("chats", chat.value)
+    ]);
+    return messages[mix];
   }
-  function makeMessageView(_msg, meta, [userPic, modelPic], isLast) {
-    let msg = _msg;
+  async function addMessage(chatId, value, fromUser, name) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return null;
+    const messages = contents.value.messages;
+    const newMessage = {
+      from: fromUser ? "user" : "model",
+      id: messages.length,
+      name,
+      rember: null,
+      selectedSwipe: 0,
+      swipes: [value]
+    };
+    messages.push(newMessage);
+    chat.value.lastUpdate = Date.now();
+    chat.value.messageCount = messages.length;
+    await Promise.all([
+      idb.set("chatContents", contents.value),
+      idb.set("chats", chat.value)
+    ]);
+    return newMessage;
+  }
+  async function reroll(chatId, messageId, name) {
+    const payload = await prepareRerollPayload(chatId, messageId);
+    if (!payload) return;
+    loadResponse(payload, messageId, chatId, name);
+  }
+  var MESSAGES_TAIL = 10;
+  async function preparePayload(contents, systemPrompt, userMessage) {
+    const system = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
+    const payload = [
+      system,
+      ...contents.slice(-MESSAGES_TAIL)
+    ];
+    if (!userMessage) return payload;
+    const user = { from: "user", id: -1, name: "", rember: null, swipes: [userMessage], selectedSwipe: 0 };
+    payload.push(user);
+    return payload;
+  }
+  async function prepareRerollPayload(chatId, messageId) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return null;
+    const messages = contents.value.messages;
+    const mix = messages.findIndex((m2) => m2.id === messageId);
+    if (mix < 0) return null;
+    const history = messages.slice(0, mix);
+    const system = { from: "system", id: -1, name: "", rember: null, swipes: [chat.value.scenario.definition], selectedSwipe: 0 };
+    const payload = [
+      system,
+      ...history.slice(-MESSAGES_TAIL)
+    ];
+    return payload;
+  }
+  async function loadResponse(payload, msgId, chatId, name) {
+    const inputModes = document.querySelector("#chat-controls");
+    inputModes.tab = "pending";
+    const [, engine] = Object.entries(readEngines())[0];
+    const messageView = getMessageViewByID(msgId);
+    if (!messageView) {
+      window.location.reload();
+      return;
+    }
+    const responseMessageControls = messageView.rampike.params;
+    const responseStreamingUpdater = responseMessageControls.startStreaming();
+    const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
+    if (streamingResult.success) {
+      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
+      if (!updatedMessage) {
+        console.error("failed to save response message");
+        return;
+      }
+      responseMessageControls.updateMessage(updatedMessage);
+    }
+    responseMessageControls.endStreaming();
+    inputModes.tab = "main";
+  }
+  async function loadPictures(chat) {
+    return await Promise.all([
+      chat.userPersona.picture && getBlobLink(chat.userPersona.picture),
+      chat.scenario.picture && getBlobLink(chat.scenario.picture)
+    ]);
+  }
+  function getMessageViewByID(messageId) {
+    const list = document.querySelector("#play-messages");
+    return list.querySelector(`.message[data-mid="${messageId}"]`);
+  }
+
+  // src/units/chat/message-view.ts
+  function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll) {
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = d({
       tagName: "div",
@@ -3331,12 +3476,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           className: "strip pointer",
           contents: ">",
           events: {
-            click: () => changeSwipe(-1)
+            click: () => changeSwipe(1)
           }
         })
       ],
       style: {
-        visibility: "hidden"
+        display: "none"
       }
     });
     async function changeSwipe(delta) {
@@ -3345,13 +3490,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       if (msg.selectedSwipe >= msg.swipes.length) msg.selectedSwipe = 0;
       textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
-      swipesControl.style.display = !isLast && msg.swipes.length > 1 ? "contents" : "none";
+      swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
     }
     async function setSwipeToLast() {
       msg.selectedSwipe = msg.swipes.length - 1;
       textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
-      swipesControl.style.display = msg.swipes.length > 1 ? "contents" : "none";
+      swipesControl.style.display = msg.swipes.length > 1 ? "flex" : "none";
     }
     function tab(contents) {
       return d({
@@ -3360,33 +3505,42 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         contents
       });
     }
+    const rerollButton = d({
+      tagName: "button",
+      className: "strip pointer",
+      contents: "reroll",
+      events: {
+        click: onReroll
+      }
+    });
+    function updateRerollButtonStatus() {
+      if (msg.from === "model" && isLast)
+        rerollButton.style.removeProperty("display");
+      else
+        rerollButton.style.display = "none";
+    }
+    const mainControls = [
+      swipesControl,
+      d({
+        tagName: "button",
+        className: "strip pointer",
+        contents: "edit",
+        events: {
+          click: () => {
+            textBox.setAttribute("contenteditable", "true");
+            textBox.textContent = msg.swipes[msg.selectedSwipe];
+            textBox.focus();
+            changeControlsState("editing");
+          }
+        }
+      }),
+      rerollButton
+    ];
+    if (msg.from === "model" && isLast) {
+      mainControls.push();
+    }
     const controls = [
-      tab([
-        swipesControl,
-        d({
-          tagName: "button",
-          className: "strip pointer",
-          contents: "edit",
-          events: {
-            click: () => {
-              textBox.setAttribute("contenteditable", "true");
-              textBox.textContent = msg.swipes[msg.selectedSwipe];
-              textBox.focus();
-              changeControlsState("editing");
-            }
-          }
-        }),
-        msg.from === "model" && isLast ? d({
-          tagName: "button",
-          className: "strip pointer",
-          contents: "reroll",
-          events: {
-            click: () => {
-              alert("TODO");
-            }
-          }
-        }) : null
-      ].filter((e) => e)),
+      tab(mainControls),
       tab([
         d({
           tagName: "button",
@@ -3395,11 +3549,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           events: {
             click: async () => {
               const newContents = textBox.innerText;
-              console.log(newContents);
               msg.swipes[msg.selectedSwipe] = newContents;
               textBox.removeAttribute("contenteditable");
               changeControlsState("main");
-              updateSwipe(meta.id, msg.id, msg.selectedSwipe, newContents);
+              onEdit(msg.selectedSwipe, newContents);
               textBox.innerHTML = await renderMDAsync(newContents);
             }
           }
@@ -3459,6 +3612,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     });
     changeSwipe(0);
     changeControlsState("main");
+    updateRerollButtonStatus();
     function updateMessage(value) {
       msg = value;
     }
@@ -3477,6 +3631,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     function setIsLast(value) {
       isLast = value;
       changeSwipe(0);
+      updateRerollButtonStatus();
     }
     const viewControls = {
       updateSwipe: changeSwipe,
@@ -3488,18 +3643,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     };
     const wrapped = y(
       element,
-      { controls: viewControls },
+      viewControls,
       () => {
       },
       { skipInitialRender: true }
     );
     return wrapped;
-  }
-  async function loadPictures(chat) {
-    return await Promise.all([
-      chat.userPersona.picture && getBlobLink(chat.userPersona.picture),
-      chat.scenario.picture && getBlobLink(chat.scenario.picture)
-    ]);
   }
 
   // src/units/chat/load.ts
@@ -3516,79 +3665,22 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const items = messages.map((item, ix) => {
       return makeMessageView(
         item,
-        meta.value,
+        // meta.value,
         [userPic, modelPic],
-        ix === messages.length - 1
+        ix === messages.length - 1,
+        (swipeIx, value) => {
+          setSwipe(chatId, item.id, swipeIx, value);
+        },
+        () => reroll(chatId, item.id, meta.value.scenario.name)
       );
     });
     list.append(...items);
-  }
-
-  // src/run.ts
-  var controller = new AbortController();
-  async function runEngine(chat, engine, onChunk) {
-    const response = await fetch(engine.url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${engine.key}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: engine.model,
-        messages: chat.map((m2) => ({
-          role: m2.from === "model" ? "assistant" : m2.from,
-          content: m2.swipes[m2.selectedSwipe]
-        })),
-        stream: true
-      }),
-      signal: controller.signal
-    });
-    const reader = response.body?.getReader();
-    if (!reader) {
-      return {
-        success: false,
-        error: "Response body is not readable"
-      };
-    }
-    const decoder = new TextDecoder();
-    let buffer = "";
-    const chonks = [];
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        while (true) {
-          const lineEnd = buffer.indexOf("\n");
-          if (lineEnd === -1) break;
-          const line = buffer.slice(0, lineEnd).trim();
-          buffer = buffer.slice(lineEnd + 1);
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") break;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices[0].delta.content;
-              if (content) {
-                chonks.push(content);
-                onChunk(content);
-              }
-            } catch (e) {
-            }
-          }
-        }
-      }
-    } finally {
-      reader.cancel();
-    }
-    return { success: true, value: chonks.join("") };
   }
 
   // src/units/chat/send.ts
   async function sendMessage() {
     const list = document.querySelector("#play-messages");
     const textarea = document.querySelector("#chat-textarea");
-    const inputModes = document.querySelector("#chat-controls");
     const message = textarea.value?.trim();
     if (!message) return;
     const [, chatId] = getRoute();
@@ -3599,55 +3691,46 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ]);
     if (!messages.success || !meta.success) return;
     const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
-    inputModes.tab = "pending";
     const lastMessageId = messages.value.messages.findLast(() => true)?.id;
-    list.querySelector(`.message[data-mid="${lastMessageId}"]`)?.rampike.params.controls.setIsLast(false);
-    const pushedResult = await pushSwipe(meta.value.id, message, true, meta.value.userPersona.name);
-    if (!pushedResult) {
+    getMessageViewByID(lastMessageId)?.rampike.params.setIsLast(false);
+    const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
+    if (!newUserMessage) {
       console.error("failed to save user message");
       return;
     }
-    const userMessage = makeMessageView(pushedResult.updatedMessage, meta.value, await loadPictures(meta.value), false);
-    const responseMessage = makeMessageView({
-      from: "model",
-      id: -1,
-      name: meta.value.scenario.name,
-      rember: null,
-      selectedSwipe: 0,
-      swipes: [""]
-    }, meta.value, await loadPictures(meta.value), true);
-    list.append(userMessage, responseMessage);
-    await gainResponse(payload, responseMessage, meta.value.id, meta.value.scenario.name);
-    textarea.value = "";
-    inputModes.tab = "main";
-  }
-  async function preparePayload(contents, systemPrompt, userMessage) {
-    const system = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
-    const payload = [
-      system,
-      ...contents.slice(-10)
-    ];
-    if (!userMessage) return payload;
-    const user = { from: "user", id: -1, name: "", rember: null, swipes: [userMessage], selectedSwipe: 0 };
-    payload.push(user);
-    return payload;
-  }
-  async function gainResponse(payload, responseMessage, chatId, name) {
-    const [, engine] = Object.entries(readEngines())[0];
-    const responseMessageControls = responseMessage.rampike.params.controls;
-    const responseStreamingUpdater = responseMessageControls.startStreaming();
-    const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
-    if (streamingResult.success) {
-      const pushedResponseResult = await pushSwipe(chatId, streamingResult.value, false, name);
-      if (!pushedResponseResult) {
-        console.error("failed to save response message");
-        return;
+    const userMessage = makeMessageView(
+      newUserMessage,
+      await loadPictures(meta.value),
+      false,
+      // on edit
+      (swipeIx, value) => {
+        setSwipe(chatId, newUserMessage.id, swipeIx, value);
+      },
+      // on reroll
+      () => {
+        throw Error("haha nope");
       }
-      responseMessageControls.updateMessage(pushedResponseResult.updatedMessage);
-    } else {
-      console.error("response issues");
+    );
+    const newModelMessage = await addMessage(meta.value.id, "", true, meta.value.userPersona.name);
+    if (!newModelMessage) {
+      console.error("failed to save user message");
+      return;
     }
-    responseMessageControls.endStreaming();
+    const generateSwipe = () => loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
+    const responseMessage = makeMessageView(
+      newModelMessage,
+      await loadPictures(meta.value),
+      true,
+      // on edit
+      (swipeIx, value) => {
+        setSwipe(chatId, newModelMessage.id, swipeIx, value);
+      },
+      // reroll
+      generateSwipe
+    );
+    list.append(userMessage, responseMessage);
+    generateSwipe();
+    textarea.value = "";
   }
 
   // src/units/chat.ts
@@ -3655,6 +3738,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     init: () => {
       const textarea = document.querySelector("#chat-textarea");
       const sendButton = document.querySelector("#chat-send-button");
+      const stopButton = document.querySelector("#chat-stop-button");
       makeResizable(textarea);
       window.addEventListener("hashchange", update);
       listen((u3) => {
@@ -3663,6 +3747,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         updateEngines();
       });
       sendButton.addEventListener("click", sendMessage);
+      stopButton.addEventListener("click", () => abortController.abort());
       update();
       updateEngines();
     }

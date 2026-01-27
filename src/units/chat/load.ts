@@ -1,5 +1,6 @@
 import { idb } from "@root/persist";
-import { loadPictures, makeMessageView } from "./utils";
+import { loadPictures, loadResponse, preparePayload, prepareRerollPayload, reroll, setSwipe } from "./utils";
+import { makeMessageView } from "./message-view";
 
 export async function loadMessages(chatId: string) {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
@@ -17,9 +18,13 @@ export async function loadMessages(chatId: string) {
 	const items = messages.map((item, ix) => {
 		return makeMessageView(
 			item,
-			meta.value,
+			// meta.value,
 			[userPic, modelPic],
-			ix === messages.length - 1
+			ix === messages.length - 1,
+			(swipeIx, value) => {
+				setSwipe(chatId, item.id, swipeIx, value);
+			},
+			() => reroll(chatId, item.id, meta.value.scenario.name)
 		);
 	});
 

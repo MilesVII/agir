@@ -5,11 +5,13 @@ import { RampikeTabs } from "@rampike/tabs";
 import { listen } from "@root/persist";
 import { readEngines } from "./settings/engines";
 import { sendMessage } from "./chat/send";
+import { abortController } from "@root/run";
 
 export const chatUnit: RampikeUnit = {
 	init: () => {
 		const textarea = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
-		const sendButton = document.querySelector<HTMLElement>("#chat-send-button")!;
+		const sendButton = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
+		const stopButton = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
 
 		makeResizable(textarea);
 		window.addEventListener("hashchange", update);
@@ -19,6 +21,7 @@ export const chatUnit: RampikeUnit = {
 			updateEngines();
 		});
 		sendButton.addEventListener("click", sendMessage);
+		stopButton.addEventListener("click", () => abortController.abort());
 
 		update();
 		updateEngines();
