@@ -70,6 +70,33 @@ export async function addMessage(chatId: string, value: string, fromUser: boolea
 	return newMessage;
 }
 
+export async function deleteMessage(chatId: string, messageId: number) {
+	const [contents, chat] = await Promise.all([
+		idb.get("chatContents", chatId),
+		idb.get("chats", chatId)
+	]);
+	if (!contents.success || !chat.success) return;
+	const messages = contents.value.messages;
+
+	const mix = messages.findIndex(m => m.id === messageId);
+	if (mix < 0) return;
+
+	contents.value.messages.splice(mix);
+	chat.value.lastUpdate = Date.now();
+	chat.value.messageCount = messages.length;
+
+	await Promise.all([
+		idb.set("chatContents", contents.value),
+		idb.set("chats", chat.value)
+	]);
+
+	const messageViews = document.querySelectorAll<RampikeMessageView>(".message[data-mid]");
+	messageViews.forEach(m => {
+		const mid = parseInt(m.dataset.mid!, 10);
+		if (mid >= messageId) m.remove();
+	});
+}
+
 export async function reroll(chatId: string, messageId: number, name: string) {
 	const payload = await prepareRerollPayload(chatId, messageId);
 	if (!payload) return;

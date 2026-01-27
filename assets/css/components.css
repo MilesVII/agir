@@ -18,6 +18,18 @@
 	border-color: var(--color-base);
 }
 
+.ghost {
+	border-radius: var(--dims-smol);
+	transition: all .2s ease;
+}
+.ghost:hover {
+	background-color: var(--color-accent);
+	color: var(--color-base);
+}
+.ghost:active {
+	background-color: var(--color-secondary);
+}
+
 button.lineout, .pointer {
 	cursor: pointer;
 }

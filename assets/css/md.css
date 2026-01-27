@@ -5,3 +5,7 @@
 .message-text p:not(:first-child) {
 	padding-top: .42em;
 }
+
+.message-text p {
+	white-space: pre-wrap;
+}

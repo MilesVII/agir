@@ -1,6 +1,6 @@
 import { getRoute } from "@root/utils";
 import { idb } from "@root/persist";
-import { addMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, pushSwipe, setSwipe } from "./utils";
+import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, pushSwipe, setSwipe } from "./utils";
 import { makeMessageView } from "./message-view";
 
 export async function sendMessage() {
@@ -39,9 +39,10 @@ export async function sendMessage() {
 			setSwipe(chatId, newUserMessage.id, swipeIx, value);
 		},
 		// on reroll
-		() => { throw Error("haha nope"); }
+		() => { throw Error("haha nope"); },
+		() => deleteMessage(chatId, newUserMessage.id)
 	);
-	const newModelMessage = await addMessage(meta.value.id, "", true, meta.value.userPersona.name);
+	const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
 	if (!newModelMessage) {
 		console.error("failed to save user message");
 		return;
@@ -58,7 +59,8 @@ export async function sendMessage() {
 			setSwipe(chatId, newModelMessage.id, swipeIx, value);
 		},
 		// reroll
-		generateSwipe
+		generateSwipe,
+		() => { throw Error("haha nope"); }
 	);
 	list.append(userMessage, responseMessage);
 

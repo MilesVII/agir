@@ -3378,6 +3378,28 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ]);
     return newMessage;
   }
+  async function deleteMessage(chatId, messageId) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return;
+    const messages = contents.value.messages;
+    const mix = messages.findIndex((m2) => m2.id === messageId);
+    if (mix < 0) return;
+    contents.value.messages.splice(mix);
+    chat.value.lastUpdate = Date.now();
+    chat.value.messageCount = messages.length;
+    await Promise.all([
+      idb.set("chatContents", contents.value),
+      idb.set("chats", chat.value)
+    ]);
+    const messageViews = document.querySelectorAll(".message[data-mid]");
+    messageViews.forEach((m2) => {
+      const mid = parseInt(m2.dataset.mid, 10);
+      if (mid >= messageId) m2.remove();
+    });
+  }
   async function reroll(chatId, messageId, name) {
     const payload = await prepareRerollPayload(chatId, messageId);
     if (!payload) return;
@@ -3447,7 +3469,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/chat/message-view.ts
-  function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll) {
+  function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete) {
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = d({
       tagName: "div",
@@ -3505,14 +3527,43 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         contents
       });
     }
-    const rerollButton = d({
-      tagName: "button",
-      className: "strip pointer",
-      contents: "reroll",
-      events: {
-        click: onReroll
+    function controlButton(caption, hint, cb) {
+      return d({
+        tagName: "button",
+        className: "strip ghost pointer",
+        contents: caption,
+        attributes: { title: hint },
+        events: { click: cb }
+      });
+    }
+    const editButton = controlButton(
+      "[\u270E]",
+      "edit message",
+      () => {
+        textBox.setAttribute("contenteditable", "true");
+        textBox.textContent = msg.swipes[msg.selectedSwipe];
+        textBox.focus();
+        changeControlsState("editing");
       }
-    });
+    );
+    const rerollButton = controlButton(
+      "[\u21BA]",
+      "reroll this message",
+      onReroll
+    );
+    const deleteButton = controlButton(
+      "[\u{1F5D9}]",
+      "delete message along with following",
+      () => {
+        if (!confirm("all the following messages will be deleted too")) return;
+        onDelete();
+      }
+    );
+    const copyButton = controlButton(
+      "[\u29C9]",
+      "copy message",
+      () => navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe])
+    );
     function updateRerollButtonStatus() {
       if (msg.from === "model" && isLast)
         rerollButton.style.removeProperty("display");
@@ -3521,21 +3572,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
     const mainControls = [
       swipesControl,
-      d({
-        tagName: "button",
-        className: "strip pointer",
-        contents: "edit",
-        events: {
-          click: () => {
-            textBox.setAttribute("contenteditable", "true");
-            textBox.textContent = msg.swipes[msg.selectedSwipe];
-            textBox.focus();
-            changeControlsState("editing");
-          }
-        }
-      }),
+      editButton,
+      copyButton,
       rerollButton
     ];
+    if (msg.from === "user") mainControls.push(deleteButton);
     if (msg.from === "model" && isLast) {
       mainControls.push();
     }
@@ -3671,7 +3712,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         (swipeIx, value) => {
           setSwipe(chatId, item.id, swipeIx, value);
         },
-        () => reroll(chatId, item.id, meta.value.scenario.name)
+        () => reroll(chatId, item.id, meta.value.scenario.name),
+        () => deleteMessage(chatId, item.id)
       );
     });
     list.append(...items);
@@ -3709,9 +3751,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       // on reroll
       () => {
         throw Error("haha nope");
-      }
+      },
+      () => deleteMessage(chatId, newUserMessage.id)
     );
-    const newModelMessage = await addMessage(meta.value.id, "", true, meta.value.userPersona.name);
+    const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
     if (!newModelMessage) {
       console.error("failed to save user message");
       return;
@@ -3726,7 +3769,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         setSwipe(chatId, newModelMessage.id, swipeIx, value);
       },
       // reroll
-      generateSwipe
+      generateSwipe,
+      () => {
+        throw Error("haha nope");
+      }
     );
     list.append(userMessage, responseMessage);
     generateSwipe();

@@ -8,7 +8,8 @@ export function makeMessageView(
 	[userPic, modelPic]: (string | null)[],
 	isLast: boolean,
 	onEdit: (swipeIx: number, value: string) => void,
-	onReroll: () => void
+	onReroll: () => void,
+	onDelete: () => void
 ) {
 	const text = msg.swipes[msg.selectedSwipe];
 	const textBox = mudcrack({
@@ -68,14 +69,40 @@ export function makeMessageView(
 			contents
 		});
 	}
-	const rerollButton = mudcrack({
-		tagName: "button",
-		className: "strip pointer",
-		contents: "reroll",
-		events: {
-			click: onReroll
-		},
-	});
+	function controlButton(caption: string, hint: string, cb: () => void) {
+		return mudcrack({
+			tagName: "button",
+			className: "strip ghost pointer",
+			contents: caption,
+			attributes: { title: hint },
+			events: { click: cb }
+		});
+	}
+	const editButton = controlButton(
+		"[✎]", "edit message",
+		() => {
+			textBox.setAttribute("contenteditable", "true");
+			textBox.textContent = msg.swipes[msg.selectedSwipe];
+			textBox.focus();
+			changeControlsState("editing");
+		}
+	);
+	const rerollButton = controlButton(
+		"[↺]", "reroll this message",
+		onReroll
+	);
+	const deleteButton = controlButton(
+		"[🗙]", "delete message along with following",
+		() => {
+			if (!confirm("all the following messages will be deleted too")) return;
+			onDelete();
+		}
+	);
+	const copyButton = controlButton(
+		"[⧉]", "copy message",
+		() => navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe])
+	);
+
 	function updateRerollButtonStatus() {
 		if (msg.from === "model" && isLast)
 			rerollButton.style.removeProperty("display");
@@ -84,21 +111,11 @@ export function makeMessageView(
 	}
 	const mainControls = [
 		swipesControl,
-		mudcrack({
-			tagName: "button",
-			className: "strip pointer",
-			contents: "edit",
-			events: {
-				click: () => {
-					textBox.setAttribute("contenteditable", "true");
-					textBox.textContent = msg.swipes[msg.selectedSwipe];
-					textBox.focus();
-					changeControlsState("editing");
-				}
-			}
-		}),
+		editButton,
+		copyButton,
 		rerollButton
 	];
+	if (msg.from === "user") mainControls.push(deleteButton);
 
 	if (msg.from === "model" && isLast) {
 		mainControls.push(
