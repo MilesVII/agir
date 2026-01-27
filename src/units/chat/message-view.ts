@@ -11,6 +11,16 @@ export function makeMessageView(
 	onReroll: () => void,
 	onDelete: () => void
 ) {
+	function controlButton(caption: string, hint: string, cb: () => void) {
+		return mudcrack({
+			tagName: "button",
+			className: "strip ghost pointer",
+			contents: caption,
+			attributes: { title: hint },
+			events: { click: cb }
+		});
+	}
+
 	const text = msg.swipes[msg.selectedSwipe];
 	const textBox = mudcrack({
 		tagName: "div",
@@ -25,23 +35,15 @@ export function makeMessageView(
 		tagName: "div",
 		className: "row-compact",
 		contents: [
-			mudcrack({
-				tagName: "button",
-				className: "strip pointer",
-				contents: "<",
-				events: {
-					click: () => changeSwipe(-1)
-				}
-			}),
+			controlButton(
+				"<", "prev swipe",
+				() => changeSwipe(-1)
+			),
 			swipesCaption,
-			mudcrack({
-				tagName: "button",
-				className: "strip pointer",
-				contents: ">",
-				events: {
-					click: () => changeSwipe(+1)
-				}
-			})
+			controlButton(
+				"<", "next swipe",
+				() => changeSwipe(+1)
+			)
 		],
 		style: {
 			display: "none"
@@ -69,17 +71,8 @@ export function makeMessageView(
 			contents
 		});
 	}
-	function controlButton(caption: string, hint: string, cb: () => void) {
-		return mudcrack({
-			tagName: "button",
-			className: "strip ghost pointer",
-			contents: caption,
-			attributes: { title: hint },
-			events: { click: cb }
-		});
-	}
 	const editButton = controlButton(
-		"[✎]", "edit message",
+		"✎", "edit message",
 		() => {
 			textBox.setAttribute("contenteditable", "true");
 			textBox.textContent = msg.swipes[msg.selectedSwipe];
@@ -88,18 +81,18 @@ export function makeMessageView(
 		}
 	);
 	const rerollButton = controlButton(
-		"[↺]", "reroll this message",
+		"↺", "reroll this message",
 		onReroll
 	);
 	const deleteButton = controlButton(
-		"[🗙]", "delete message along with following",
+		"🗙", "delete message along with following",
 		() => {
 			if (!confirm("all the following messages will be deleted too")) return;
 			onDelete();
 		}
 	);
 	const copyButton = controlButton(
-		"[⧉]", "copy message",
+		"⧉", "copy message",
 		() => navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe])
 	);
 
@@ -125,34 +118,26 @@ export function makeMessageView(
 	const controls = [
 		tab(mainControls),
 		tab([
-			mudcrack({
-				tagName: "button",
-				className: "strip pointer",
-				contents: "confirm",
-				events: {
-					click: async () => {
-						const newContents = textBox.innerText;
-						msg.swipes[msg.selectedSwipe] = newContents;
-						textBox.removeAttribute("contenteditable");
-						changeControlsState("main");
-						onEdit(msg.selectedSwipe, newContents)
-						// updateSwipe(meta.id, msg.id, msg.selectedSwipe, newContents);
-						textBox.innerHTML = await renderMDAsync(newContents);
-					}
+			controlButton(
+				"✔", "save",
+				async () => {
+					const newContents = textBox.innerText;
+					msg.swipes[msg.selectedSwipe] = newContents;
+					textBox.removeAttribute("contenteditable");
+					changeControlsState("main");
+					onEdit(msg.selectedSwipe, newContents)
+					// updateSwipe(meta.id, msg.id, msg.selectedSwipe, newContents);
+					textBox.innerHTML = await renderMDAsync(newContents);
 				}
-			}),
-			mudcrack({
-				tagName: "button",
-				className: "strip pointer",
-				contents: "cancel",
-				events: {
-					click: async () => {
-						textBox.removeAttribute("contenteditable");
-						changeControlsState("main");
-						textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
-					}
+			),
+			controlButton(
+				"✘", "cancel",
+				async () => {
+					textBox.removeAttribute("contenteditable");
+					changeControlsState("main");
+					textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
 				}
-			})
+			)
 		]),
 		tab([])
 	];

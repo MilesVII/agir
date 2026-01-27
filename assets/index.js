@@ -3470,6 +3470,15 @@ Please report this to https://github.com/markedjs/marked.`, e) {
 
   // src/units/chat/message-view.ts
   function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete) {
+    function controlButton(caption, hint, cb) {
+      return d({
+        tagName: "button",
+        className: "strip ghost pointer",
+        contents: caption,
+        attributes: { title: hint },
+        events: { click: cb }
+      });
+    }
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = d({
       tagName: "div",
@@ -3484,23 +3493,17 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       tagName: "div",
       className: "row-compact",
       contents: [
-        d({
-          tagName: "button",
-          className: "strip pointer",
-          contents: "<",
-          events: {
-            click: () => changeSwipe(-1)
-          }
-        }),
+        controlButton(
+          "<",
+          "prev swipe",
+          () => changeSwipe(-1)
+        ),
         swipesCaption,
-        d({
-          tagName: "button",
-          className: "strip pointer",
-          contents: ">",
-          events: {
-            click: () => changeSwipe(1)
-          }
-        })
+        controlButton(
+          "<",
+          "next swipe",
+          () => changeSwipe(1)
+        )
       ],
       style: {
         display: "none"
@@ -3527,17 +3530,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         contents
       });
     }
-    function controlButton(caption, hint, cb) {
-      return d({
-        tagName: "button",
-        className: "strip ghost pointer",
-        contents: caption,
-        attributes: { title: hint },
-        events: { click: cb }
-      });
-    }
     const editButton = controlButton(
-      "[\u270E]",
+      "\u270E",
       "edit message",
       () => {
         textBox.setAttribute("contenteditable", "true");
@@ -3547,12 +3541,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }
     );
     const rerollButton = controlButton(
-      "[\u21BA]",
+      "\u21BA",
       "reroll this message",
       onReroll
     );
     const deleteButton = controlButton(
-      "[\u{1F5D9}]",
+      "\u{1F5D9}",
       "delete message along with following",
       () => {
         if (!confirm("all the following messages will be deleted too")) return;
@@ -3560,7 +3554,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }
     );
     const copyButton = controlButton(
-      "[\u29C9]",
+      "\u29C9",
       "copy message",
       () => navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe])
     );
@@ -3583,33 +3577,27 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const controls = [
       tab(mainControls),
       tab([
-        d({
-          tagName: "button",
-          className: "strip pointer",
-          contents: "confirm",
-          events: {
-            click: async () => {
-              const newContents = textBox.innerText;
-              msg.swipes[msg.selectedSwipe] = newContents;
-              textBox.removeAttribute("contenteditable");
-              changeControlsState("main");
-              onEdit(msg.selectedSwipe, newContents);
-              textBox.innerHTML = await renderMDAsync(newContents);
-            }
+        controlButton(
+          "\u2714",
+          "save",
+          async () => {
+            const newContents = textBox.innerText;
+            msg.swipes[msg.selectedSwipe] = newContents;
+            textBox.removeAttribute("contenteditable");
+            changeControlsState("main");
+            onEdit(msg.selectedSwipe, newContents);
+            textBox.innerHTML = await renderMDAsync(newContents);
           }
-        }),
-        d({
-          tagName: "button",
-          className: "strip pointer",
-          contents: "cancel",
-          events: {
-            click: async () => {
-              textBox.removeAttribute("contenteditable");
-              changeControlsState("main");
-              textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
-            }
+        ),
+        controlButton(
+          "\u2718",
+          "cancel",
+          async () => {
+            textBox.removeAttribute("contenteditable");
+            changeControlsState("main");
+            textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
           }
-        })
+        )
       ]),
       tab([])
     ];
