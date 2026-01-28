@@ -167,3 +167,7 @@ summary {
 input {
 	min-width: unset;
 }
+
+dl {
+	margin: 0;
+}

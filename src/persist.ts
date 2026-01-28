@@ -13,15 +13,15 @@ type IDBStorageSchema = {
 	scenarios: ScenarioCard
 };
 const IDB_INDESEX = {
-	personas: "lastUpdate",
-	chats: "lastUpdate",
+	personas:  "lastUpdate",
+	chats:     "lastUpdate",
 	scenarios: "lastUpdate"
 } satisfies {
 	[T in keyof IDBStorageSchema]?: keyof IDBStorageSchema[T]
 };
 const INDEX_SORTED = "sorted";
 export type IDBStore = keyof IDBStorageSchema;
-export type LocalKey = "theme" | "engines" | "rember";
+export type LocalKey = "theme" | "engines" | "rember" | "activeEngine";
 
 type StorageUpdate = {
 	storage: "idb",

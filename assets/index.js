@@ -2928,23 +2928,34 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         model: document.querySelector("#settings-engines-model"),
         temp: document.querySelector("#settings-engines-temp"),
         max: document.querySelector("#settings-engines-max"),
-        context: document.querySelector("#settings-engines-context")
+        params: document.querySelector("#settings-engines-additional")
       };
       const defaults = {
         temp: 0.9,
-        max: 720,
-        context: 16384
+        max: 720
       };
       const submitButton = document.querySelector("#settings-engines-submit");
       const list = document.querySelector("#settings-engines-list");
       let editing = null;
       submitButton.addEventListener("click", submit);
+      listen((update3) => {
+        if (update3.storage !== "local") return;
+        if (update3.key !== "engines") return;
+        updateList();
+      });
+      updateList();
       function submit() {
         const id = editing ?? crypto.randomUUID();
         function parseNumber(key) {
           const f = parseFloat(inputs[key].value);
           if (isNaN(f) || f < 0) return defaults[key];
           return f;
+        }
+        function parseParams(raw) {
+          const result = nothrow(() => JSON.parse(raw));
+          const value = result.success ? result.value : {};
+          if (typeof value !== "object") return {};
+          return value;
         }
         const e = {
           name: inputs.name.value,
@@ -2953,7 +2964,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           model: inputs.model.value,
           temp: parseNumber("temp"),
           max: parseNumber("max"),
-          context: parseNumber("context")
+          params: parseParams(inputs.params.value)
         };
         const missing = ["name", "url", "model"].some((k2) => !e[k2]);
         if (missing) return;
@@ -2967,9 +2978,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         inputs.model.value = "";
         inputs.temp.value = String(defaults.temp);
         inputs.max.value = String(defaults.max);
-        inputs.context.value = String(defaults.context);
+        inputs.params.value = "";
       }
       function edit(id, e) {
+        function stringifyParams() {
+          if (!e.params) return "";
+          if (Object.keys(e.params).length === 0) return "";
+          return JSON.stringify(e.params);
+        }
         editing = id;
         inputs.name.value = e.name;
         inputs.url.value = e.url;
@@ -2977,7 +2993,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         inputs.model.value = e.model;
         inputs.temp.value = String(e.temp);
         inputs.max.value = String(e.max);
-        inputs.context.value = String(e.context);
+        inputs.params.value = stringifyParams();
         inputs.name.scrollIntoView({ behavior: "smooth" });
       }
       function updateList() {
@@ -3013,12 +3029,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             contents: "No engines found"
           }));
       }
-      listen((update3) => {
-        if (update3.storage !== "local") return;
-        if (update3.key !== "engines") return;
-        updateList();
-      });
-      updateList();
     }
   };
   function readEngines() {
@@ -3026,6 +3036,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (!enginesRaw) return {};
     const engines = nothrow(() => JSON.parse(enginesRaw));
     if (!engines.success) return {};
+    const activeEngines = readActiveEngines();
+    for (const e in engines.value) {
+      engines.value[e].isActive = e === activeEngines.main;
+    }
     return engines.value;
   }
   function saveEngines(eMap) {
@@ -3036,6 +3050,17 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const e = readEngines();
     delete e[id];
     saveEngines(e);
+  }
+  function readActiveEngines() {
+    const defaultEngines = {
+      main: null,
+      rember: null
+    };
+    const activeRaw = local.get("activeEngine");
+    if (!activeRaw) return defaultEngines;
+    const parsed = nothrow(() => JSON.parse(activeRaw));
+    if (!parsed.success) return defaultEngines;
+    return parsed.value;
   }
 
   // src/units/settings/persona.ts
@@ -3285,7 +3310,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           stream: true,
           reasoning: {
             effort: "none"
-          }
+          },
+          max_completion_tokens: engine.max,
+          temperature: engine.temp,
+          ...engine.params
         }),
         signal: abortController.signal
       });

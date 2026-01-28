@@ -1,5 +1,5 @@
 import { listen, local } from "@root/persist";
-import { Engine, EngineMap } from "@root/types";
+import { ActiveEngines, Engine, EngineMap, EngineMapWithActive } from "@root/types";
 import { nothrow } from "@root/utils";
 import { RampikeUnit } from "@units/types";
 import { mudcrack } from "rampike";
@@ -11,20 +11,27 @@ export const enginesUnit: RampikeUnit = {
 			url:   document.querySelector<HTMLInputElement>("#settings-engines-url")!,
 			key:   document.querySelector<HTMLInputElement>("#settings-engines-key")!,
 			model: document.querySelector<HTMLInputElement>("#settings-engines-model")!,
-			temp:    document.querySelector<HTMLInputElement>("#settings-engines-temp")!,
-			max:     document.querySelector<HTMLInputElement>("#settings-engines-max")!,
-			context: document.querySelector<HTMLInputElement>("#settings-engines-context")!
+			temp:   document.querySelector<HTMLInputElement>("#settings-engines-temp")!,
+			max:    document.querySelector<HTMLInputElement>("#settings-engines-max")!,
+			params: document.querySelector<HTMLInputElement>("#settings-engines-additional")!
 		};
 		const defaults = {
 			temp:    .9,
-			max:     720,
-			context: 16384
+			max:     720
 		};
 		const submitButton = document.querySelector<HTMLButtonElement>("#settings-engines-submit")!;
 		const list = document.querySelector<HTMLElement>("#settings-engines-list")!;
 		let editing: string | null = null;
 
 		submitButton.addEventListener("click", submit);
+
+		listen(update => {
+			if (update.storage !== "local") return;
+			if (update.key !== "engines") return;
+
+			updateList();
+		});
+		updateList();
 
 		function submit() {
 			const id = editing ?? crypto.randomUUID();
@@ -33,6 +40,12 @@ export const enginesUnit: RampikeUnit = {
 				if (isNaN(f) || f < 0) return defaults[key];
 				return f;
 			}
+			function parseParams(raw: string) {
+				const result = nothrow(() => JSON.parse(raw));
+				const value = result.success ? result.value : {};
+				if (typeof value !== "object") return {};
+				return value;
+			}
 			const e: Engine = {
 				name:  inputs.name.value,
 				url:   inputs.url.value,
@@ -40,12 +53,13 @@ export const enginesUnit: RampikeUnit = {
 				model: inputs.model.value,
 				temp:    parseNumber("temp"),
 				max:     parseNumber("max"),
-				context: parseNumber("context")
+				params:  parseParams(inputs.params.value)
 			};
 			const missing = (["name", "url", "model"] as const).some(k => !e[k]);
 			if (missing) return;
 
 			const eMap = readEngines();
+			// @ts-expect-error isActive missing
 			eMap[id] = e;
 			saveEngines(eMap);
 			editing = null;
@@ -53,19 +67,25 @@ export const enginesUnit: RampikeUnit = {
 			inputs.url.value =   "";
 			inputs.key.value =   "";
 			inputs.model.value = "";
-			inputs.temp.value =    String(defaults.temp);
-			inputs.max.value =     String(defaults.max);
-			inputs.context.value = String(defaults.context);
+			inputs.temp.value =   String(defaults.temp);
+			inputs.max.value =    String(defaults.max);
+			inputs.params.value = "";
 		}
 		function edit(id: string, e: Engine) {
+			function stringifyParams() {
+				if (!e.params) return "";
+				if (Object.keys(e.params).length === 0) return "";
+
+				return JSON.stringify(e.params);
+			}
 			editing = id;
 			inputs.name.value =  e.name;
 			inputs.url.value =   e.url;
 			inputs.key.value =   e.key;
 			inputs.model.value = e.model;
-			inputs.temp.value =    String(e.temp);
-			inputs.max.value =     String(e.max);
-			inputs.context.value = String(e.context);
+			inputs.temp.value =   String(e.temp);
+			inputs.max.value =    String(e.max);
+			inputs.params.value = stringifyParams();
 
 			inputs.name.scrollIntoView({ behavior: "smooth" });
 		}
@@ -103,30 +123,42 @@ export const enginesUnit: RampikeUnit = {
 					contents: "No engines found"
 				}));
 		}
-		listen(update => {
-			if (update.storage !== "local") return;
-			if (update.key !== "engines") return;
-
-			updateList();
-		});
-		updateList();
 	}
 }
 
-export function readEngines(): EngineMap {
+export function readEngines(): EngineMapWithActive {
 	const enginesRaw = local.get("engines");
 	if (!enginesRaw) return {};
-	const engines = nothrow<EngineMap>(() => JSON.parse(enginesRaw));
+	const engines = nothrow<EngineMapWithActive>(() => JSON.parse(enginesRaw));
 	if (!engines.success) return {};
+
+	const activeEngines = readActiveEngines();
+	for (const e in engines.value) {
+		engines.value[e].isActive = e === activeEngines.main;
+	}
 
 	return engines.value;
 }
 function saveEngines(eMap: EngineMap) {
 	local.set("engines", JSON.stringify(eMap));
+
 }
 function deleteEngine(id: string) {
 	if (!confirm("confirm deletion")) return;
 	const e = readEngines();
 	delete e[id];
 	saveEngines(e);
+}
+
+export function readActiveEngines(): ActiveEngines {
+	const defaultEngines = {
+		main: null,
+		rember: null
+	}
+	const activeRaw = local.get("activeEngine");
+	if (!activeRaw) return defaultEngines;
+	const parsed = nothrow<ActiveEngines>(() => JSON.parse(activeRaw));
+	if (!parsed.success) return defaultEngines;
+
+	return parsed.value;
 }

@@ -30,9 +30,15 @@ export type Engine = {
 	model: string,
 	temp:    number,
 	max:     number,
-	context: number
+	params: Record<string, any>
 };
 export type EngineMap = Record<string, Engine>;
+export type EngineMapWithActive = Record<string, Engine & { isActive: boolean }>;
+
+export type ActiveEngines = {
+	main:   string | null,
+	rember: string | null
+};
 
 export type ScenarioCard = {
 	id: string,

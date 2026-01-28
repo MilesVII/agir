@@ -112,12 +112,19 @@
 								placeholder="720"
 								value="720"
 							></ram-labeled>
+							<div class="hint">
+								A JSON object containing additional API request parameters. Refer to docs: <a href="https://platform.openai.com/docs/api-reference/chat/create">[OpenAI]</a>, <a href="https://openrouter.ai/docs/api/api-reference/chat/send-chat-completion-request">[OpenRouter]</a>
+							</div>
+							<div class="hint">
+								Note: streaming is enabled and required
+							</div>
 							<ram-labeled
-								legend="Context size"
-								id="settings-engines-context"
+								legend="Additional parameters"
+								id="settings-engines-additional"
 								class="strip wide"
-								placeholder="16384"
-								value="16384"
+								placeholder='{ "top_p": 0.7 }'
+								value=""
+								multiline
 							></ram-labeled>
 							<button id="settings-engines-submit" class="lineout">Add engine</button>
 						</div>
@@ -217,6 +224,34 @@
 						multiline
 						rows="1"
 					></ram-labeled>
+					<details>
+						<summary>
+							Macros
+						</summary>
+						Important!
+						<div class="hint">
+							<dl>
+								<dt>{{persona}}</dt> <dd>User's persona description</dd>
+							</dl>
+						</div>
+						Names:
+						<div class="hint">
+							<dl>
+								<dt>{{char}}</dt> <dd>Character name</dd>
+								<dt>{{user}}</dt> <dd>User's persona name</dd>
+							</dl>
+						</div>
+						User's persona pronouns:
+						<div class="hint">
+							<dl>
+								<dt>{{sub}}</dt>    <dd>subjective (he/she/they)</dd>
+								<dt>{{obj}}</dt>    <dd>objective (him/her/them)</dd>
+								<dt>{{poss}}</dt>   <dd>possessive (his/her/their)</dd>
+								<dt>{{poss_p}}</dt> <dd>possessive pronoun (his/hers/theirs)</dd>
+								<dt>{{ref}}</dt>    <dd>reflexive (himself/herself/themselves)</dd>
+							</dl>
+						</div>
+					</details>
 					<div class="list">
 						<hr/>
 						<div class="hint">Character definiton below</div>

@@ -27,7 +27,10 @@ export async function runEngine(
 				stream: true,
 				reasoning: {
 					effort: "none"
-				}
+				},
+				max_completion_tokens: engine.max,
+				temperature: engine.temp,
+				...engine.params
 			}),
 			signal: abortController.signal
 		});
