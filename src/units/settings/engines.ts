@@ -102,12 +102,31 @@ export const enginesUnit: RampikeUnit = {
 							contents: e.name
 						}),
 						mudcrack({
-							tagName: "button",
-							className: "lineout",
-							events: {
-								click: () => deleteEngine(id)
-							},
-							contents: "delete"
+							className: "row-compact",
+							contents: [
+								mudcrack({
+									tagName: "button",
+									className: "lineout",
+									events: {
+										click: ev => {
+											ev.stopPropagation();
+											copyEngine(id);
+										}
+									},
+									contents: "copy"
+								}),
+								mudcrack({
+									tagName: "button",
+									className: "lineout",
+									events: {
+										click: ev => {
+											ev.stopPropagation();
+											deleteEngine(id);
+										}
+									},
+									contents: "delete"
+								})
+							]
 						})
 					],
 					events: {
@@ -147,6 +166,16 @@ function deleteEngine(id: string) {
 	if (!confirm("confirm deletion")) return;
 	const e = readEngines();
 	delete e[id];
+	saveEngines(e);
+}
+function copyEngine(id: string) {
+	const e = readEngines();
+	if (!e[id]) return;
+	const nid = crypto.randomUUID();
+	e[nid] = {
+		...e[id],
+		name: e[id].name + " (copy)"
+	};
 	saveEngines(e);
 }
 

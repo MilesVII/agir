@@ -3039,12 +3039,31 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                 contents: e.name
               }),
               d({
-                tagName: "button",
-                className: "lineout",
-                events: {
-                  click: () => deleteEngine(id)
-                },
-                contents: "delete"
+                className: "row-compact",
+                contents: [
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: (ev) => {
+                        ev.stopPropagation();
+                        copyEngine(id);
+                      }
+                    },
+                    contents: "copy"
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: (ev) => {
+                        ev.stopPropagation();
+                        deleteEngine(id);
+                      }
+                    },
+                    contents: "delete"
+                  })
+                ]
               })
             ],
             events: {
@@ -3080,6 +3099,16 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (!confirm("confirm deletion")) return;
     const e = readEngines();
     delete e[id];
+    saveEngines(e);
+  }
+  function copyEngine(id) {
+    const e = readEngines();
+    if (!e[id]) return;
+    const nid = crypto.randomUUID();
+    e[nid] = {
+      ...e[id],
+      name: e[id].name + " (copy)"
+    };
     saveEngines(e);
   }
   function readActiveEngines() {

@@ -105,10 +105,9 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 }
 
 .settings-engine-item {
+	padding-inline-start: var(--dims-reg);
 	align-items: center;
-}
-.settings-engine-item > button {
-	margin-inline-start: auto;
+	justify-content: space-between;
 }
 
 .settings-theme-selector-button {
