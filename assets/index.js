@@ -3846,51 +3846,56 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const handles = await idb.getAll("chats");
     if (!handles.success) return;
     list.innerHTML = "";
-    const items = handles.value.reverse().map((handle) => d({
-      className: "lineout row main-chats-item",
-      contents: [
-        d({
-          tagName: "img",
-          attributes: {
-            src: placeholder(null)
-          }
-        }),
-        d({
-          className: "list wide",
-          contents: [
-            d({
-              tagName: "h2",
-              contents: handle.scenario.name
-            }),
-            d({
-              className: "hint",
-              contents: messagesCaption(handle.messageCount)
-            })
-          ]
-        }),
-        d({
-          className: "list",
-          contents: [
-            d({
-              tagName: "button",
-              className: "lineout",
-              contents: "play",
-              events: {
-                click: () => window.location.hash = `play.${handle.id}`
-              }
-            }),
-            d({
-              tagName: "button",
-              className: "lineout",
-              contents: "delete",
-              events: {
-                click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
-              }
-            })
-          ]
-        })
-      ]
-    }));
+    const items = handles.value.reverse().map((handle) => {
+      const icon = d({
+        tagName: "img",
+        attributes: {
+          src: placeholder(null)
+        }
+      });
+      if (handle.scenario.picture)
+        getBlobLink(handle.scenario.picture).then((src) => src && (icon.src = src));
+      return d({
+        className: "lineout row main-chats-item",
+        contents: [
+          icon,
+          d({
+            className: "list wide",
+            contents: [
+              d({
+                tagName: "h2",
+                contents: handle.scenario.name
+              }),
+              d({
+                className: "hint",
+                contents: messagesCaption(handle.messageCount)
+              })
+            ]
+          }),
+          d({
+            className: "list",
+            contents: [
+              d({
+                tagName: "button",
+                className: "lineout",
+                contents: "play",
+                events: {
+                  click: () => window.location.hash = `play.${handle.id}`
+                }
+              }),
+              d({
+                tagName: "button",
+                className: "lineout",
+                contents: "delete",
+                events: {
+                  click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
+                }
+              })
+            ]
+          })
+        ]
+      });
+    });
     if (items.length === 0) list.append(d({ className: "placeholder", contents: "No chats found" }));
     list.append(...items);
   }

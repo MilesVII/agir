@@ -2,7 +2,7 @@ import { RampikeFilePicker } from "@rampike/filepicker";
 import { RampikeUnit } from "./types";
 import { nothrow, nothrowAsync, placeholder } from "@root/utils";
 import { ChatMessage } from "@root/types";
-import { idb, listen } from "@root/persist";
+import { getBlobLink, idb, listen } from "@root/persist";
 import { mudcrack } from "rampike";
 
 export const mainUnit: RampikeUnit = {
@@ -39,51 +39,57 @@ async function updateChatHandles() {
 	if (!handles.success) return;
 	list.innerHTML = "";
 
-	const items = handles.value.reverse().map(handle => mudcrack({
-		className: "lineout row main-chats-item",
-		contents: [
-			mudcrack({
-				tagName: "img",
-				attributes: {
-					src: placeholder(null)
-				}
-			}),
-			mudcrack({
-				className: "list wide",
-				contents: [
-					mudcrack({
-						tagName: "h2",
-						contents: handle.scenario.name,
-					}),
-					mudcrack({
-						className: "hint",
-						contents: messagesCaption(handle.messageCount),
-					})
-				]
-			}),
-			mudcrack({
-				className: "list",
-				contents: [
-					mudcrack({
-						tagName: "button",
-						className: "lineout",
-						contents: "play",
-						events: {
-							click: () => window.location.hash = `play.${handle.id}`
-						}
-					}),
-					mudcrack({
-						tagName: "button",
-						className: "lineout",
-						contents: "delete",
-						events: {
-							click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
-						}
-					})
-				]
-			})
-		]
-	}));
+	const items = handles.value.reverse().map(handle => {
+		const icon = mudcrack({
+			tagName: "img",
+			attributes: {
+				src: placeholder(null)
+			}
+		});
+		if (handle.scenario.picture)
+			getBlobLink(handle.scenario.picture).then(src => src && (icon.src = src));
+
+		return mudcrack({
+			className: "lineout row main-chats-item",
+			contents: [
+				icon,
+				mudcrack({
+					className: "list wide",
+					contents: [
+						mudcrack({
+							tagName: "h2",
+							contents: handle.scenario.name,
+						}),
+						mudcrack({
+							className: "hint",
+							contents: messagesCaption(handle.messageCount),
+						})
+					]
+				}),
+				mudcrack({
+					className: "list",
+					contents: [
+						mudcrack({
+							tagName: "button",
+							className: "lineout",
+							contents: "play",
+							events: {
+								click: () => window.location.hash = `play.${handle.id}`
+							}
+						}),
+						mudcrack({
+							tagName: "button",
+							className: "lineout",
+							contents: "delete",
+							events: {
+								click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
+							}
+						})
+					]
+				})
+			]
+		})
+	});
 
 	if (items.length === 0) list.append(mudcrack({ className: "placeholder", contents: "No chats found" }));
 	list.append(...items);
