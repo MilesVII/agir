@@ -4290,7 +4290,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                     tagName: "button",
                     className: "lineout",
                     events: {
-                      click: () => openStartModal(item.id)
+                      click: () => openStartModal(item.id, item.card.description)
                     },
                     contents: "play"
                   })
@@ -4322,9 +4322,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (!ok) return;
     idb.del("scenarios", id);
   }
-  async function openStartModal(scenario) {
+  async function openStartModal(scenario, descriptionMD) {
     const modal = document.querySelector("#library-start");
     const picker = modal.querySelector("#library-start-persona");
+    const description = document.querySelector("#library-start-description");
     const personas = await idb.getAll("personas");
     if (!personas.success) return;
     setSelectOptions(
@@ -4335,6 +4336,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     openerRelay = {
       scenarioId: scenario
     };
+    description.innerHTML = renderMD(descriptionMD);
     modal.open();
   }
 

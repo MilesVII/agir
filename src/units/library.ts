@@ -91,7 +91,7 @@ async function update() {
 									tagName: "button",
 									className: "lineout",
 									events: {
-										click: () => openStartModal(item.id)
+										click: () => openStartModal(item.id, item.card.description)
 									},
 									contents: "play"
 								})
@@ -127,9 +127,10 @@ function deleteScenario(id: string, name: string) {
 	idb.del("scenarios", id);
 }
 
-async function openStartModal(scenario: string) {
+async function openStartModal(scenario: string, descriptionMD: string) {
 	const modal = document.querySelector<RampikeModal>("#library-start")!;
 	const picker = modal.querySelector<HTMLSelectElement>("#library-start-persona")!;
+	const description = document.querySelector("#library-start-description")!;
 
 	const personas = await idb.getAll("personas");
 	if (!personas.success) return;
@@ -143,6 +144,8 @@ async function openStartModal(scenario: string) {
 	openerRelay = {
 		scenarioId: scenario
 	};
+
+	description.innerHTML = renderMD(descriptionMD);
 
 	modal.open();
 }

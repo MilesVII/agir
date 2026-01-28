@@ -140,6 +140,7 @@ dialog {
 	background: transparent;
 	backdrop-filter: blur(3px);
 	outline: none;
+	color: inherit;
 }
 dialog > form {
 	display: flex;
