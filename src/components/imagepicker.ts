@@ -28,6 +28,9 @@ class _RampikeImagePicker extends HTMLElement {
 		this.revokeBlob?.();
 		img.src = v;
 		this.onDirty?.();
+		setTimeout(() => {
+			this.clearButton.hidden = !this.value
+		}, 0)
 	}
 
 	usePlaceholder() {
@@ -57,8 +60,8 @@ class _RampikeImagePicker extends HTMLElement {
 			this.revokeBlob = null;
 		}
 		this.setAttribute("value", "");
-		this.onDirty?.();
 	}
+	private clearButton: HTMLButtonElement;
 
 	constructor() {
 		super();
@@ -93,14 +96,29 @@ class _RampikeImagePicker extends HTMLElement {
 			}
 		});
 
-		const contents = mudcrack({
-			tagName: "label",
-			style: {
-				display: "contents"
+		this.clearButton = mudcrack({
+			tagName: "button",
+			className: "lineout image-picker-clear pointer",
+			contents: "clear",
+			attributes: {
+				hidden: "true"
 			},
-			contents: [ input, image ]
+			events: {
+				click: () => this.usePlaceholder()
+			}
 		});
-		this.append(contents);
+		const contents = [
+			mudcrack({
+				tagName: "label",
+				style: {
+					display: "contents"
+				},
+				contents: [ input, image ]
+			}),
+			this.clearButton
+		];
+		this.style.position = "relative";
+		this.append(...contents);
 	}
 };
 

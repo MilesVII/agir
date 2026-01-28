@@ -30,7 +30,6 @@ export const PRONOUNS_THEY: Pronouns = {
 export const personaUnit: RampikeUnit = {
 	init: () => {
 		const filePicker = document.querySelector<RampikeImagePicker>("#settings-persona-picture")!;
-		const clearButton = document.querySelector<HTMLButtonElement>("#settings-persona-picture-clear")!;
 		const nameInput = document.querySelector<HTMLInputElement>("#settings-persona-name")!;
 		const descInput = document.querySelector<HTMLTextAreaElement>("#settings-persona-desc")!;
 		const personaList = document.querySelector<HTMLElement>("#settings-persona-list")!;
@@ -38,16 +37,6 @@ export const personaUnit: RampikeUnit = {
 		const form = document.querySelector<HTMLElement>("#settings-persona-form")!;
 		let editingPersona: Persona | null = null;
 
-		function clear() {
-			filePicker.usePlaceholder();
-			clearButton.hidden = true;
-		}
-		clearButton.addEventListener("click", () => {
-			clear();
-		});
-		filePicker.onDirty = () => {
-			clearButton.hidden = filePicker.value === "";
-		};
 		submitButton.addEventListener("click", async () => {
 			const name = nameInput.value;
 			const desc = descInput.value;
@@ -68,8 +57,8 @@ export const personaUnit: RampikeUnit = {
 				lastUpdate: Date.now()
 			});
 
-			filePicker.input.value = "";
-			clear();
+			// filePicker.input.value = "";
+			filePicker.usePlaceholder();
 			nameInput.value = "";
 			descInput.value = "";
 			editingPersona = null;

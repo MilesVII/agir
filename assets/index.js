@@ -2843,6 +2843,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       this.revokeBlob?.();
       img.src = v2;
       this.onDirty?.();
+      setTimeout(() => {
+        this.clearButton.hidden = !this.value;
+      }, 0);
     }
     usePlaceholder() {
       this.image = placeholder(this.getAttribute("placeholder"));
@@ -2868,8 +2871,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         this.revokeBlob = null;
       };
       this.setAttribute("value", "");
-      this.onDirty?.();
     }
+    clearButton;
     constructor() {
       super();
       const image = d({
@@ -2900,14 +2903,29 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           }
         }
       });
-      const contents = d({
-        tagName: "label",
-        style: {
-          display: "contents"
+      this.clearButton = d({
+        tagName: "button",
+        className: "lineout image-picker-clear pointer",
+        contents: "clear",
+        attributes: {
+          hidden: "true"
         },
-        contents: [input, image]
+        events: {
+          click: () => this.usePlaceholder()
+        }
       });
-      this.append(contents);
+      const contents = [
+        d({
+          tagName: "label",
+          style: {
+            display: "contents"
+          },
+          contents: [input, image]
+        }),
+        this.clearButton
+      ];
+      this.style.position = "relative";
+      this.append(...contents);
     }
   };
   function define8(tagName) {
@@ -3087,23 +3105,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   var personaUnit = {
     init: () => {
       const filePicker = document.querySelector("#settings-persona-picture");
-      const clearButton = document.querySelector("#settings-persona-picture-clear");
       const nameInput = document.querySelector("#settings-persona-name");
       const descInput = document.querySelector("#settings-persona-desc");
       const personaList = document.querySelector("#settings-persona-list");
       const submitButton = document.querySelector("#settings-add-persona");
       const form = document.querySelector("#settings-persona-form");
       let editingPersona = null;
-      function clear() {
-        filePicker.usePlaceholder();
-        clearButton.hidden = true;
-      }
-      clearButton.addEventListener("click", () => {
-        clear();
-      });
-      filePicker.onDirty = () => {
-        clearButton.hidden = filePicker.value === "";
-      };
       submitButton.addEventListener("click", async () => {
         const name = nameInput.value;
         const desc = descInput.value;
@@ -3118,8 +3125,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           picture,
           lastUpdate: Date.now()
         });
-        filePicker.input.value = "";
-        clear();
+        filePicker.usePlaceholder();
         nameInput.value = "";
         descInput.value = "";
         editingPersona = null;

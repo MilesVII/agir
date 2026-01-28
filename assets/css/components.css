@@ -60,6 +60,14 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	color: var(--color-text);
 }
 
+.image-picker-clear {
+	position: absolute;
+	bottom: var(--dims-smol);
+	right:  var(--dims-smol);
+	background-color: var(--color-base-semi);
+	backdrop-filter: blur(64px);
+}
+
 .main-chats-item > img {
 	width: 32%;
 	border-radius: var(--dims-smol);
