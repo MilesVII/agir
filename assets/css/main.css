@@ -1,6 +1,13 @@
 @font-face{
-	font-family: Arimo;
-	src: url("./arimo.ttf") format('truetype');
+	font-family: "Ubuntu Sans";
+	src: url("./ubuntu-sans.ttf") format("truetype");
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Ubuntu Sans";
+	src: url("./ubuntu-sans-italic.ttf") format("truetype");
+	font-style: italic;
 }
 
 @media screen and (min-aspect-ratio: 1.2) {
@@ -49,10 +56,11 @@
 	--color-secondary: #444444;
 	--color-accent: #DA0037;
 	--color-text: #EDEDED;
+	--color-subtext: #808080;
 
-	--font-smol: normal 400 14px/18px "Arimo";
-	--font-main: normal 400 18px/22px "Arimo";
-	--font-bold: normal 600 20px/24px "Arimo";
+	--font-smol: normal 400 14px/18px "Ubuntu Sans";
+	--font-main: normal 400 18px/22px "Ubuntu Sans";
+	--font-bold: normal 600 20px/24px "Ubuntu Sans";
 
 	--dims-smol:  4px;
 	--dims-reg:   8px;
@@ -78,6 +86,7 @@ html, body {
 	margin: 0;
 	border: none;
 	overflow: auto;
+	overflow-x: hidden;
 }
 
 body {

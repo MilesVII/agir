@@ -1,5 +1,6 @@
 .message-text em {
-	color: var(--color-secondary);
+	color: var(--color-subtext);
+	font-style: italic;
 }
 
 .message-text p:not(:first-child) {
