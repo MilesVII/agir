@@ -2689,6 +2689,19 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function placeholder(url) {
     return url || PLACHEOLDER;
   }
+  function setSelectOptions(target, options, pickFirst = false) {
+    const optionsList = options.map(([id, caption]) => d({
+      tagName: "option",
+      attributes: {
+        value: id
+      },
+      contents: caption
+    }));
+    target.innerHTML = "";
+    target.append(...optionsList);
+    if (pickFirst && options.length > 0)
+      target.value = options[0][0];
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -3291,10 +3304,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   };
 
   // src/run.ts
-  var abortController = new AbortController();
+  var abortController;
   async function runEngine(chat, engine, onChunk) {
     const chonks = [];
     try {
+      abortController = new AbortController();
       const response = await fetch(engine.url, {
         method: "POST",
         headers: {
@@ -3463,9 +3477,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return payload;
   }
   async function loadResponse(payload, msgId, chatId, name) {
+    const engineOptions = Object.entries(readEngines());
+    if (engineOptions.length <= 0) {
+      console.error("no engines!");
+      return;
+    }
+    const [, engine] = engineOptions.find(([, e]) => e.isActive) ?? engineOptions[0];
     const inputModes = document.querySelector("#chat-controls");
     inputModes.tab = "pending";
-    const [, engine] = Object.entries(readEngines())[0];
     const messageView = getMessageViewByID(msgId);
     if (!messageView) {
       window.location.reload();
@@ -3528,7 +3547,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         ),
         swipesCaption,
         controlButton(
-          "<",
+          ">",
           "next swipe",
           () => changeSwipe(1)
         )
@@ -3801,15 +3820,19 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const textarea = document.querySelector("#chat-textarea");
       const sendButton = document.querySelector("#chat-send-button");
       const stopButton = document.querySelector("#chat-stop-button");
+      const enginePicker = document.querySelector("#chat-engine-picker");
       makeResizable(textarea);
       window.addEventListener("hashchange", update);
       listen((u3) => {
         if (u3.storage !== "local") return;
-        if (u3.key !== "engines") return;
+        if (u3.key !== "engines" && u3.key !== "activeEngine") return;
         updateEngines();
       });
       sendButton.addEventListener("click", sendMessage);
       stopButton.addEventListener("click", () => abortController.abort());
+      enginePicker.addEventListener("input", () => {
+        pickMainEngine(enginePicker.value);
+      });
       update();
       updateEngines();
     }
@@ -3822,12 +3845,33 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function updateEngines() {
     const inputModes = document.querySelector("#chat-controls");
+    const enginePicker = document.querySelector("#chat-engine-picker");
+    const engineControl = document.querySelector(".chat-engine-control");
     const engineMap = readEngines();
     const engineOptions = Object.entries(engineMap);
-    if (engineOptions.length > 0)
+    const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
+    setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), !activeId);
+    if (engineOptions.length > 0) {
+      if (activeId) {
+        enginePicker.value = activeId;
+      } else {
+        const actives = {
+          main: engineOptions[0][0],
+          rember: null
+        };
+        local.set("activeEngine", JSON.stringify(actives));
+      }
       inputModes.tab = "main";
-    else
+      engineControl.hidden = false;
+    } else {
       inputModes.tab = "disabled";
+      engineControl.hidden = true;
+    }
+  }
+  function pickMainEngine(id) {
+    const old = readActiveEngines();
+    old.main = id;
+    local.set("activeEngine", JSON.stringify(old));
   }
 
   // src/units/main.ts
@@ -4212,21 +4256,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   async function openStartModal(scenario) {
     const modal = document.querySelector("#library-start");
-    const form = modal.querySelector("form");
     const picker = modal.querySelector("#library-start-persona");
     const personas = await idb.getAll("personas");
     if (!personas.success) return;
-    const options = personas.value.map((p) => d({
-      tagName: "option",
-      attributes: {
-        value: p.id
-      },
-      contents: p.name
-    }));
-    picker.innerHTML = "";
-    picker.append(...options);
-    if (personas.value.length > 0)
-      picker.value = personas.value[0].id;
+    setSelectOptions(
+      picker,
+      personas.value.map(({ id, name }) => [id, name]),
+      true
+    );
     openerRelay = {
       scenarioId: scenario
     };

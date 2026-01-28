@@ -142,11 +142,15 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 }
 
 export async function loadResponse(payload: ChatMessage[], msgId: number, chatId: string, name: string) {
+	const engineOptions = Object.entries(readEngines());
+	if (engineOptions.length <= 0) {
+		console.error("no engines!");
+		return;
+	}
+	const [, engine] = engineOptions.find(([, e]) => e.isActive) ?? engineOptions[0];
+
 	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;
 	inputModes.tab = "pending";
-
-	// TODO: Pick default engine
-	const [, engine] = Object.entries(readEngines())[0];
 
 	const messageView = getMessageViewByID(msgId);
 	if (!messageView) {

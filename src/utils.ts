@@ -2,6 +2,7 @@ import { marked } from "marked";
 import * as dompurify from "dompurify";
 
 import type { Result } from "./types";
+import { mudcrack } from "rampike";
 
 export function nothrow<T>(cb: () => T): Result<T, any> {
 	try {
@@ -52,4 +53,19 @@ export async function renderMDAsync(content: string) {
 const PLACHEOLDER = "assets/gfx/placeholder.png";
 export function placeholder(url: string | null) {
 	return url || PLACHEOLDER;
+}
+
+export function setSelectOptions(target: HTMLSelectElement, options: [id: string, caption: string][], pickFirst = false) {
+	const optionsList = options.map(([id, caption]) => mudcrack({
+		tagName: "option",
+		attributes: {
+			value: id
+		},
+		contents: caption
+	}));
+
+	target.innerHTML = "";
+	target.append(...optionsList);
+	if (pickFirst && options.length > 0)
+		target.value = options[0][0];
 }

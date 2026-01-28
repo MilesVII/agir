@@ -2,7 +2,7 @@ import { ChatMessage, Engine, Result } from "./types";
 import { nothrow, nothrowAsync } from "./utils";
 
 
-export const abortController = new AbortController();
+export let abortController: AbortController;
 
 export async function runEngine(
 	chat: ChatMessage[],
@@ -12,6 +12,7 @@ export async function runEngine(
 	const chonks: string[] = [];
 
 	try {
+		abortController = new AbortController();
 		const response = await fetch(engine.url, {
 			method: "POST",
 			headers: {

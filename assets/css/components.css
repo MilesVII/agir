@@ -173,6 +173,10 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 .chat-top {
 	padding: var(--dims-smol);
 }
+.chat-engine-control {
+	align-items: center;
+	margin-inline-start: auto;
+}
 .chat-scroll-container {
 	overflow-x: visible;
 	overflow-y: auto;

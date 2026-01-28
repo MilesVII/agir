@@ -292,6 +292,10 @@
 					<div class="chat-top shadow">
 						<div class="row content-wide float-center">
 							<button class="lineout fit" data-to="chats">back</button>
+							<div class="chat-engine-control row-compact">
+								<div>Engine:</div>
+								<select id="chat-engine-picker" class="lineout"></select>
+							</div>
 						</div>
 					</div>
 					<div id="play-messages" class="chat-scroll-container content-wide float-center"></div>
@@ -308,7 +312,7 @@
 									<button id="chat-stop-button" class="lineout float-center">abort</button>
 								</ram-tab>
 								<ram-tab key="disabled">
-									<div>Pick a model to use chat</div>
+									<div>Add an engine in settings to start chatting</div>
 								</ram-tab>
 							</ram-tabs>
 						</div>

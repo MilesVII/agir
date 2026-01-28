@@ -1,7 +1,7 @@
 import { getBlobLink, idb, listen } from "@root/persist";
 import { RampikeUnit } from "./types";
 import { mudcrack } from "rampike";
-import { placeholder, renderMD } from "@root/utils";
+import { placeholder, renderMD, setSelectOptions } from "@root/utils";
 import { RampikeModal } from "@rampike/modal";
 import { start } from "./chat/start";
 
@@ -129,23 +129,16 @@ function deleteScenario(id: string, name: string) {
 
 async function openStartModal(scenario: string) {
 	const modal = document.querySelector<RampikeModal>("#library-start")!;
-	const form = modal.querySelector("form")!;
 	const picker = modal.querySelector<HTMLSelectElement>("#library-start-persona")!;
 
 	const personas = await idb.getAll("personas");
 	if (!personas.success) return;
 
-	const options = personas.value.map(p => mudcrack({
-		tagName: "option",
-		attributes: {
-			value: p.id
-		},
-		contents: p.name
-	}));
-	picker.innerHTML = "";
-	picker.append(...options);
-	if (personas.value.length > 0)
-		picker.value = personas.value[0].id;
+	setSelectOptions(
+		picker,
+		personas.value.map(({id, name}) => [id, name]),
+		true
+	);
 
 	openerRelay = {
 		scenarioId: scenario

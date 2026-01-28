@@ -1,27 +1,31 @@
-import { getRoute, makeResizable } from "@root/utils";
+import { getRoute, makeResizable, setSelectOptions } from "@root/utils";
 import { RampikeUnit } from "./types";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
-import { listen } from "@root/persist";
-import { readEngines } from "./settings/engines";
+import { listen, local } from "@root/persist";
+import { readActiveEngines, readEngines } from "./settings/engines";
 import { sendMessage } from "./chat/send";
 import { abortController } from "@root/run";
+import { ActiveEngines } from "@root/types";
 
 export const chatUnit: RampikeUnit = {
 	init: () => {
-		const textarea = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
-		const sendButton = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
-		const stopButton = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
+		const textarea     = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
+		const sendButton   = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
+		const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
+		const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
 
 		makeResizable(textarea);
 		window.addEventListener("hashchange", update);
 		listen(u => {
 			if (u.storage !== "local") return;
-			if (u.key !== "engines") return;
+			if (u.key !== "engines" && u.key !== "activeEngine") return;
 			updateEngines();
 		});
+
 		sendButton.addEventListener("click", sendMessage);
 		stopButton.addEventListener("click", () => abortController.abort());
+		enginePicker.addEventListener("input", () => { pickMainEngine(enginePicker.value); })
 
 		update();
 		updateEngines();
@@ -38,12 +42,35 @@ async function update() {
 
 function updateEngines() {
 	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;
+	const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
+	const engineControl = document.querySelector<HTMLElement>(".chat-engine-control")!;
 
 	const engineMap = readEngines();
 
 	const engineOptions = Object.entries(engineMap);
-	if (engineOptions.length > 0)
+	const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
+	setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), !activeId);
+
+	if (engineOptions.length > 0) {
+		if (activeId) {
+			enginePicker.value = activeId;
+		} else {
+			const actives: ActiveEngines = {
+				main: engineOptions[0][0],
+				rember: null
+			};
+			local.set("activeEngine", JSON.stringify(actives));
+		}
 		inputModes.tab = "main";
-	else
+		engineControl.hidden = false;
+	} else {
 		inputModes.tab = "disabled";
+		engineControl.hidden = true;
+	}
+}
+
+function pickMainEngine(id: string) {
+	const old = readActiveEngines();
+	old.main = id;
+	local.set("activeEngine", JSON.stringify(old));
 }

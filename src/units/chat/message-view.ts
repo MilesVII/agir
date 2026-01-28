@@ -41,7 +41,7 @@ export function makeMessageView(
 			),
 			swipesCaption,
 			controlButton(
-				"<", "next swipe",
+				">", "next swipe",
 				() => changeSwipe(+1)
 			)
 		],
