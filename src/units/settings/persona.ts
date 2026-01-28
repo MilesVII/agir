@@ -19,12 +19,17 @@ const PRONOUNS_SHE: Pronouns = {
 	possessivePro: "hers",
 	reflexive: "herself"
 };
-export const PRONOUNS_THEY: Pronouns = {
+const PRONOUNS_THEY: Pronouns = {
 	subjective: "they",
 	objective: "them",
 	possessiveAdj: "their",
 	possessivePro: "theirs",
 	reflexive: "themselves"
+};
+const pronMap = {
+	he: PRONOUNS_HE,
+	she: PRONOUNS_SHE,
+	they: PRONOUNS_THEY
 };
 
 export const personaUnit: RampikeUnit = {
@@ -32,6 +37,7 @@ export const personaUnit: RampikeUnit = {
 		const filePicker = document.querySelector<RampikeImagePicker>("#settings-persona-picture")!;
 		const nameInput = document.querySelector<HTMLInputElement>("#settings-persona-name")!;
 		const descInput = document.querySelector<HTMLTextAreaElement>("#settings-persona-desc")!;
+		const pronInput = document.querySelector<HTMLSelectElement>("#settings-persona-pronouns")!;
 		const personaList = document.querySelector<HTMLElement>("#settings-persona-list")!;
 		const submitButton = document.querySelector<HTMLButtonElement>("#settings-add-persona")!;
 		const form = document.querySelector<HTMLElement>("#settings-persona-form")!;
@@ -52,15 +58,15 @@ export const personaUnit: RampikeUnit = {
 				id: editingPersona?.id ?? crypto.randomUUID(),
 				name,
 				description: desc,
-				pronouns: PRONOUNS_THEY,
+				pronouns: pronMap[pronInput.value as keyof typeof pronMap],
 				picture,
 				lastUpdate: Date.now()
 			});
 
-			// filePicker.input.value = "";
 			filePicker.usePlaceholder();
 			nameInput.value = "";
 			descInput.value = "";
+			pronInput.value = "they";
 			editingPersona = null;
 		});
 
@@ -80,6 +86,7 @@ export const personaUnit: RampikeUnit = {
 			editingPersona = persona;
 			nameInput.value = persona.name;
 			descInput.value = persona.description;
+			pronInput.value = persona.pronouns.subjective; // hack
 			if (persona.picture) {
 				filePicker.value = persona.picture;
 			}

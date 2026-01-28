@@ -49,7 +49,11 @@
 								<ram-image-picker id="settings-persona-picture" class="lineout pointer"></ram-image-picker>
 								<div class="list wide">
 									<input type="text" id="settings-persona-name" class="lineout wide" placeholder="Persona name" />
-									<button id="settings-persona-picture-clear" class="lineout" hidden>Clear picture</button>
+									<select id="settings-persona-pronouns" class="lineout">
+										<option value="he">he/him</option>
+										<option value="she">she/her</option>
+										<option value="they" selected>they/them</option>
+									</select>
 								</div>
 							</div>
 							<textarea id="settings-persona-desc" class="lineout" placeholder="Persona description"></textarea>
@@ -217,10 +221,10 @@
 					<button id="scenario-preview-button" class="lineout">Card description preview</button>
 					<div id="scenario-preview" class="lineout" hidden></div>
 					<ram-labeled
-						legend="Tags"
+						legend="Tags (comma separated)"
 						id="scenario-tags"
 						class="strip wide"
-						placeholder="comma separated"
+						placeholder=""
 						multiline
 						rows="1"
 					></ram-labeled>
@@ -260,7 +264,7 @@
 						legend="Character name (shown in chat)"
 						id="scenario-character-name"
 						class="strip wide"
-						placeholder=""
+						placeholder="Ägir"
 					></ram-labeled>
 					<ram-labeled
 						legend="Scenario definition"

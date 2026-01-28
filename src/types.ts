@@ -11,7 +11,7 @@ export type Persona = {
 	id: string,
 	name: string,
 	description: string,
-	pronouns?: Pronouns,
+	pronouns: Pronouns,
 	picture: string | null
 	lastUpdate: number
 };

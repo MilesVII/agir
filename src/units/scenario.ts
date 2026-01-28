@@ -4,6 +4,18 @@ import { getRoute, makeResizable, renderMD } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
 
+const definitionTemplate = [
+	"# Characters",
+	"## {{char}} ",
+	"{{char}} is Odin-class coastal defense ship, {{user}}'s roommate.",
+	"{{char}} is 79 meters-long, she weighs 3600 tons and is armed with three 24cm SK L/35 guns and eight 8.8cm guns which. she enjoys shooting the latter ones.",
+	"## {{user}}",
+	"{{user}} is the user. {{persona}}",
+	"",
+	"# Scenario",
+	"{{char}} is taking a bath near the coastline of Gotland, Sweden. {{user}} hails her from the shore"
+].join("\n");
+
 export const scenarioUnit: RampikeUnit = {
 	init: () => {
 		const chatIcon         = document.querySelector<RampikeImagePicker> ("#scenario-chat-picture")!;
@@ -37,14 +49,14 @@ export const scenarioUnit: RampikeUnit = {
 				
 				messagesControl.set(scenario.value.chat.initials);
 			} else {
-				cardIcon.value = "";
+				cardIcon.usePlaceholder();
 				cardTitle.value = "";
 				cardDescription.value = "";
 				cardTags.value = "";
 
-				chatIcon.value = "";
+				chatIcon.usePlaceholder();
 				characterName.value = "";
-				defintion.value = "";
+				defintion.value = definitionTemplate;
 
 				messagesControl.set([""]);
 			}

@@ -3095,6 +3095,20 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/settings/persona.ts
+  var PRONOUNS_HE = {
+    subjective: "he",
+    objective: "him",
+    possessiveAdj: "his",
+    possessivePro: "his",
+    reflexive: "himself"
+  };
+  var PRONOUNS_SHE = {
+    subjective: "she",
+    objective: "her",
+    possessiveAdj: "her",
+    possessivePro: "hers",
+    reflexive: "herself"
+  };
   var PRONOUNS_THEY = {
     subjective: "they",
     objective: "them",
@@ -3102,11 +3116,17 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     possessivePro: "theirs",
     reflexive: "themselves"
   };
+  var pronMap = {
+    he: PRONOUNS_HE,
+    she: PRONOUNS_SHE,
+    they: PRONOUNS_THEY
+  };
   var personaUnit = {
     init: () => {
       const filePicker = document.querySelector("#settings-persona-picture");
       const nameInput = document.querySelector("#settings-persona-name");
       const descInput = document.querySelector("#settings-persona-desc");
+      const pronInput = document.querySelector("#settings-persona-pronouns");
       const personaList = document.querySelector("#settings-persona-list");
       const submitButton = document.querySelector("#settings-add-persona");
       const form = document.querySelector("#settings-persona-form");
@@ -3121,13 +3141,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           id: editingPersona?.id ?? crypto.randomUUID(),
           name,
           description: desc,
-          pronouns: PRONOUNS_THEY,
+          pronouns: pronMap[pronInput.value],
           picture,
           lastUpdate: Date.now()
         });
         filePicker.usePlaceholder();
         nameInput.value = "";
         descInput.value = "";
+        pronInput.value = "they";
         editingPersona = null;
       });
       form.addEventListener("paste", (e) => {
@@ -3144,6 +3165,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         editingPersona = persona;
         nameInput.value = persona.name;
         descInput.value = persona.description;
+        pronInput.value = persona.pronouns.subjective;
         if (persona.picture) {
           filePicker.value = persona.picture;
         }
@@ -3960,6 +3982,17 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/scenario.ts
+  var definitionTemplate = [
+    "# Characters",
+    "## {{char}} ",
+    "{{char}} is Odin-class coastal defense ship, {{user}}'s roommate.",
+    "{{char}} is 79 meters-long, she weighs 3600 tons and is armed with three 24cm SK L/35 guns and eight 8.8cm guns which. she enjoys shooting the latter ones.",
+    "## {{user}}",
+    "{{user}} is the user. {{persona}}",
+    "",
+    "# Scenario",
+    "{{char}} is taking a bath near the coastline of Gotland, Sweden. {{user}} hails her from the shore"
+  ].join("\n");
   var scenarioUnit = {
     init: () => {
       const chatIcon = document.querySelector("#scenario-chat-picture");
@@ -3990,13 +4023,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           defintion.value = scenario.value.chat.definition;
           messagesControl.set(scenario.value.chat.initials);
         } else {
-          cardIcon.value = "";
+          cardIcon.usePlaceholder();
           cardTitle.value = "";
           cardDescription.value = "";
           cardTags.value = "";
-          chatIcon.value = "";
+          chatIcon.usePlaceholder();
           characterName.value = "";
-          defintion.value = "";
+          defintion.value = definitionTemplate;
           messagesControl.set([""]);
         }
       });
@@ -4135,7 +4168,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function prepareScenario(origin, persona) {
     const runMacros = (template) => macros(
       template,
-      persona.pronouns ?? PRONOUNS_THEY,
+      persona.pronouns,
       origin.chat.name,
       persona.name,
       persona.description

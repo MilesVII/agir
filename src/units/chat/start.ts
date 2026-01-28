@@ -1,6 +1,5 @@
 import { idb } from "@root/persist";
 import { Chat, Persona, Pronouns, ScenarioCard } from "@root/types";
-import { PRONOUNS_THEY } from "@units/settings/persona";
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {
 	"{{sub}}":    "subjective",
@@ -59,7 +58,7 @@ function macros(template: string, pronouns: Pronouns, charName: string, userName
 function prepareScenario(origin: ScenarioCard, persona: Persona): Chat["scenario"] {
 	const runMacros = (template: string) => macros(
 		template,
-		persona.pronouns ?? PRONOUNS_THEY,
+		persona.pronouns,
 		origin.chat.name, persona.name,
 		persona.description
 	);
