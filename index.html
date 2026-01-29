@@ -157,6 +157,7 @@
 								class="strip wide"
 								multiline
 							></ram-labeled>
+							<button id="settings-rember-save" class="lineout">Save</button>
 						</div>
 					</details>
 					<details>
@@ -172,9 +173,16 @@
 					</details>
 					<details>
 						<summary>
-							Options
+							Other options
 						</summary>
-						<div>Chat tail length</div>
+						<div class="hint">Max count of messages to send to API. 0 to send all</div>
+						<ram-labeled
+							legend="Chat tail length"
+							id="settings-options-tail"
+							class="strip wide"
+							placeholder="70"
+						></ram-labeled>
+						<button id="settings-misc-save" class="lineout">Save</button>
 						<div id="settings-themes" class="row-wrap"></div>
 					</details>
 				</div>
