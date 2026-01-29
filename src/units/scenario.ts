@@ -36,6 +36,13 @@ export const scenarioUnit: RampikeUnit = {
 		window.addEventListener("hashchange", async () => {
 			const path = getRoute();
 			if (path[0] !== "scenario-editor") return;
+
+			load();
+		});
+		load();
+
+		async function load() {
+			const path = getRoute();
 			if (path[1]) {
 				const scenario = await idb.get("scenarios", path[1]);
 				if (!scenario.success) return;
@@ -65,7 +72,7 @@ export const scenarioUnit: RampikeUnit = {
 			textareaReconsider(defintion);
 			textareaReconsider(cardTags);
 			textareaReconsider(firstMessage);
-		});
+		}
 
 		submitButton.addEventListener("click", async () => {
 			const firstMessages = messagesControl.get();

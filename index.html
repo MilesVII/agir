@@ -164,10 +164,10 @@
 						<summary>
 							Backup & Sync
 						</summary>
-						<div class="list">
-							<button id="settings-backup-save" class="lineout">Save all</button>
+						<div class="row-wrap">
+							<button id="settings-backup-save" class="lineout fit">Save all</button>
 							<ram-file-picker id="settings-backup-import" accept=".json">
-								<div class="lineout">Import</div>
+								<div class="lineout fit">Import</div>
 							</ram-file-picker>
 						</div>
 					</details>
@@ -175,15 +175,18 @@
 						<summary>
 							Other options
 						</summary>
-						<div class="hint">Max count of messages to send to API. 0 to send all</div>
-						<ram-labeled
-							legend="Chat tail length"
-							id="settings-options-tail"
-							class="strip wide"
-							placeholder="70"
-						></ram-labeled>
-						<button id="settings-misc-save" class="lineout">Save</button>
-						<div id="settings-themes" class="row-wrap"></div>
+						<div class="list">
+							<div class="hint">Max count of messages to send to API. 0 to send all</div>
+							<ram-labeled
+								legend="Chat tail length"
+								id="settings-options-tail"
+								class="strip wide"
+								placeholder="70"
+							></ram-labeled>
+							<button id="settings-misc-save" class="lineout">Save</button>
+							<div>Theme:</div>
+							<div id="settings-themes" class="row-wrap"></div>
+						</div>
 					</details>
 				</div>
 			</ram-tab>

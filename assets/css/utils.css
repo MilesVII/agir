@@ -26,6 +26,7 @@
 }
 .row-wrap {
 	flex-flow: row wrap;
+	gap: var(--dims-smol);
 }
 .list {
 	display: flex;
@@ -61,4 +62,8 @@
 }
 .content-wide {
 	width: var(--content-width);
+}
+
+.center-text {
+	text-align: center;
 }
