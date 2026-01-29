@@ -5,6 +5,7 @@ import { Chat, ChatMessage } from "@root/types";
 import { nothrowAsync, placeholder, renderMDAsync } from "@root/utils";
 import { readEngines } from "@units/settings/engines";
 import { RampikeMessageView } from "./message-view";
+import { loadMiscSettings } from "@units/settings/misc";
 
 export async function setSwipe(chatId: string, messageId: number, swipeIx: number, value: string) {
 	const contents = await idb.get("chatContents", chatId);
@@ -103,14 +104,14 @@ export async function reroll(chatId: string, messageId: number, name: string) {
 	loadResponse(payload, messageId, chatId, name);
 }
 
-// TODO: Get tail length from settings
-const MESSAGES_TAIL = 10;
-
 export async function preparePayload(contents: ChatMessage[], systemPrompt: string, userMessage: string) {
+	const settings = loadMiscSettings();
+	const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
+
 	const system: ChatMessage = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
 	const payload: ChatMessage[] = [
 		system,
-		...contents.slice(-MESSAGES_TAIL)
+		...sliced
 	];
 	if (!userMessage) return payload;
 
@@ -131,11 +132,14 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 	if (mix < 0) return null;
 
 	const history = messages.slice(0, mix);
+	
+	const settings = loadMiscSettings();
+	const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
 
 	const system: ChatMessage = { from: "system", id: -1, name: "", rember: null, swipes: [chat.value.scenario.definition], selectedSwipe: 0 };
 	const payload: ChatMessage[] = [
 		system,
-		...history.slice(-MESSAGES_TAIL)
+		...sliced
 	];
 
 	return payload;

@@ -3425,6 +3425,25 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return { success: true, value: chonks.join("") };
   }
 
+  // src/units/settings/misc.ts
+  var DEFAULT_SETTINGS = {
+    tail: 70,
+    remberStride: 0,
+    remberPrompt: "",
+    remberTemplate: "",
+    remberEngine: null
+  };
+  function loadMiscSettings() {
+    const raw = local.get("settings");
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = nothrow(() => JSON.parse(raw));
+    if (!parsed.success) return DEFAULT_SETTINGS;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed.value
+    };
+  }
+
   // src/units/chat/utils.ts
   async function setSwipe(chatId, messageId, swipeIx, value) {
     const contents = await idb.get("chatContents", chatId);
@@ -3504,12 +3523,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (!payload) return;
     loadResponse(payload, messageId, chatId, name);
   }
-  var MESSAGES_TAIL = 10;
   async function preparePayload(contents, systemPrompt, userMessage) {
+    const settings = loadMiscSettings();
+    const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
     const system = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
     const payload = [
       system,
-      ...contents.slice(-MESSAGES_TAIL)
+      ...sliced
     ];
     if (!userMessage) return payload;
     const user = { from: "user", id: -1, name: "", rember: null, swipes: [userMessage], selectedSwipe: 0 };
@@ -3526,10 +3546,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const mix = messages.findIndex((m2) => m2.id === messageId);
     if (mix < 0) return null;
     const history = messages.slice(0, mix);
+    const settings = loadMiscSettings();
+    const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
     const system = { from: "system", id: -1, name: "", rember: null, swipes: [chat.value.scenario.definition], selectedSwipe: 0 };
     const payload = [
       system,
-      ...history.slice(-MESSAGES_TAIL)
+      ...sliced
     ];
     return payload;
   }
