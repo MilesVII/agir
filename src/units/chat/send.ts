@@ -1,4 +1,4 @@
-import { getRoute } from "@root/utils";
+import { getRoute, textareaReconsider } from "@root/utils";
 import { idb } from "@root/persist";
 import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, pushSwipe, setSwipe } from "./utils";
 import { makeMessageView } from "./message-view";
@@ -67,4 +67,7 @@ export async function sendMessage() {
 	generateSwipe();
 
 	textarea.value = "";
+	textareaReconsider(textarea);
+	
+	responseMessage.scrollIntoView(false);
 }

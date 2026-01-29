@@ -2669,12 +2669,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return { promise, resolve: _resolve };
   }
   function makeResizable(textarea, initialHeight = 52) {
-    const update3 = () => {
-      textarea.style.height = "auto";
-      textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
-    };
+    const update3 = () => textareaReconsider(textarea, initialHeight);
     textarea.addEventListener("input", update3);
     update3();
+  }
+  function textareaReconsider(textarea, initialHeight = 52) {
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
   }
   function getRoute() {
     return window.location.hash.slice(1).split(".");
@@ -2701,6 +2702,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     target.append(...optionsList);
     if (pickFirst && options.length > 0)
       target.value = options[0][0];
+  }
+  function elementVisible(e) {
+    const rect = e.getBoundingClientRect();
+    return rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
   }
 
   // src/persist.ts
@@ -3350,6 +3355,61 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
   }
 
+  // src/units/settings/misc.ts
+  function initMisc() {
+    const tailInput = document.querySelector("#settings-options-tail");
+    const miscSave = document.querySelector("#settings-misc-save");
+    const rember = {
+      stride: document.querySelector("#settings-rember-stride"),
+      prompt: document.querySelector("#settings-rember-prompt"),
+      template: document.querySelector("#settings-rember-template"),
+      save: document.querySelector("#settings-rember-save")
+    };
+    listen((u3) => {
+      if (u3.storage !== "local") return;
+      if (u3.key !== "settings") return;
+      updateSettings();
+    });
+    updateSettings();
+    miscSave.addEventListener("click", () => {
+      const settings = loadMiscSettings();
+      const tail = parseInt(tailInput.value, 10);
+      settings.tail = isNaN(tail) ? 0 : tail;
+      local.set("settings", JSON.stringify(settings));
+    });
+    rember.save.addEventListener("click", () => {
+      const settings = loadMiscSettings();
+      const stride = parseInt(rember.stride.value, 10);
+      settings.remberStride = isNaN(stride) ? 0 : stride;
+      settings.remberPrompt = rember.prompt.value.trim();
+      settings.remberTemplate = rember.template.value.trim();
+      local.set("settings", JSON.stringify(settings));
+    });
+    function updateSettings() {
+      const settings = loadMiscSettings();
+      tailInput.value = String(settings.tail);
+      rember.stride.value = String(settings.remberStride);
+      rember.prompt.value = settings.remberPrompt, rember.template.value = settings.remberTemplate;
+    }
+  }
+  var DEFAULT_SETTINGS = {
+    tail: 70,
+    remberStride: 0,
+    remberPrompt: "",
+    remberTemplate: "",
+    remberEngine: null
+  };
+  function loadMiscSettings() {
+    const raw = local.get("settings");
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = nothrow(() => JSON.parse(raw));
+    if (!parsed.success) return DEFAULT_SETTINGS;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed.value
+    };
+  }
+
   // src/units/settings.ts
   var settingsUnit = {
     init: () => {
@@ -3357,6 +3417,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       personaUnit.init(void 0);
       enginesUnit.init(void 0);
       initBackup();
+      initMisc();
     }
   };
 
@@ -3423,25 +3484,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       console.error(e);
     }
     return { success: true, value: chonks.join("") };
-  }
-
-  // src/units/settings/misc.ts
-  var DEFAULT_SETTINGS = {
-    tail: 70,
-    remberStride: 0,
-    remberPrompt: "",
-    remberTemplate: "",
-    remberEngine: null
-  };
-  function loadMiscSettings() {
-    const raw = local.get("settings");
-    if (!raw) return DEFAULT_SETTINGS;
-    const parsed = nothrow(() => JSON.parse(raw));
-    if (!parsed.success) return DEFAULT_SETTINGS;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed.value
-    };
   }
 
   // src/units/chat/utils.ts
@@ -3771,17 +3813,23 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     function updateMessage(value) {
       msg = value;
     }
+    function scrollIntoView() {
+      if (elementVisible(element))
+        element.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
     function startStreaming() {
       textBox.removeAttribute("contenteditable");
       textBox.innerHTML = "";
       changeControlsState("streaming");
       return (value) => {
         textBox.innerText += value;
+        if (elementVisible(element)) scrollIntoView();
       };
     }
-    function endStreaming() {
-      setSwipeToLast();
+    async function endStreaming() {
+      await setSwipeToLast();
       changeControlsState("main");
+      scrollIntoView();
     }
     function setIsLast(value) {
       isLast = value;
@@ -3831,6 +3879,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       );
     });
     list.append(...items);
+    items[items.length - 1].scrollIntoView(false);
   }
 
   // src/units/chat/send.ts
@@ -3891,6 +3940,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     list.append(userMessage, responseMessage);
     generateSwipe();
     textarea.value = "";
+    textareaReconsider(textarea);
+    responseMessage.scrollIntoView(false);
   }
 
   // src/units/chat.ts
@@ -4056,6 +4107,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const defintion = document.querySelector("#scenario-defintion");
       const previewButton = document.querySelector("#scenario-preview-button");
       const submitButton = document.querySelector("#scenario-submit-button");
+      const firstMessage = document.querySelector("#scenario-messages");
       makeResizable(cardDescription);
       makeResizable(defintion);
       const messagesControl = initFirstMessages();
@@ -4083,6 +4135,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           defintion.value = definitionTemplate;
           messagesControl.set([""]);
         }
+        textareaReconsider(cardDescription);
+        textareaReconsider(defintion);
+        textareaReconsider(cardTags);
+        textareaReconsider(firstMessage);
       });
       submitButton.addEventListener("click", async () => {
         const firstMessages = messagesControl.get();

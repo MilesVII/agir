@@ -192,12 +192,14 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	flex-flow: column nowrap;
 	gap: var(--dims-huge);
 	padding-block: var(--dims-huge);
+	padding-bottom: var(--dims-huge);
 }
 .chat-low {
 	--send-size: 42px;
 	display: grid;
 	grid-template-columns: auto var(--send-size);
 	padding: var(--dims-smol);
+	padding-bottom: var(--dims-reg);
 	gap: var(--dims-smol);
 	align-items: end;
 }

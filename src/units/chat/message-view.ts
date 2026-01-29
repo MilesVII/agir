@@ -1,6 +1,5 @@
-import { getBlobLink } from "@root/persist";
-import { Chat, ChatMessage } from "@root/types";
-import { placeholder, renderMDAsync } from "@root/utils";
+import { ChatMessage } from "@root/types";
+import { elementVisible, placeholder, renderMDAsync } from "@root/utils";
 import { mudcrack, rampike } from "rampike";
 
 export function makeMessageView(
@@ -187,6 +186,10 @@ export function makeMessageView(
 	function updateMessage(value: ChatMessage) {
 		msg = value;
 	}
+	function scrollIntoView() {
+		if (elementVisible(element))
+			element.scrollIntoView({ behavior: "smooth", block: "end"});
+	}
 	function startStreaming() {
 		textBox.removeAttribute("contenteditable");
 		textBox.innerHTML = "";
@@ -194,11 +197,13 @@ export function makeMessageView(
 
 		return (value: string) => {
 			textBox.innerText += value;
+			if (elementVisible(element)) scrollIntoView();
 		};
 	}
-	function endStreaming() {
-		setSwipeToLast();
+	async function endStreaming() {
+		await setSwipeToLast();
 		changeControlsState("main");
+		scrollIntoView();
 	}
 	function setIsLast(value: boolean) {
 		isLast = value;

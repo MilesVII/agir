@@ -31,12 +31,13 @@ export function revolvers<T = void>() {
 }
 
 export function makeResizable(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
-	const update = () => {
-		textarea.style.height = "auto";
-		textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
-	};
+	const update = () => textareaReconsider(textarea, initialHeight);
 	textarea.addEventListener("input", update);
 	update();
+}
+export function textareaReconsider(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
+	textarea.style.height = "auto";
+	textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
 }
 
 export function getRoute() {
@@ -68,4 +69,12 @@ export function setSelectOptions(target: HTMLSelectElement, options: [id: string
 	target.append(...optionsList);
 	if (pickFirst && options.length > 0)
 		target.value = options[0][0];
+}
+
+export function elementVisible(e: HTMLElement) {
+	const rect = e.getBoundingClientRect();
+	return (
+		rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
+		rect.bottom > 0
+	);
 }

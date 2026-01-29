@@ -1,5 +1,5 @@
 import { idb } from "@root/persist";
-import { deleteMessage, loadPictures, loadResponse, preparePayload, prepareRerollPayload, reroll, setSwipe } from "./utils";
+import { deleteMessage, loadPictures, reroll, setSwipe } from "./utils";
 import { makeMessageView } from "./message-view";
 
 export async function loadMessages(chatId: string) {
@@ -30,4 +30,5 @@ export async function loadMessages(chatId: string) {
 	});
 
 	list.append(...items);
+	items[items.length - 1].scrollIntoView(false);
 }

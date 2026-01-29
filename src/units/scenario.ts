@@ -1,6 +1,6 @@
-import { idb, upload } from "@root/persist";
+import { idb } from "@root/persist";
 import { RampikeUnit } from "./types";
-import { getRoute, makeResizable, renderMD } from "@root/utils";
+import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
 
@@ -28,6 +28,7 @@ export const scenarioUnit: RampikeUnit = {
 		const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-defintion")!;
 		const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
 		const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
+		const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
 		makeResizable(cardDescription);
 		makeResizable(defintion);
 		const messagesControl = initFirstMessages()
@@ -60,6 +61,10 @@ export const scenarioUnit: RampikeUnit = {
 
 				messagesControl.set([""]);
 			}
+			textareaReconsider(cardDescription);
+			textareaReconsider(defintion);
+			textareaReconsider(cardTags);
+			textareaReconsider(firstMessage);
 		});
 
 		submitButton.addEventListener("click", async () => {
