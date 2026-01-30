@@ -68,6 +68,14 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	backdrop-filter: blur(64px);
 }
 
+.topbar {
+	padding: var(--dims-huge);
+	position: sticky;
+	top: 0;
+	background-color: var(--color-base);
+	z-index: 2;
+}
+
 .main-chats-item > img {
 	width: 32%;
 	border-radius: var(--dims-smol);

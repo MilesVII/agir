@@ -24,11 +24,11 @@
 	<body>
 		<ram-tabs id="tabs-main" tab="chats">
 			<ram-tab key="chats">
+				<div class="topbar row shadow">
+					<button class="lineout fit" data-to="settings">settings</button>
+					<button class="lineout fit" data-to="library">library</button>
+				</div>
 				<div class="main col pad float-center">
-					<div class="row">
-						<button class="lineout fit" data-to="settings">settings</button>
-						<button class="lineout fit" data-to="library">library</button>
-					</div>
 					<!-- <ram-file-picker id="main-chats-import" accept=".jsonl">
 						<div class="lineout fit">import a chat in SillyTavern format</div>
 					</ram-file-picker> -->
@@ -191,20 +191,20 @@
 				</div>
 			</ram-tab>
 			<ram-tab key="library">
+				<div class="topbar row shadow">
+					<button class="lineout fit" data-to="chats">back</button>
+					<button class="lineout fit" data-to="scenario-editor">new scenario</button>
+				</div>
 				<div class="main col pad float-center">
-					<div class="row">
-						<button class="lineout fit" data-to="chats">back</button>
-						<button class="lineout fit" data-to="scenario-editor">new scenario</button>
-					</div>
 					<div id="library-cards" class="grid-list"></div>
 				</div>
 			</ram-tab>
 			<ram-tab key="scenario-editor">
+				<div class="topbar row shadow">
+					<button class="lineout fit" data-to="library">back</button>
+					<button id="scenario-submit-button" class="lineout">save scenario</button>
+				</div>
 				<div class="main col pad float-center">
-					<div class="row">
-						<button class="lineout fit" data-to="library">back</button>
-						<button id="scenario-submit-button" class="lineout">Save scenario</button>
-					</div>
 					<div class="scenario-pictures">
 						<div class="list">
 							<div>Card icon</div>
