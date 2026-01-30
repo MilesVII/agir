@@ -2945,7 +2945,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         window.location.hash = to;
       }
       function readHash() {
-        tabs.tab = getRoute()[0] ?? "chats";
+        tabs.tab = getRoute()[0] || "chats";
       }
       window.addEventListener("hashchange", readHash);
       readHash();
@@ -3681,13 +3681,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       msg.selectedSwipe += delta;
       if (msg.selectedSwipe < 0) msg.selectedSwipe = msg.swipes.length - 1;
       if (msg.selectedSwipe >= msg.swipes.length) msg.selectedSwipe = 0;
-      textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+      textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
     }
     async function setSwipeToLast() {
       msg.selectedSwipe = msg.swipes.length - 1;
-      textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+      textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = msg.swipes.length > 1 ? "flex" : "none";
     }
@@ -3714,7 +3714,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       onReroll
     );
     const deleteButton = controlButton(
-      "\u{1F5D9}",
+      "\u2716",
       "delete message along with following",
       () => {
         if (!confirm("all the following messages will be deleted too")) return;
@@ -3879,7 +3879,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       );
     });
     list.append(...items);
-    items[items.length - 1].scrollIntoView(false);
+    list.scrollTop = list.scrollHeight;
   }
 
   // src/units/chat/send.ts
@@ -3941,7 +3941,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     generateSwipe();
     textarea.value = "";
     textareaReconsider(textarea);
-    responseMessage.scrollIntoView(false);
+    list.scrollTop = list.scrollHeight;
   }
 
   // src/units/chat.ts
@@ -4111,14 +4111,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       makeResizable(cardDescription);
       makeResizable(defintion);
       const messagesControl = initFirstMessages();
-      window.addEventListener("hashchange", async () => {
-        const path = getRoute();
-        if (path[0] !== "scenario-editor") return;
-        load();
-      });
+      window.addEventListener("hashchange", load);
       load();
       async function load() {
         const path = getRoute();
+        if (path[0] !== "scenario-editor") return;
         if (path[1]) {
           const scenario = await idb.get("scenarios", path[1]);
           if (!scenario.success) return;

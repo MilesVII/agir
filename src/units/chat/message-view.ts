@@ -1,5 +1,5 @@
 import { ChatMessage } from "@root/types";
-import { elementVisible, placeholder, renderMDAsync } from "@root/utils";
+import { elementVisible, placeholder, renderMD, renderMDAsync } from "@root/utils";
 import { mudcrack, rampike } from "rampike";
 
 export function makeMessageView(
@@ -52,13 +52,13 @@ export function makeMessageView(
 		msg.selectedSwipe += delta;
 		if (msg.selectedSwipe < 0) msg.selectedSwipe = msg.swipes.length - 1;
 		if (msg.selectedSwipe >= msg.swipes.length) msg.selectedSwipe = 0;
-		textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+		textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (isLast && msg.swipes.length > 1) ? "flex" : "none";
 	}
 	async function setSwipeToLast() {
 		msg.selectedSwipe = msg.swipes.length - 1;
-		textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
+		textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (msg.swipes.length > 1) ? "flex" : "none";
 	}
@@ -84,7 +84,7 @@ export function makeMessageView(
 		onReroll
 	);
 	const deleteButton = controlButton(
-		"🗙", "delete message along with following",
+		"✖", "delete message along with following",
 		() => {
 			if (!confirm("all the following messages will be deleted too")) return;
 			onDelete();

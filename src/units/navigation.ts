@@ -9,7 +9,7 @@ export const navigationUnit: RampikeUnit = {
 			window.location.hash = to;
 		}
 		function readHash() {
-			tabs.tab = getRoute()[0] ?? "chats";
+			tabs.tab = getRoute()[0] || "chats";
 		}
 
 		window.addEventListener("hashchange", readHash);

@@ -30,5 +30,6 @@ export async function loadMessages(chatId: string) {
 	});
 
 	list.append(...items);
-	items[items.length - 1].scrollIntoView(false);
+	// items[items.length - 1].scrollIntoView(false);
+	list.scrollTop = list.scrollHeight;
 }

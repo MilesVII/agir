@@ -69,5 +69,5 @@ export async function sendMessage() {
 	textarea.value = "";
 	textareaReconsider(textarea);
 	
-	responseMessage.scrollIntoView(false);
+	list.scrollTop = list.scrollHeight;
 }

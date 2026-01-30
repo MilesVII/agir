@@ -33,16 +33,13 @@ export const scenarioUnit: RampikeUnit = {
 		makeResizable(defintion);
 		const messagesControl = initFirstMessages()
 
-		window.addEventListener("hashchange", async () => {
-			const path = getRoute();
-			if (path[0] !== "scenario-editor") return;
-
-			load();
-		});
+		window.addEventListener("hashchange", load);
 		load();
 
 		async function load() {
 			const path = getRoute();
+			if (path[0] !== "scenario-editor") return;
+
 			if (path[1]) {
 				const scenario = await idb.get("scenarios", path[1]);
 				if (!scenario.success) return;
