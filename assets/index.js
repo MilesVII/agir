@@ -2709,6 +2709,35 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const rect = e.getBoundingClientRect();
     return rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
   }
+  var b64Encoder = {
+    encode: async function(file) {
+      const array = await file.bytes();
+      if ("toBase64" in array)
+        return array.toBase64();
+      const base64url = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+      return base64url.slice(base64url.indexOf(",") + 1);
+    },
+    decode: async function(value) {
+      const response = await fetch(`data:application/octet-stream;base64,${value}`);
+      return await response.blob();
+    }
+  };
+  function download(payload, filename) {
+    const blob = new Blob([payload], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    d({
+      tagName: "a",
+      attributes: {
+        href: url,
+        download: filename
+      }
+    }).click();
+    URL.revokeObjectURL(url);
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -4299,6 +4328,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     init: () => {
       const startButton = document.querySelector("#library-start-button");
       const startPersonaPicker = document.querySelector("#library-start-persona");
+      const importButton = document.querySelector("#library-import");
       const modal = document.querySelector("#library-start");
       startButton.addEventListener("click", async () => {
         if (!openerRelay) return;
@@ -4306,6 +4336,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         if (!personaId) return;
         await start(personaId, openerRelay.scenarioId);
         modal.close();
+      });
+      importButton.addEventListener("input", () => {
+        const file = importButton.input.files?.[0];
+        if (!file) return;
+        importScenario(file);
       });
       listen(async (u3) => {
         if (u3.storage !== "idb") return;
@@ -4352,21 +4387,29 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                   }),
                   d({
                     tagName: "button",
-                    className: "lineout",
+                    className: "strip ghost pointer",
                     events: {
-                      click: () => deleteScenario(item.id, item.card.title)
+                      click: () => downloadScenario(item)
                     },
-                    contents: "delete"
+                    contents: "\u2913"
                   }),
                   d({
                     tagName: "button",
-                    className: "lineout",
+                    className: "strip ghost pointer",
+                    events: {
+                      click: () => deleteScenario(item.id, item.card.title)
+                    },
+                    contents: "\u2716"
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "strip ghost pointer",
                     events: {
                       click: () => {
                         document.location.hash = `scenario-editor.${item.id}`;
                       }
                     },
-                    contents: "edit"
+                    contents: "\u270E"
                   }),
                   d({
                     tagName: "button",
@@ -4401,6 +4444,36 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (contents.length === 0)
       list.append(d({ className: "placeholder", contents: "No scenario cards found" }));
   }
+  async function downloadScenario(card) {
+    const payload = { ...card };
+    async function encoded(value) {
+      if (!value) return null;
+      const icon = await idb.get("media", value);
+      if (icon.success)
+        return await b64Encoder.encode(icon.value.media);
+      else
+        return null;
+    }
+    payload.card.picture = await encoded(card.card.picture);
+    payload.chat.picture = await encoded(card.chat.picture);
+    const filename = payload.chat.name || payload.card.title || "scenario";
+    download(JSON.stringify(payload), `${filename}.json`);
+  }
+  async function importScenario(file) {
+    const raw = await file.text();
+    const parsed = JSON.parse(raw);
+    console.log(parsed);
+    parsed.id = crypto.randomUUID();
+    async function decode(b64) {
+      if (!b64) return null;
+      const file2 = await b64Encoder.decode(b64);
+      const media = await upload(file2);
+      return media;
+    }
+    parsed.card.picture = await decode(parsed.card.picture);
+    parsed.chat.picture = await decode(parsed.chat.picture);
+    idb.set("scenarios", parsed);
+  }
   function deleteScenario(id, name) {
     const ok = confirm(`scenario "${name}" will be deleted`);
     if (!ok) return;
@@ -4410,8 +4483,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const modal = document.querySelector("#library-start");
     const picker = modal.querySelector("#library-start-persona");
     const description = document.querySelector("#library-start-description");
+    const placeholder2 = modal.querySelector("#library-start-placeholder");
+    const noPlaceholder = modal.querySelector("#library-start-no-placeholder");
     const personas = await idb.getAll("personas");
     if (!personas.success) return;
+    console.log(personas.value.length > 0);
+    placeholder2.hidden = personas.value.length > 0;
+    noPlaceholder.style.display = placeholder2.hidden ? "contents" : "none";
     setSelectOptions(
       picker,
       personas.value.map(({ id, name }) => [id, name]),

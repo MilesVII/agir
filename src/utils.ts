@@ -80,3 +80,36 @@ export function elementVisible(e: HTMLElement) {
 		rect.bottom > 0
 	);
 }
+
+export const b64Encoder = {
+	encode: async function (file: Blob): Promise<string> {
+		const array = await file.bytes()
+		if ("toBase64" in array)
+			// @ts-ignore
+			return array.toBase64() as string;
+
+		const base64url: string = await new Promise(resolve => {
+			const reader = new FileReader()
+			reader.onload = () => resolve(reader.result as string)
+			reader.readAsDataURL(file)
+		});
+		return base64url.slice(base64url.indexOf(',') + 1);
+	},
+	decode: async function (value: string) {
+		const response = await fetch(`data:application/octet-stream;base64,${value}`);
+		return await response.blob();
+	}
+}
+
+export function download(payload: string, filename: string) {
+	const blob = new Blob([payload], { type: "text/plain" });
+	const url = URL.createObjectURL(blob);
+	mudcrack({
+		tagName: "a",
+		attributes: {
+			href: url,
+			download: filename
+		}
+	}).click();
+	URL.revokeObjectURL(url);
+}

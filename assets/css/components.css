@@ -19,6 +19,7 @@
 }
 
 .ghost {
+	min-width: 3ch;
 	border-radius: var(--dims-smol);
 	transition: all .2s ease;
 }

@@ -57,7 +57,7 @@
 								</div>
 							</div>
 							<textarea id="settings-persona-desc" class="lineout" placeholder="Persona description"></textarea>
-							<button id="settings-add-persona" class="lineout">Add persona</button>
+							<button id="settings-add-persona" class="lineout">Save persona</button>
 						</div>
 					</details>
 					<details>
@@ -130,7 +130,7 @@
 								value=""
 								multiline
 							></ram-labeled>
-							<button id="settings-engines-submit" class="lineout">Add engine</button>
+							<button id="settings-engines-submit" class="lineout">Save engine</button>
 						</div>
 					</details>
 					<details>
@@ -194,6 +194,9 @@
 				<div class="topbar row shadow">
 					<button class="lineout fit" data-to="chats">back</button>
 					<button class="lineout fit" data-to="scenario-editor">new scenario</button>
+					<ram-file-picker id="library-import" accept=".json">
+						<div class="lineout fit">import a scenario</div>
+					</ram-file-picker>
 				</div>
 				<div id="library-cards" class="grid-list"></div>
 			</ram-tab>
@@ -334,9 +337,12 @@
 			</ram-tab>
 		</ram-tabs>
 		<ram-modal id="library-start">
-			<div>Pick a persona to start the chat</div>
-			<select id="library-start-persona" class="lineout"></select>
-			<button id="library-start-button" class="lineout">Start</button>
+			<div id="library-start-placeholder" class="placeholder">You need a persona to start a roleplay session. Make one in settings.</div>
+			<div id="library-start-no-placeholder" class="virtual">
+				<div>Pick a persona to start the chat</div>
+				<select id="library-start-persona" class="lineout"></select>
+				<button id="library-start-button" class="lineout">Start</button>
+			</div>
 			<div id="library-start-description" class="lineout"></div>
 		</ram-modal>
 	</body>
