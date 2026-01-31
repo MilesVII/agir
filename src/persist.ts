@@ -1,12 +1,8 @@
-import { Chat, ChatContents, Persona, Result, ScenarioCard } from "./types";
+import { Chat, ChatContents, MediaEntry, Persona, Result, ScenarioCard } from "./types";
 import { revolvers } from "./utils";
 
 type IDBStorageSchema = {
-	media: {
-		id: string,
-		media: Blob,
-		mime: string
-	},
+	media: MediaEntry,
 	personas: Persona,
 	chats: Chat,
 	chatContents: ChatContents,

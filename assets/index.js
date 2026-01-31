@@ -3350,18 +3350,35 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     importPicker.addEventListener("input", () => restore(importPicker));
   }
   async function backup() {
-    const [chatContents, chats, personas, scenarios] = (await Promise.all([
+    const [chatContents, chats, personas, scenarios, media] = await Promise.all([
       idb.getAll("chatContents"),
       idb.getAll("chats"),
       idb.getAll("personas"),
-      idb.getAll("scenarios")
-    ])).filter((v2) => v2.success).map((v2) => v2.value);
+      idb.getAll("scenarios"),
+      idb.getAll("media")
+    ]);
     const localData = {
       engines: local.get("engines"),
-      rember: local.get("rember"),
+      activeEngine: local.get("activeEngine"),
+      settings: local.get("settings"),
       theme: local.get("theme")
     };
-    const payload = JSON.stringify({ idb: { chatContents, chats, personas, scenarios }, local: localData });
+    const validOnly = (() => {
+      const results = Object.entries({ chatContents, chats, personas, scenarios });
+      return Object.fromEntries(
+        results.filter(([k2, v2]) => v2.success).map(([k2, v2]) => [k2, v2.value])
+      );
+    })();
+    if (media.success) {
+      validOnly.media = media.value;
+      for (const m2 of validOnly.media) {
+        m2.media = await b64Encoder.encode(m2.media);
+      }
+    }
+    const payload = JSON.stringify({
+      idb: validOnly,
+      local: localData
+    });
     const blob = new Blob([payload], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     d({
@@ -3378,11 +3395,26 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (!file) return;
     const raw = await file.text();
     const parsed = JSON.parse(raw);
-    console.log(parsed.idb);
+    if (parsed.idb.media) {
+      for (const item of parsed.idb.media) {
+        await idb.set(
+          "media",
+          {
+            id: item.id,
+            media: await b64Encoder.decode(item.media),
+            mime: item.mime
+          }
+        );
+      }
+    }
     for (const [store, data] of Object.entries(parsed.idb)) {
+      if (store === "media") continue;
       for (const item of data) {
         await idb.set(store, item);
       }
+    }
+    for (const [key, data] of Object.entries(parsed.local)) {
+      if (data) local.set(key, data);
     }
   }
 
@@ -4462,7 +4494,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function importScenario(file) {
     const raw = await file.text();
     const parsed = JSON.parse(raw);
-    console.log(parsed);
     parsed.id = crypto.randomUUID();
     async function decode(b64) {
       if (!b64) return null;
@@ -4487,7 +4518,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const noPlaceholder = modal.querySelector("#library-start-no-placeholder");
     const personas = await idb.getAll("personas");
     if (!personas.success) return;
-    console.log(personas.value.length > 0);
     placeholder2.hidden = personas.value.length > 0;
     noPlaceholder.style.display = placeholder2.hidden ? "contents" : "none";
     setSelectOptions(

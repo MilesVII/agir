@@ -23,6 +23,12 @@ export type Pronouns = {
 	reflexive: string
 };
 
+export type MediaEntry = {
+	id: string,
+	media: Blob,
+	mime: string
+};
+
 export type Engine = {
 	name:  string,
 	url:   string,

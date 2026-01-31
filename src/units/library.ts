@@ -163,7 +163,6 @@ async function importScenario(file: File) {
 	const raw = await file.text();
 	const parsed = JSON.parse(raw);
 
-	console.log(parsed);
 	parsed.id = crypto.randomUUID();
 	
 	async function decode(b64: string | null) {
@@ -194,8 +193,7 @@ async function openStartModal(scenario: string, descriptionMD: string) {
 	
 	const personas = await idb.getAll("personas");
 	if (!personas.success) return;
-	
-	console.log(personas.value.length > 0)
+
 	placeholder.hidden = personas.value.length > 0;
 	noPlaceholder.style.display = placeholder.hidden ? "contents" : "none";
 
