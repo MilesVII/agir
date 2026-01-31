@@ -2674,8 +2674,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     update3();
   }
   function textareaReconsider(textarea, initialHeight = 52) {
+    const bodyScroll = document.body.scrollTop;
     textarea.style.height = "auto";
     textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
+    document.body.scrollTop = bodyScroll;
   }
   function getRoute() {
     return window.location.hash.slice(1).split(".");
@@ -4087,13 +4089,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   var definitionTemplate = [
     "# Characters",
     "## {{char}} ",
-    "{{char}} is Odin-class coastal defense ship, {{user}}'s roommate.",
+    "{{char}} is Odin-class coastal defense ship",
     "{{char}} is 79 meters-long, she weighs 3600 tons and is armed with three 24cm SK L/35 guns and eight 8.8cm guns which. she enjoys shooting the latter ones.",
     "## {{user}}",
-    "{{user}} is the user. {{persona}}",
+    "{{persona}}. {{user}} is the user.",
     "",
     "# Scenario",
-    "{{char}} is taking a bath near the coastline of Gotland, Sweden. {{user}} hails her from the shore"
+    "{{char}} is {{user}}'s roommate, they're on a trip in Gotland, Sweden"
   ].join("\n");
   var scenarioUnit = {
     init: () => {
@@ -4151,7 +4153,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         if (required.some((v2) => !v2) || firstMessages.length <= 0) return;
         const cardPicture = await cardIcon.valueHandle();
         const chatPicture = await chatIcon.valueHandle();
-        const tags = cardTags.value.trim().split(",").map((t) => t.trim());
+        const tags = cardTags.value.split(",").map((t) => t.trim()).filter((t) => t);
         const id = getRoute()[1] ?? crypto.randomUUID();
         const payload = {
           id,
@@ -4396,6 +4398,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
     });
     list.append(...contents);
+    if (contents.length === 0)
+      list.append(d({ className: "placeholder", contents: "No scenario cards found" }));
   }
   function deleteScenario(id, name) {
     const ok = confirm(`scenario "${name}" will be deleted`);

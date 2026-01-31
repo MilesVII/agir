@@ -11,6 +11,9 @@
 .pad {
 	padding: var(--dims-huge);
 }
+.low-pad {
+	padding-bottom: 10vh;
+}
 .col, .row, .col-wrap, .row-wrap {
 	display: flex;
 	gap: var(--dims-huge);

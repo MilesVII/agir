@@ -7,13 +7,13 @@ import { RampikeImagePicker } from "@rampike/imagepicker";
 const definitionTemplate = [
 	"# Characters",
 	"## {{char}} ",
-	"{{char}} is Odin-class coastal defense ship, {{user}}'s roommate.",
+	"{{char}} is Odin-class coastal defense ship",
 	"{{char}} is 79 meters-long, she weighs 3600 tons and is armed with three 24cm SK L/35 guns and eight 8.8cm guns which. she enjoys shooting the latter ones.",
 	"## {{user}}",
-	"{{user}} is the user. {{persona}}",
+	"{{persona}}. {{user}} is the user.",
 	"",
 	"# Scenario",
-	"{{char}} is taking a bath near the coastline of Gotland, Sweden. {{user}} hails her from the shore"
+	"{{char}} is {{user}}'s roommate, they're on a trip in Gotland, Sweden"
 ].join("\n");
 
 export const scenarioUnit: RampikeUnit = {
@@ -81,7 +81,10 @@ export const scenarioUnit: RampikeUnit = {
 
 			const cardPicture = await cardIcon.valueHandle();
 			const chatPicture = await chatIcon.valueHandle();
-			const tags = cardTags.value.trim().split(",").map(t => t.trim());
+			const tags = cardTags.value
+				.split(",")
+				.map(t => t.trim())
+				.filter(t => t);
 
 			const id = getRoute()[1] ?? crypto.randomUUID();
 			const payload: ScenarioCard = {

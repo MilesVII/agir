@@ -36,8 +36,10 @@ export function makeResizable(textarea: HTMLTextAreaElement, initialHeight: numb
 	update();
 }
 export function textareaReconsider(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
+	const bodyScroll = document.body.scrollTop;
 	textarea.style.height = "auto";
 	textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
+	document.body.scrollTop = bodyScroll; // why
 }
 
 export function getRoute() {

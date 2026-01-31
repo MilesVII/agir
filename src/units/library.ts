@@ -118,6 +118,8 @@ async function update() {
 	});
 
 	list.append(...contents);
+	if (contents.length === 0)
+		list.append(mudcrack({ className: "placeholder", contents: "No scenario cards found" }));
 }
 
 function deleteScenario(id: string, name: string) {
