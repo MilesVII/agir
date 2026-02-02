@@ -85,10 +85,7 @@ export function makeMessageView(
 	);
 	const deleteButton = controlButton(
 		"✖", "delete message along with following",
-		() => {
-			if (!confirm("all the following messages will be deleted too")) return;
-			onDelete();
-		}
+		onDelete
 	);
 	const copyButton = controlButton(
 		"⧉", "copy message",

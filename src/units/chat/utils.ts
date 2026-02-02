@@ -72,6 +72,11 @@ export async function addMessage(chatId: string, value: string, fromUser: boolea
 }
 
 export async function deleteMessage(chatId: string, messageId: number) {
+	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;
+	if (inputModes.tab !== "main") return;
+
+	if (!confirm("all the following messages will be deleted too")) return;
+
 	const [contents, chat] = await Promise.all([
 		idb.get("chatContents", chatId),
 		idb.get("chats", chatId)

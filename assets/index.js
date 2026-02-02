@@ -3632,6 +3632,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return newMessage;
   }
   async function deleteMessage(chatId, messageId) {
+    const inputModes = document.querySelector("#chat-controls");
+    if (inputModes.tab !== "main") return;
+    if (!confirm("all the following messages will be deleted too")) return;
     const [contents, chat] = await Promise.all([
       idb.get("chatContents", chatId),
       idb.get("chats", chatId)
@@ -3813,10 +3816,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const deleteButton = controlButton(
       "\u2716",
       "delete message along with following",
-      () => {
-        if (!confirm("all the following messages will be deleted too")) return;
-        onDelete();
-      }
+      onDelete
     );
     const copyButton = controlButton(
       "\u29C9",
