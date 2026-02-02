@@ -10,3 +10,7 @@
 .message-text p {
 	white-space: pre-wrap;
 }
+
+.message-text think {
+	opacity: .6;
+}

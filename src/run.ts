@@ -12,6 +12,23 @@ export async function runEngine(
 	const chonks: string[] = [];
 
 	try {
+		const params = {
+			model: engine.model,
+			messages: chat.map(m => ({
+				role: m.from === "model" ? "assistant" : m.from,
+				content: m.swipes[m.selectedSwipe]
+			})),
+			stream: true,
+			reasoning: {
+				effort: "none"
+			},
+			max_completion_tokens: engine.max,
+			temperature: engine.temp,
+			...engine.params
+		};
+		// @ts-ignore optional delete
+		if (!engine.max) delete params.max_completion_tokens;
+
 		abortController = new AbortController();
 		const response = await fetch(engine.url, {
 			method: "POST",
@@ -19,20 +36,7 @@ export async function runEngine(
 				Authorization: `Bearer ${engine.key}`,
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({
-				model: engine.model,
-				messages: chat.map(m => ({
-					role: m.from === "model" ? "assistant" : m.from,
-					content: m.swipes[m.selectedSwipe]
-				})),
-				stream: true,
-				reasoning: {
-					effort: "none"
-				},
-				max_completion_tokens: engine.max,
-				temperature: engine.temp,
-				...engine.params
-			}),
+			body: JSON.stringify(params),
 			signal: abortController.signal
 		});
 
@@ -80,5 +84,11 @@ export async function runEngine(
 		console.error(e);
 	}
 	
-	return { success: true, value: chonks.join("") };
+	let value = chonks.join("");
+	if (value.includes("</think>")) {
+		if (!value.includes("<think>")) {
+			value = "<think>" + value;
+		}
+	}
+	return { success: true, value };
 }

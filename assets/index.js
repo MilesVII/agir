@@ -3489,6 +3489,21 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function runEngine(chat, engine, onChunk) {
     const chonks = [];
     try {
+      const params = {
+        model: engine.model,
+        messages: chat.map((m2) => ({
+          role: m2.from === "model" ? "assistant" : m2.from,
+          content: m2.swipes[m2.selectedSwipe]
+        })),
+        stream: true,
+        reasoning: {
+          effort: "none"
+        },
+        max_completion_tokens: engine.max,
+        temperature: engine.temp,
+        ...engine.params
+      };
+      if (!engine.max) delete params.max_completion_tokens;
       abortController = new AbortController();
       const response = await fetch(engine.url, {
         method: "POST",
@@ -3496,20 +3511,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           Authorization: `Bearer ${engine.key}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          model: engine.model,
-          messages: chat.map((m2) => ({
-            role: m2.from === "model" ? "assistant" : m2.from,
-            content: m2.swipes[m2.selectedSwipe]
-          })),
-          stream: true,
-          reasoning: {
-            effort: "none"
-          },
-          max_completion_tokens: engine.max,
-          temperature: engine.temp,
-          ...engine.params
-        }),
+        body: JSON.stringify(params),
         signal: abortController.signal
       });
       const reader = response.body?.getReader();
@@ -3522,9 +3524,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const decoder = new TextDecoder();
       let buffer = "";
       while (true) {
-        const { done, value } = await reader.read();
+        const { done, value: value2 } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value2, { stream: true });
         while (true) {
           const lineEnd = buffer.indexOf("\n");
           if (lineEnd === -1) break;
@@ -3546,7 +3548,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     } catch (e) {
       console.error(e);
     }
-    return { success: true, value: chonks.join("") };
+    let value = chonks.join("");
+    if (value.includes("</think>")) {
+      if (!value.includes("<think>")) {
+        value = "<think>" + value;
+      }
+    }
+    return { success: true, value };
   }
 
   // src/units/chat/utils.ts
