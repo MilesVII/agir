@@ -1,6 +1,6 @@
 import { getRoute, textareaReconsider } from "@root/utils";
 import { idb } from "@root/persist";
-import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, pushSwipe, setSwipe } from "./utils";
+import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, pushSwipe, reroll, setSwipe } from "./utils";
 import { makeMessageView } from "./message-view";
 
 export async function sendMessage() {
@@ -48,8 +48,6 @@ export async function sendMessage() {
 		return;
 	}
 
-	const generateSwipe = () => loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
-
 	const responseMessage = makeMessageView(
 		newModelMessage,
 		await loadPictures(meta.value),
@@ -59,12 +57,11 @@ export async function sendMessage() {
 			setSwipe(chatId, newModelMessage.id, swipeIx, value);
 		},
 		// reroll
-		generateSwipe,
+		() => reroll(chatId, newModelMessage.id, meta.value.scenario.name),
 		() => { throw Error("haha nope"); }
 	);
 	list.append(userMessage, responseMessage);
-
-	generateSwipe();
+	loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
 
 	textarea.value = "";
 	textareaReconsider(textarea);

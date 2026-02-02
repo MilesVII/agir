@@ -3986,7 +3986,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       console.error("failed to save user message");
       return;
     }
-    const generateSwipe = () => loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
     const responseMessage = makeMessageView(
       newModelMessage,
       await loadPictures(meta.value),
@@ -3996,13 +3995,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         setSwipe(chatId, newModelMessage.id, swipeIx, value);
       },
       // reroll
-      generateSwipe,
+      () => reroll(chatId, newModelMessage.id, meta.value.scenario.name),
       () => {
         throw Error("haha nope");
       }
     );
     list.append(userMessage, responseMessage);
-    generateSwipe();
+    loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
     textarea.value = "";
     textareaReconsider(textarea);
     list.scrollTop = list.scrollHeight;
