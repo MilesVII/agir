@@ -3621,6 +3621,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     messageViews.forEach((m2) => {
       const mid = parseInt(m2.dataset.mid, 10);
       if (mid >= messageId) m2.remove();
+      if (mid === messageId - 1) m2.rampike.params.setIsLast(true);
     });
   }
   async function reroll(chatId, messageId, name) {

@@ -95,6 +95,7 @@ export async function deleteMessage(chatId: string, messageId: number) {
 	messageViews.forEach(m => {
 		const mid = parseInt(m.dataset.mid!, 10);
 		if (mid >= messageId) m.remove();
+		if (mid === messageId - 1) m.rampike.params.setIsLast(true);
 	});
 }
 
