@@ -46,11 +46,35 @@ export function initMisc() {
 	}
 }
 
+
+const remberDefaults = {
+	prompt: [
+		"you are tasked with providing summary of a text roleplay session.",
+		"update provided state to reflect any changes to the state of the scenario.",
+		"keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
+		"note plans and intentions of the character.",
+		"format trivia as a list of facts.",
+		"stay concise and remove info irrelevant to possible future scenarios.",
+		"do not provide any commentary, only describe the new state, do not change the format (the headings), but you may add sub-headings if needed"
+	].join("\n"),
+	stateTemplate: [
+		"# state",
+		"## current location",
+		"",
+		"## locations and objects",
+		"",
+		"## trivia",
+		"",
+		"## plans and intentions",
+		""
+	].join("\n")
+}
+
 const DEFAULT_SETTINGS = {
 	tail: 70,
 	remberStride: 0,
-	remberPrompt: "",
-	remberTemplate: "",
+	remberPrompt: remberDefaults.prompt,
+	remberTemplate: remberDefaults.stateTemplate,
 	remberEngine: null as null | string
 }
 

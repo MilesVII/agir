@@ -3455,11 +3455,33 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       rember.prompt.value = settings.remberPrompt, rember.template.value = settings.remberTemplate;
     }
   }
+  var remberDefaults = {
+    prompt: [
+      "you are tasked with providing summary of a text roleplay session.",
+      "update provided state to reflect any changes to the state of the scenario.",
+      "keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
+      "note plans and intentions of the character.",
+      "format trivia as a list of facts.",
+      "stay concise and remove info irrelevant to possible future scenarios.",
+      "do not provide any commentary, only describe the new state, do not change the format (the headings), but you may add sub-headings if needed"
+    ].join("\n"),
+    stateTemplate: [
+      "# state",
+      "## current location",
+      "",
+      "## locations and objects",
+      "",
+      "## trivia",
+      "",
+      "## plans and intentions",
+      ""
+    ].join("\n")
+  };
   var DEFAULT_SETTINGS = {
     tail: 70,
     remberStride: 0,
-    remberPrompt: "",
-    remberTemplate: "",
+    remberPrompt: remberDefaults.prompt,
+    remberTemplate: remberDefaults.stateTemplate,
     remberEngine: null
   };
   function loadMiscSettings() {
@@ -3640,13 +3662,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function preparePayload(contents, systemPrompt, userMessage) {
     const settings = loadMiscSettings();
     const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
-    const system = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
+    const system = dullMessage("system", systemPrompt);
     const payload = [
       system,
       ...sliced
     ];
     if (!userMessage) return payload;
-    const user = { from: "user", id: -1, name: "", rember: null, swipes: [userMessage], selectedSwipe: 0 };
+    const user = dullMessage("user", userMessage);
     payload.push(user);
     return payload;
   }
@@ -3662,7 +3684,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const history = messages.slice(0, mix);
     const settings = loadMiscSettings();
     const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
-    const system = { from: "system", id: -1, name: "", rember: null, swipes: [chat.value.scenario.definition], selectedSwipe: 0 };
+    const system = dullMessage("system", chat.value.scenario.definition);
     const payload = [
       system,
       ...sliced
@@ -3706,6 +3728,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function getMessageViewByID(messageId) {
     const list = document.querySelector("#play-messages");
     return list.querySelector(`.message[data-mid="${messageId}"]`);
+  }
+  function dullMessage(from, text2) {
+    return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
   }
 
   // src/units/chat/message-view.ts

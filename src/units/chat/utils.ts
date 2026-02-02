@@ -109,14 +109,14 @@ export async function preparePayload(contents: ChatMessage[], systemPrompt: stri
 	const settings = loadMiscSettings();
 	const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
 
-	const system: ChatMessage = { from: "system", id: -1, name: "", rember: null, swipes: [systemPrompt], selectedSwipe: 0 };
+	const system: ChatMessage = dullMessage("system", systemPrompt);
 	const payload: ChatMessage[] = [
 		system,
 		...sliced
 	];
 	if (!userMessage) return payload;
 
-	const user: ChatMessage = { from: "user", id: -1, name: "", rember: null, swipes: [userMessage], selectedSwipe: 0 };
+	const user: ChatMessage = dullMessage("user", userMessage);
 	payload.push(user);
 	return payload;
 }
@@ -137,7 +137,7 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 	const settings = loadMiscSettings();
 	const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
 
-	const system: ChatMessage = { from: "system", id: -1, name: "", rember: null, swipes: [chat.value.scenario.definition], selectedSwipe: 0 };
+	const system: ChatMessage = dullMessage("system", chat.value.scenario.definition);
 	const payload: ChatMessage[] = [
 		system,
 		...sliced
@@ -189,4 +189,8 @@ export async function loadPictures(chat: Chat) {
 export function getMessageViewByID(messageId: number) {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
 	return list.querySelector<RampikeMessageView>(`.message[data-mid="${messageId}"]`);
+}
+
+export function dullMessage(from: ChatMessage["from"], text: string): ChatMessage {
+	return { from, id: -1, name: "", rember: null, swipes: [text], selectedSwipe: 0 };
 }
