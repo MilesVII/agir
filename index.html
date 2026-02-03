@@ -39,7 +39,7 @@
 				<div class="main col pad float-center">
 					<button class="lineout fit" data-to="chats">back</button>
 					<details>
-						<summary>
+						<summary class="settings-label">
 							Personas
 						</summary>
 						<div id="settings-persona-form" class="list">
@@ -61,7 +61,7 @@
 						</div>
 					</details>
 					<details>
-						<summary>
+						<summary class="settings-label">
 							Engines
 						</summary>
 						<div class="list">
@@ -134,7 +134,7 @@
 						</div>
 					</details>
 					<details>
-						<summary>
+						<summary class="settings-label">
 							rEmber
 						</summary>
 						<div class="list">
@@ -161,7 +161,7 @@
 						</div>
 					</details>
 					<details>
-						<summary>
+						<summary class="settings-label">
 							Backup & Sync
 						</summary>
 						<div class="row-wrap">
@@ -172,7 +172,7 @@
 						</div>
 					</details>
 					<details>
-						<summary>
+						<summary class="settings-label">
 							Other options
 						</summary>
 						<div class="list">
@@ -248,28 +248,30 @@
 						<summary>
 							Macros
 						</summary>
-						Important!
-						<div class="hint">
-							<dl>
-								<dt>{{persona}}</dt> <dd>User's persona description</dd>
-							</dl>
-						</div>
-						Names:
-						<div class="hint">
-							<dl>
-								<dt>{{char}}</dt> <dd>Character name</dd>
-								<dt>{{user}}</dt> <dd>User's persona name</dd>
-							</dl>
-						</div>
-						User's persona pronouns:
-						<div class="hint">
-							<dl>
-								<dt>{{sub}}</dt>    <dd>subjective (he/she/they)</dd>
-								<dt>{{obj}}</dt>    <dd>objective (him/her/them)</dd>
-								<dt>{{poss}}</dt>   <dd>possessive (his/her/their)</dd>
-								<dt>{{poss_p}}</dt> <dd>possessive pronoun (his/hers/theirs)</dd>
-								<dt>{{ref}}</dt>    <dd>reflexive (himself/herself/themselves)</dd>
-							</dl>
+						<div class="lineout">
+							Important!
+							<div class="hint">
+								<dl>
+									<dt>{{persona}}</dt> <dd>User's persona description</dd>
+								</dl>
+							</div>
+							Names:
+							<div class="hint">
+								<dl>
+									<dt>{{char}}</dt> <dd>Character name</dd>
+									<dt>{{user}}</dt> <dd>User's persona name</dd>
+								</dl>
+							</div>
+							User's persona pronouns:
+							<div class="hint">
+								<dl>
+									<dt>{{sub}}</dt>    <dd>subjective (he/she/they)</dd>
+									<dt>{{obj}}</dt>    <dd>objective (him/her/them)</dd>
+									<dt>{{poss}}</dt>   <dd>possessive (his/her/their)</dd>
+									<dt>{{poss_p}}</dt> <dd>possessive pronoun (his/hers/theirs)</dd>
+									<dt>{{ref}}</dt>    <dd>reflexive (himself/herself/themselves)</dd>
+								</dl>
+							</div>
 						</div>
 					</details>
 					<ram-labeled

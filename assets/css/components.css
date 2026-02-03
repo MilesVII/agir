@@ -82,6 +82,11 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	border-radius: var(--dims-smol);
 }
 
+summary.settings-label {
+	font: var(--font-bold);
+	width: fit-content;
+	border-bottom: 2px solid var(--color-accent);
+}
 #settings-persona-picture {
 	overflow: hidden;
 	padding: 0;

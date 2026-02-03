@@ -1,8 +1,7 @@
 import { RampikeTabs } from "@rampike/tabs";
-import { getBlobLink, idb, IDBStore } from "@root/persist";
+import { getBlobLink, idb } from "@root/persist";
 import { runEngine } from "@root/run";
 import { Chat, ChatMessage } from "@root/types";
-import { nothrowAsync, placeholder, renderMDAsync } from "@root/utils";
 import { readEngines } from "@units/settings/engines";
 import { RampikeMessageView } from "./message-view";
 import { loadMiscSettings } from "@units/settings/misc";
