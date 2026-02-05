@@ -20,6 +20,10 @@ export function makeMessageView(
 		});
 	}
 
+	const status = mudcrack({
+		tagName: "div",
+		className: "message-status",
+	});
 	const text = msg.swipes[msg.selectedSwipe];
 	const textBox = mudcrack({
 		tagName: "div",
@@ -61,6 +65,14 @@ export function makeMessageView(
 		textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (msg.swipes.length > 1) ? "flex" : "none";
+	}
+	function setStatus(value: string | null) {
+		if (value === null) {
+			status.hidden = true;
+			return;
+		}
+		status.hidden = false;
+		status.textContent = value;
 	}
 
 	function tab(contents: string | Element[]) {
@@ -168,6 +180,7 @@ export function makeMessageView(
 								className: "message-name",
 								contents: msg.name
 							}),
+							status,
 							...controls
 						]
 					}),
@@ -179,6 +192,7 @@ export function makeMessageView(
 	changeSwipe(0);
 	changeControlsState("main");
 	updateRerollButtonStatus();
+	setStatus(null);
 
 	function updateMessage(value: ChatMessage) {
 		msg = value;
@@ -191,6 +205,7 @@ export function makeMessageView(
 		textBox.removeAttribute("contenteditable");
 		textBox.innerHTML = "";
 		changeControlsState("streaming");
+		setStatus("responding...");
 
 		return (value: string) => {
 			textBox.innerText += value;
@@ -201,6 +216,7 @@ export function makeMessageView(
 		await setSwipeToLast();
 		changeControlsState("main");
 		scrollIntoView();
+		setStatus(null);
 	}
 	function setIsLast(value: boolean) {
 		isLast = value;

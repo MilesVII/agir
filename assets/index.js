@@ -3747,6 +3747,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         events: { click: cb }
       });
     }
+    const status = d({
+      tagName: "div",
+      className: "message-status"
+    });
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = d({
       tagName: "div",
@@ -3790,6 +3794,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = msg.swipes.length > 1 ? "flex" : "none";
+    }
+    function setStatus(value) {
+      if (value === null) {
+        status.hidden = true;
+        return;
+      }
+      status.hidden = false;
+      status.textContent = value;
     }
     function tab(contents) {
       return d({
@@ -3896,6 +3908,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                   className: "message-name",
                   contents: msg.name
                 }),
+                status,
                 ...controls
               ]
             }),
@@ -3907,6 +3920,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     changeSwipe(0);
     changeControlsState("main");
     updateRerollButtonStatus();
+    setStatus(null);
     function updateMessage(value) {
       msg = value;
     }
@@ -3918,6 +3932,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       textBox.removeAttribute("contenteditable");
       textBox.innerHTML = "";
       changeControlsState("streaming");
+      setStatus("responding...");
       return (value) => {
         textBox.innerText += value;
         if (elementVisible(element)) scrollIntoView();
@@ -3927,6 +3942,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       await setSwipeToLast();
       changeControlsState("main");
       scrollIntoView();
+      setStatus(null);
     }
     function setIsLast(value) {
       isLast = value;
