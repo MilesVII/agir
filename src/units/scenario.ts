@@ -31,7 +31,7 @@ export const scenarioUnit: RampikeUnit = {
 		const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
 		makeResizable(cardDescription);
 		makeResizable(defintion);
-		const messagesControl = initFirstMessages()
+		const messagesControl = initFirstMessages();
 
 		window.addEventListener("hashchange", load);
 		load();

@@ -61,12 +61,18 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	color: var(--color-text);
 }
 
-.image-picker-clear {
+.image-picker-paste, .image-picker-clear {
 	position: absolute;
-	bottom: var(--dims-smol);
-	right:  var(--dims-smol);
+	right: var(--dims-smol);
 	background-color: var(--color-base-semi);
 	backdrop-filter: blur(64px);
+	min-width: 3ch;
+}
+.image-picker-paste {
+	top: var(--dims-smol);
+}
+.image-picker-clear {
+	bottom: var(--dims-smol);
 }
 
 .topbar {

@@ -2950,6 +2950,23 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           click: () => this.usePlaceholder()
         }
       });
+      const pasteButton = d({
+        tagName: "button",
+        className: "lineout image-picker-paste pointer",
+        contents: "\u2398",
+        events: {
+          click: async () => {
+            const contents2 = await navigator.clipboard.read();
+            for (const item of contents2) {
+              const type = item.types.find((t) => t.startsWith("image/"));
+              if (!type) continue;
+              const file = await item.getType(type);
+              this.paste(new File([file], "pasted"));
+              return;
+            }
+          }
+        }
+      });
       const contents = [
         d({
           tagName: "label",
@@ -2958,7 +2975,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           },
           contents: [input, image]
         }),
-        this.clearButton
+        this.clearButton,
+        pasteButton
       ];
       this.style.position = "relative";
       this.append(...contents);

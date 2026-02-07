@@ -107,6 +107,24 @@ class _RampikeImagePicker extends HTMLElement {
 				click: () => this.usePlaceholder()
 			}
 		});
+		const pasteButton = mudcrack({
+			tagName: "button",
+			className: "lineout image-picker-paste pointer",
+			contents: "⎘",
+			events: {
+				click: async () => {
+					const contents = await navigator.clipboard.read();
+					for (const item of contents) {
+						const type = item.types.find(t => t.startsWith("image/"));
+						if (!type) continue;
+
+						const file = await item.getType(type);
+						this.paste(new File([file], "pasted"));
+						return;
+					}
+				}
+			}
+		});
 		const contents = [
 			mudcrack({
 				tagName: "label",
@@ -115,7 +133,8 @@ class _RampikeImagePicker extends HTMLElement {
 				},
 				contents: [ input, image ]
 			}),
-			this.clearButton
+			this.clearButton,
+			pasteButton
 		];
 		this.style.position = "relative";
 		this.append(...contents);
