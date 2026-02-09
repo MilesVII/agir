@@ -1,4 +1,4 @@
-import { getRoute, makeResizable, setSelectOptions } from "@root/utils";
+import { getRoute, makeResizable, setSelectMenu, setSelectOptions } from "@root/utils";
 import { RampikeUnit } from "./types";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
@@ -14,6 +14,7 @@ export const chatUnit: RampikeUnit = {
 		const sendButton   = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
 		const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
 		const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
+		const menuButton   = document.querySelector<HTMLSelectElement>("#chat-menu-select")!;
 
 		makeResizable(textarea);
 		window.addEventListener("hashchange", update);
@@ -29,6 +30,11 @@ export const chatUnit: RampikeUnit = {
 
 		update();
 		updateEngines();
+		setSelectMenu(menuButton, "menu", [
+			["Scenario card", () => {}],
+			["Edit definition", () => {}],
+			["rEmber", () => {}]
+		]);
 	}
 };
 

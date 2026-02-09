@@ -72,6 +72,26 @@ export function setSelectOptions(target: HTMLSelectElement, options: [id: string
 	if (pickFirst && options.length > 0)
 		target.value = options[0][0];
 }
+export function setSelectMenu(target: HTMLSelectElement, displayCaption: string, options: [caption: string, cb: () => void][]) {
+	const option = (id: string, caption: string) => mudcrack({
+		tagName: "option",
+		attributes: {
+			value: id
+		},
+		contents: caption
+	});
+	const optionsList = options.map(([caption], ix) => option(String(ix), caption));
+	const defaultOption = option("", displayCaption);
+
+	target.innerHTML = "";
+	target.append(defaultOption, ...optionsList);
+	target.value = "";
+	target.addEventListener("change", () => {
+		if (!target.value) return;
+		options.find((_, ix) => String(ix) === target.value)?.[1]();
+		target.value = "";
+	});
+}
 
 export function elementVisible(e: HTMLElement) {
 	const rect = e.getBoundingClientRect();

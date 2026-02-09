@@ -2705,6 +2705,25 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (pickFirst && options.length > 0)
       target.value = options[0][0];
   }
+  function setSelectMenu(target, displayCaption, options) {
+    const option = (id, caption) => d({
+      tagName: "option",
+      attributes: {
+        value: id
+      },
+      contents: caption
+    });
+    const optionsList = options.map(([caption], ix) => option(String(ix), caption));
+    const defaultOption = option("", displayCaption);
+    target.innerHTML = "";
+    target.append(defaultOption, ...optionsList);
+    target.value = "";
+    target.addEventListener("change", () => {
+      if (!target.value) return;
+      options.find((_2, ix) => String(ix) === target.value)?.[1]();
+      target.value = "";
+    });
+  }
   function elementVisible(e) {
     const rect = e.getBoundingClientRect();
     return rect.top < (window.innerHeight || document.documentElement.clientHeight) && rect.bottom > 0;
@@ -4081,6 +4100,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const sendButton = document.querySelector("#chat-send-button");
       const stopButton = document.querySelector("#chat-stop-button");
       const enginePicker = document.querySelector("#chat-engine-picker");
+      const menuButton = document.querySelector("#chat-menu-select");
       makeResizable(textarea);
       window.addEventListener("hashchange", update);
       listen((u3) => {
@@ -4095,6 +4115,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
       update();
       updateEngines();
+      setSelectMenu(menuButton, "menu", [
+        ["Scenario card", () => {
+        }],
+        ["Edit definition", () => {
+        }],
+        ["rEmber", () => {
+        }]
+      ]);
     }
   };
   async function update() {
@@ -4219,11 +4247,15 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     "## {{char}} ",
     "{{char}} is Odin-class coastal defense ship",
     "{{char}} is 79 meters-long, she weighs 3600 tons and is armed with three 24cm SK L/35 guns and eight 8.8cm guns which. she enjoys shooting the latter ones.",
+    "",
     "## {{user}}",
-    "{{persona}}. {{user}} is the user.",
+    "{{persona}}",
     "",
     "# Scenario",
-    "{{char}} is {{user}}'s roommate, they're on a trip in Gotland, Sweden"
+    "{{char}} is {{user}}'s roommate, they're on a trip in Gotland, Sweden",
+    "",
+    "# Instructions",
+    "You play as {{char}}, the user is {{user}}"
   ].join("\n");
   var scenarioUnit = {
     init: () => {
