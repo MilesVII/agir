@@ -46,8 +46,16 @@ async function updateChatHandles() {
 				src: placeholder(null)
 			}
 		});
+		const userIcon = mudcrack({
+			tagName: "img",
+			attributes: {
+				src: placeholder(null)
+			}
+		});
 		if (handle.scenario.picture)
 			getBlobLink(handle.scenario.picture).then(src => src && (icon.src = src));
+		if (handle.userPersona.picture)
+			getBlobLink(handle.userPersona.picture).then(src => src && (userIcon.src = src));
 
 		return mudcrack({
 			className: "lineout row main-chats-item",
@@ -63,6 +71,15 @@ async function updateChatHandles() {
 						mudcrack({
 							className: "hint",
 							contents: messagesCaption(handle.messageCount),
+						}),
+						mudcrack({
+							className: "row-compact main-chats-item-user",
+							contents: [
+								userIcon,
+								mudcrack({
+									contents: handle.userPersona.name
+								})
+							]
 						})
 					]
 				}),

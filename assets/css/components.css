@@ -87,6 +87,13 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	width: 32%;
 	border-radius: var(--dims-smol);
 }
+.main-chats-item-user {
+	align-items: center;
+}
+.main-chats-item-user > img {
+	width: 2em;
+	border-radius: var(--dims-smol);
+}
 
 summary.settings-label {
 	font: var(--font-bold);

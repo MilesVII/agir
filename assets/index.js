@@ -4185,8 +4185,16 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           src: placeholder(null)
         }
       });
+      const userIcon = d({
+        tagName: "img",
+        attributes: {
+          src: placeholder(null)
+        }
+      });
       if (handle.scenario.picture)
         getBlobLink(handle.scenario.picture).then((src) => src && (icon.src = src));
+      if (handle.userPersona.picture)
+        getBlobLink(handle.userPersona.picture).then((src) => src && (userIcon.src = src));
       return d({
         className: "lineout row main-chats-item",
         contents: [
@@ -4201,6 +4209,15 @@ Please report this to https://github.com/markedjs/marked.`, e) {
               d({
                 className: "hint",
                 contents: messagesCaption(handle.messageCount)
+              }),
+              d({
+                className: "row-compact main-chats-item-user",
+                contents: [
+                  userIcon,
+                  d({
+                    contents: handle.userPersona.name
+                  })
+                ]
               })
             ]
           }),
