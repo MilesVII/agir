@@ -2,11 +2,12 @@ import { getRoute, makeResizable, setSelectMenu, setSelectOptions } from "@root/
 import { RampikeUnit } from "./types";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
-import { listen, local } from "@root/persist";
+import { idb, listen, local } from "@root/persist";
 import { readActiveEngines, readEngines } from "./settings/engines";
 import { sendMessage } from "./chat/send";
 import { abortController } from "@root/run";
 import { ActiveEngines } from "@root/types";
+import { initChatEditor } from "./chat/editor";
 
 export const chatUnit: RampikeUnit = {
 	init: () => {
@@ -30,9 +31,20 @@ export const chatUnit: RampikeUnit = {
 
 		update();
 		updateEngines();
+
+		const { open: openChatEditor } = initChatEditor();
 		setSelectMenu(menuButton, "menu", [
-			["Scenario card", () => {}],
-			["Edit definition", () => {}],
+			["Scenario card", async () => {
+				const [, chatId] = getRoute();
+				if (!chatId) return;
+				const chat = await idb.get("chats", chatId);
+				if (!chat.success) return;
+
+				const cardId = chat.value.scenario.id;
+				if (await idb.get("scenarios", cardId))
+					window.open(`#scenario-editor.${cardId}`);
+			}],
+			["Edit definition", openChatEditor],
 			["rEmber", () => {}]
 		]);
 	}

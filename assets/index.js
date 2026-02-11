@@ -4093,6 +4093,55 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     list.scrollTop = list.scrollHeight;
   }
 
+  // src/units/chat/editor.ts
+  function initChatEditor() {
+    const saveButton = document.querySelector("#play-editor-save");
+    const resetButton = document.querySelector("#play-editor-reset");
+    const closeButton = document.querySelector("#play-editor-close");
+    const definitionInput = document.querySelector("#play-editor-definition");
+    const modal = document.querySelector("#play-editor");
+    makeResizable(definitionInput);
+    listen((update3) => {
+      if (update3.storage !== "idb") return;
+      if (update3.store !== "chats") return;
+      updateDefinition();
+    });
+    window.addEventListener("hashchange", updateDefinition);
+    resetButton.addEventListener("click", updateDefinition);
+    updateDefinition();
+    async function getChat() {
+      const [page, chatId] = getRoute();
+      if (page !== "play" || !chatId) return null;
+      const chat = await idb.get("chats", chatId);
+      if (!chat.success) return null;
+      return chat.value;
+    }
+    async function updateDefinition() {
+      const chat = await getChat();
+      if (!chat) return;
+      definitionInput.value = chat.scenario.definition;
+      textareaReconsider(definitionInput);
+    }
+    saveButton.addEventListener("click", async () => {
+      const value = definitionInput.value.trim();
+      if (!value) return;
+      const chat = await getChat();
+      if (!chat) return;
+      chat.scenario.definition = value;
+      await idb.set("chats", chat);
+      modal.close();
+    });
+    closeButton.addEventListener("click", () => {
+      modal.close();
+    });
+    return {
+      open: () => {
+        modal.open();
+        textareaReconsider(definitionInput);
+      }
+    };
+  }
+
   // src/units/chat.ts
   var chatUnit = {
     init: () => {
@@ -4115,11 +4164,18 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
       update();
       updateEngines();
+      const { open: openChatEditor } = initChatEditor();
       setSelectMenu(menuButton, "menu", [
-        ["Scenario card", () => {
+        ["Scenario card", async () => {
+          const [, chatId] = getRoute();
+          if (!chatId) return;
+          const chat = await idb.get("chats", chatId);
+          if (!chat.success) return;
+          const cardId = chat.value.scenario.id;
+          if (await idb.get("scenarios", cardId))
+            window.open(`#scenario-editor.${cardId}`);
         }],
-        ["Edit definition", () => {
-        }],
+        ["Edit definition", openChatEditor],
         ["rEmber", () => {
         }]
       ]);
