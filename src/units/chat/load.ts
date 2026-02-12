@@ -1,6 +1,7 @@
 import { idb } from "@root/persist";
 import { deleteMessage, loadPictures, reroll, setSwipe } from "./utils";
 import { makeMessageView } from "./message-view";
+import { updateTitle } from "@root/utils";
 
 export async function loadMessages(chatId: string) {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
@@ -11,6 +12,7 @@ export async function loadMessages(chatId: string) {
 		idb.get("chats", chatId)
 	]);
 	if (!contents.success || !meta.success) return;
+	updateTitle(meta.value.scenario.name);
 
 	const [userPic, modelPic] = await loadPictures(meta.value);
 

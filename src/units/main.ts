@@ -69,10 +69,6 @@ async function updateChatHandles() {
 							contents: handle.scenario.name,
 						}),
 						mudcrack({
-							className: "hint",
-							contents: messagesCaption(handle.messageCount),
-						}),
-						mudcrack({
 							className: "row-compact main-chats-item-user",
 							contents: [
 								userIcon,
@@ -80,6 +76,10 @@ async function updateChatHandles() {
 									contents: handle.userPersona.name
 								})
 							]
+						}),
+						mudcrack({
+							className: "hint",
+							contents: messagesCaption(handle.messageCount),
 						})
 					]
 				}),

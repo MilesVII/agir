@@ -1,4 +1,4 @@
-import { getRoute, makeResizable, setSelectMenu, setSelectOptions } from "@root/utils";
+import { getRoute, makeResizable, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
 import { RampikeUnit } from "./types";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
@@ -52,7 +52,10 @@ export const chatUnit: RampikeUnit = {
 
 async function update() {
 	const route = getRoute();
-	if (route[0] !== "play") return;
+	if (route[0] !== "play") {
+		updateTitle(null);
+		return;
+	}
 	if (!route[1]) return;
 
 	await loadMessages(route[1]);

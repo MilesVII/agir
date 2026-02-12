@@ -2757,6 +2757,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }).click();
     URL.revokeObjectURL(url);
   }
+  var MAIN_TITLE = "\xC4gir";
+  function updateTitle(page) {
+    document.title = page ? `${page} | ${MAIN_TITLE}` : MAIN_TITLE;
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -4013,6 +4017,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       idb.get("chats", chatId)
     ]);
     if (!contents.success || !meta.success) return;
+    updateTitle(meta.value.scenario.name);
     const [userPic, modelPic] = await loadPictures(meta.value);
     const messages = contents.value.messages;
     const items = messages.map((item, ix) => {
@@ -4183,7 +4188,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   };
   async function update() {
     const route = getRoute();
-    if (route[0] !== "play") return;
+    if (route[0] !== "play") {
+      updateTitle(null);
+      return;
+    }
     if (!route[1]) return;
     await loadMessages(route[1]);
   }
@@ -4263,10 +4271,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                 contents: handle.scenario.name
               }),
               d({
-                className: "hint",
-                contents: messagesCaption(handle.messageCount)
-              }),
-              d({
                 className: "row-compact main-chats-item-user",
                 contents: [
                   userIcon,
@@ -4274,6 +4278,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                     contents: handle.userPersona.name
                   })
                 ]
+              }),
+              d({
+                className: "hint",
+                contents: messagesCaption(handle.messageCount)
               })
             ]
           }),

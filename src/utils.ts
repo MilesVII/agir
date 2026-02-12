@@ -133,3 +133,8 @@ export function download(payload: string, filename: string) {
 	}).click();
 	URL.revokeObjectURL(url);
 }
+
+const MAIN_TITLE = "Ägir";
+export function updateTitle(page: string | null) {
+	document.title = page ? `${page} | ${MAIN_TITLE}` : MAIN_TITLE;
+}
