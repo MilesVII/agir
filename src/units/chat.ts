@@ -11,13 +11,14 @@ import { initChatEditor } from "./chat/editor";
 
 export const chatUnit: RampikeUnit = {
 	init: () => {
+		const scroller     = document.querySelector<HTMLElement>("#play-messages")!;
 		const textarea     = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
 		const sendButton   = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
 		const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
 		const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
 		const menuButton   = document.querySelector<HTMLSelectElement>("#chat-menu-select")!;
 
-		makeResizable(textarea);
+		makeResizable(textarea, scroller);
 		window.addEventListener("hashchange", update);
 		listen(u => {
 			if (u.storage !== "local") return;

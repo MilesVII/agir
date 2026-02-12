@@ -30,16 +30,27 @@ export function revolvers<T = void>() {
 	return { promise, resolve: _resolve as ((v: T) => void) };
 }
 
-export function makeResizable(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
-	const update = () => textareaReconsider(textarea, initialHeight);
+export function makeResizable(
+	textarea: HTMLTextAreaElement,
+	scrollParent: HTMLElement = document.body,
+	initialHeight: number = 52
+) {
+	const update = () => textareaReconsider(textarea, scrollParent, initialHeight);
 	textarea.addEventListener("input", update);
 	update();
 }
-export function textareaReconsider(textarea: HTMLTextAreaElement, initialHeight: number = 52) {
-	const bodyScroll = document.body.scrollTop;
+export function textareaReconsider(
+	textarea: HTMLTextAreaElement,
+	scrollParent: HTMLElement = document.body,
+	initialHeight: number = 52
+) {
+	const bodyScroll = scrollParent.scrollTop;
 	textarea.style.height = "auto";
 	textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
-	document.body.scrollTop = bodyScroll; // why
+	scrollParent.scrollTop = bodyScroll; // why // because changing height to auto shifts the layout
+	// we can't drop height = "auto" because scrollHeight is min(height we need, container height)
+	// extremely stupid
+	// why can't it just be normal for once
 }
 
 export function getRoute() {

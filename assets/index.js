@@ -2668,16 +2668,16 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const promise = new Promise((resolve) => _resolve = resolve);
     return { promise, resolve: _resolve };
   }
-  function makeResizable(textarea, initialHeight = 52) {
-    const update3 = () => textareaReconsider(textarea, initialHeight);
+  function makeResizable(textarea, scrollParent = document.body, initialHeight = 52) {
+    const update3 = () => textareaReconsider(textarea, scrollParent, initialHeight);
     textarea.addEventListener("input", update3);
     update3();
   }
-  function textareaReconsider(textarea, initialHeight = 52) {
-    const bodyScroll = document.body.scrollTop;
+  function textareaReconsider(textarea, scrollParent = document.body, initialHeight = 52) {
+    const bodyScroll = scrollParent.scrollTop;
     textarea.style.height = "auto";
     textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
-    document.body.scrollTop = bodyScroll;
+    scrollParent.scrollTop = bodyScroll;
   }
   function getRoute() {
     return window.location.hash.slice(1).split(".");
@@ -4150,12 +4150,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   // src/units/chat.ts
   var chatUnit = {
     init: () => {
+      const scroller = document.querySelector("#play-messages");
       const textarea = document.querySelector("#chat-textarea");
       const sendButton = document.querySelector("#chat-send-button");
       const stopButton = document.querySelector("#chat-stop-button");
       const enginePicker = document.querySelector("#chat-engine-picker");
       const menuButton = document.querySelector("#chat-menu-select");
-      makeResizable(textarea);
+      makeResizable(textarea, scroller);
       window.addEventListener("hashchange", update);
       listen((u3) => {
         if (u3.storage !== "local") return;
