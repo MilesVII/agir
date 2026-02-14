@@ -22,6 +22,7 @@
 	min-width: 3ch;
 	border-radius: var(--dims-smol);
 	transition: all .2s ease;
+	padding: 4px;
 }
 .ghost:hover {
 	background-color: var(--color-accent);
@@ -84,8 +85,10 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 }
 
 .main-chats-item > img {
-	width: 32%;
 	border-radius: var(--dims-smol);
+	object-fit: cover;
+	width: 40%;
+	aspect-ratio: 1/1;
 }
 .main-chats-item-user {
 	align-items: center;
@@ -286,4 +289,8 @@ summary.settings-label {
 }
 .message .row-compact {
 	align-items: center;
+}
+
+.message-control {
+	align-self: center;
 }

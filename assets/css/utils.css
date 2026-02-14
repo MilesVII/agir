@@ -70,3 +70,7 @@
 .center-text {
 	text-align: center;
 }
+
+.no-shrink {
+	flex-shrink: 0;
+}

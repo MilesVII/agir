@@ -3782,7 +3782,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     function controlButton(caption, hint, cb) {
       return d({
         tagName: "button",
-        className: "strip ghost pointer",
+        className: "strip ghost pointer message-control",
         contents: caption,
         attributes: { title: hint },
         events: { click: cb }
@@ -3804,7 +3804,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     });
     const swipesControl = d({
       tagName: "div",
-      className: "row-compact",
+      className: "row-compact no-shrink",
       contents: [
         controlButton(
           "<",

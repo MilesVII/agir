@@ -13,7 +13,7 @@ export function makeMessageView(
 	function controlButton(caption: string, hint: string, cb: () => void) {
 		return mudcrack({
 			tagName: "button",
-			className: "strip ghost pointer",
+			className: "strip ghost pointer message-control",
 			contents: caption,
 			attributes: { title: hint },
 			events: { click: cb }
@@ -36,7 +36,7 @@ export function makeMessageView(
 	});
 	const swipesControl = mudcrack({
 		tagName: "div",
-		className: "row-compact",
+		className: "row-compact no-shrink",
 		contents: [
 			controlButton(
 				"<", "prev swipe",
