@@ -32,9 +32,6 @@
 					</ram-file-picker>
 				</div>
 				<div class="main col pad float-center">
-					<!-- <ram-file-picker id="main-chats-import" accept=".jsonl">
-						<div class="lineout fit">import a chat in SillyTavern format</div>
-					</ram-file-picker> -->
 					<div id="main-chats" class="list"></div>
 				</div>
 			</ram-tab>
@@ -347,9 +344,16 @@
 		<ram-modal id="library-start">
 			<div id="library-start-placeholder" class="placeholder">You need a persona to start a roleplay session. Make one in settings.</div>
 			<div id="library-start-no-placeholder" class="virtual">
-				<div>Pick a persona to start the chat</div>
-				<select id="library-start-persona" class="lineout"></select>
-				<button id="library-start-button" class="lineout">Start</button>
+				<div class="list">
+					<div>Pick a persona to start the chat</div>
+					<select id="library-start-persona" class="lineout"></select>
+				</div>
+				<div class="list">
+					<button id="library-start-button" class="lineout">Start</button>
+					<ram-file-picker id="library-start-import" accept=".jsonl">
+						<div class="lineout center-text">Import a chat in SillyTavern format and use selected persona</div>
+					</ram-file-picker>
+				</div>
 			</div>
 			<div id="library-start-description" class="lineout"></div>
 		</ram-modal>

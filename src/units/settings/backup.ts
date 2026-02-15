@@ -1,7 +1,6 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { idb, local, LocalKey } from "@root/persist";
 import { b64Encoder, download } from "@root/utils";
-import { mudcrack } from "rampike";
 
 export function initBackup() {
 	const saveButton = document.querySelector("#settings-backup-save")!;

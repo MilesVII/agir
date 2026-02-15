@@ -2663,6 +2663,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       return { success: false, error };
     }
   }
+  function nothrowAsync(cb) {
+    return new Promise((resolve) => {
+      cb.then((value) => resolve({ success: true, value })).catch((error) => resolve({ success: false, error }));
+    });
+  }
   function revolvers() {
     let _resolve;
     const promise = new Promise((resolve) => _resolve = resolve);
@@ -4522,7 +4527,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   var CHAR_NAME_MACRO = "{{char}}";
   var USER_NAME_MACRO = "{{user}}";
   var PERSONA_MACRO = "{{persona}}";
-  async function start(personaId, scenarioId) {
+  async function start(personaId, scenarioId, messages) {
     const [persona, scenario] = await Promise.all([
       idb.get("personas", personaId),
       idb.get("scenarios", scenarioId)
@@ -4540,7 +4545,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }),
       idb.set("chatContents", {
         id: chatId,
-        messages: [{
+        messages: messages ?? [{
           id: 0,
           from: "model",
           name: scenario.value.chat.name,
@@ -4578,12 +4583,30 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     };
   }
 
+  // src/units/library/st.ts
+  async function importSTMessages(file) {
+    const raw = await nothrowAsync(file.text());
+    if (!raw.success) return [];
+    return raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(() => JSON.parse(l2))).filter((c2) => c2.success).map((c2, ix) => stcToInternal(c2.value, ix));
+  }
+  function stcToInternal(stc, index) {
+    return {
+      id: index,
+      from: stc.is_system ? "system" : stc.is_user ? "user" : "model",
+      name: stc.name,
+      swipes: stc.swipes ?? [stc.mes],
+      selectedSwipe: stc.swipe_id ?? 0,
+      rember: null
+    };
+  }
+
   // src/units/library.ts
   var openerRelay = null;
   var libraryUnit = {
     init: () => {
       const startButton = document.querySelector("#library-start-button");
       const startPersonaPicker = document.querySelector("#library-start-persona");
+      const startImportButton = document.querySelector("#library-start-import");
       const importButton = document.querySelector("#library-import");
       const modal = document.querySelector("#library-start");
       startButton.addEventListener("click", async () => {
@@ -4591,6 +4614,17 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         const personaId = startPersonaPicker.value;
         if (!personaId) return;
         await start(personaId, openerRelay.scenarioId);
+        modal.close();
+      });
+      startImportButton.addEventListener("input", async () => {
+        const file = startImportButton.input.files?.[0];
+        if (!file) return;
+        const personaId = startPersonaPicker.value;
+        if (!personaId) return;
+        if (!openerRelay) return;
+        const messages = await importSTMessages(file);
+        if (messages.length === 0) return;
+        await start(personaId, openerRelay.scenarioId, messages);
         modal.close();
       });
       importButton.addEventListener("input", () => {

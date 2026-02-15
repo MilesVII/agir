@@ -6,6 +6,7 @@ import { RampikeModal } from "@rampike/modal";
 import { start } from "./chat/start";
 import { ScenarioCard } from "@root/types";
 import { RampikeFilePicker } from "@rampike/filepicker";
+import { importSTMessages } from "./library/st";
 
 let openerRelay: {
 	scenarioId: string
@@ -15,6 +16,7 @@ export const libraryUnit: RampikeUnit = {
 	init: () => {
 		const startButton = document.querySelector<HTMLButtonElement>("#library-start-button")!;
 		const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
+		const startImportButton = document.querySelector<RampikeFilePicker>("#library-start-import")!;
 		const importButton = document.querySelector<RampikeFilePicker>("#library-import")!;
 		const modal = document.querySelector<RampikeModal>("#library-start")!;
 
@@ -23,6 +25,19 @@ export const libraryUnit: RampikeUnit = {
 			const personaId = startPersonaPicker.value;
 			if (!personaId) return;
 			await start(personaId, openerRelay.scenarioId);
+			modal.close();
+		});
+		startImportButton.addEventListener("input", async () => {
+			const file = startImportButton.input.files?.[0];
+			if (!file) return;
+			const personaId = startPersonaPicker.value;
+			if (!personaId) return;
+			if (!openerRelay) return;
+
+			const messages = await importSTMessages(file);
+			if (messages.length === 0) return;
+
+			await start(personaId, openerRelay.scenarioId, messages);
 			modal.close();
 		});
 
@@ -191,7 +206,7 @@ async function openStartModal(scenario: string, descriptionMD: string) {
 	const description = document.querySelector("#library-start-description")!;
 	const placeholder = modal.querySelector<HTMLElement>("#library-start-placeholder")!;
 	const noPlaceholder = modal.querySelector<HTMLElement>("#library-start-no-placeholder")!;
-	
+
 	const personas = await idb.getAll("personas");
 	if (!personas.success) return;
 

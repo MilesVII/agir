@@ -158,7 +158,7 @@ dialog > form {
 	background: var(--color-base);
 	border-radius: var(--dims-reg);
 	padding: var(--dims-reg);
-	gap: var(--dims-smol);
+	gap: var(--dims-huge);
 
 	border: 2px solid var(--color-accent);
 	box-shadow: 0 0 var(--dims-smol) var(--color-accent);

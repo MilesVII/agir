@@ -7,22 +7,6 @@ import { mudcrack } from "rampike";
 
 export const mainUnit: RampikeUnit = {
 	init: () => {
-		// const chatImport = document.querySelector<RampikeFilePicker>("#main-chats-import")!;
-		// chatImport.addEventListener("input", async () => {
-		// 	// todo ask to pick a persona
-		// 	const file = chatImport.input.files?.[0];
-		// 	if (!file) return;
-
-		// 	const raw = await nothrowAsync(file.text());
-		// 	if (!raw.success) return;
-		// 	const messages = raw.value
-		// 		.split("\n")
-		// 		.filter(l => l.trim())
-		// 		.map(l => nothrow<STCMessage>(JSON.parse(l)))
-		// 		.filter(c => c.success)
-		// 		.map((c, ix) => stcToInternal(c.value, ix));
-		// });
-
 		const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
 		importButton.addEventListener("input", () => {
 			const file = importButton.input.files?.[0];
@@ -118,29 +102,6 @@ async function updateChatHandles() {
 
 	if (items.length === 0) list.append(mudcrack({ className: "placeholder", contents: "No chats found" }));
 	list.append(...items);
-}
-
-function stcToInternal(stc: STCMessage, index: number): ChatMessage {
-	return {
-		id: index,
-		from: stc.is_system
-			? "system"
-			: stc.is_user
-				? "user"
-				: "model",
-		name: stc.name,
-		swipes: stc.swipes ?? [stc.mes],
-		selectedSwipe: 0,
-		rember: null
-	};
-}
-
-type STCMessage = {
-	name: string,
-	is_user: boolean,
-	is_system: boolean,
-	mes: string,
-	swipes?: string[]
 }
 
 function messagesCaption(count: number) {

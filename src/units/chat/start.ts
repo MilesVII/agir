@@ -1,5 +1,5 @@
 import { idb } from "@root/persist";
-import { Chat, Persona, Pronouns, ScenarioCard } from "@root/types";
+import { Chat, ChatMessage, Persona, Pronouns, ScenarioCard } from "@root/types";
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {
 	"{{sub}}":    "subjective",
@@ -12,7 +12,7 @@ const CHAR_NAME_MACRO = "{{char}}";
 const USER_NAME_MACRO = "{{user}}";
 const PERSONA_MACRO = "{{persona}}";
 
-export async function start(personaId: string, scenarioId: string) {
+export async function start(personaId: string, scenarioId: string, messages?: ChatMessage[]) {
 	const [persona, scenario] = await Promise.all([
 		idb.get("personas", personaId),
 		idb.get("scenarios", scenarioId)
@@ -31,7 +31,7 @@ export async function start(personaId: string, scenarioId: string) {
 		}),
 		idb.set("chatContents", {
 			id: chatId,
-			messages: [{
+			messages: messages ?? [{
 				id: 0,
 				from: "model",
 				name: scenario.value.chat.name,

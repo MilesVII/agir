@@ -7,7 +7,8 @@ Janitor-inspired local roleplay frontend
 - No sync
 - No JLLM
 - No mobile app
-- No limit on the number of first messages
+- Unlimited first messages
+- Native import/export
 
 #### rEmber (WIP)
 A customizable recap assistant that helps to keep track of roleplay state. Basically a "Chat Memory" from Janitor but not half-assed.
