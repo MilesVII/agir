@@ -11,25 +11,30 @@ class _RampikeFilePicker extends HTMLElement {
 	constructor() {
 		super();
 
+		const input = mudcrack({
+			tagName: "input",
+			attributes: {
+				type: "file",
+				accept: this.getAttribute("accept") ?? "",
+			},
+			style: {
+				display: "none"
+			}
+		});
+
 		const contents = mudcrack({
 			tagName: "label",
 			style: {
 				display: "contents"
 			},
 			contents: [
-				mudcrack({
-					tagName: "input",
-					attributes: {
-						type: "file",
-						accept: this.getAttribute("accept") ?? ""
-					},
-					style: {
-						display: "none"
-					}
-				}),
+				input,
 				...Array.from(this.children)
 			]
 		});
+
+		if (this.hasAttribute("multiple"))
+			input.setAttribute("multiple", "");
 		this.append(contents);
 	}
 };

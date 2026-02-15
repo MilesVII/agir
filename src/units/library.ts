@@ -42,10 +42,12 @@ export const libraryUnit: RampikeUnit = {
 		});
 
 		importButton.addEventListener("input", () => {
-			const file = importButton.input.files?.[0];
-			if (!file) return;
+			const files = importButton.input.files;
+			if (!files?.[0]) return;
 
-			importScenario(file);
+			for (let i = 0; i < files.length; ++i) {
+				importScenario(files.item(i)!);
+			}
 		});
 
 		listen(async u => {

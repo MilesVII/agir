@@ -400,25 +400,28 @@
     }
     constructor() {
       super();
+      const input = d({
+        tagName: "input",
+        attributes: {
+          type: "file",
+          accept: this.getAttribute("accept") ?? ""
+        },
+        style: {
+          display: "none"
+        }
+      });
       const contents = d({
         tagName: "label",
         style: {
           display: "contents"
         },
         contents: [
-          d({
-            tagName: "input",
-            attributes: {
-              type: "file",
-              accept: this.getAttribute("accept") ?? ""
-            },
-            style: {
-              display: "none"
-            }
-          }),
+          input,
           ...Array.from(this.children)
         ]
       });
+      if (this.hasAttribute("multiple"))
+        input.setAttribute("multiple", "");
       this.append(contents);
     }
   };
@@ -4628,9 +4631,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         modal.close();
       });
       importButton.addEventListener("input", () => {
-        const file = importButton.input.files?.[0];
-        if (!file) return;
-        importScenario(file);
+        const files = importButton.input.files;
+        if (!files?.[0]) return;
+        for (let i2 = 0; i2 < files.length; ++i2) {
+          importScenario(files.item(i2));
+        }
       });
       listen(async (u3) => {
         if (u3.storage !== "idb") return;
