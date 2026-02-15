@@ -1,8 +1,8 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { RampikeUnit } from "./types";
-import { nothrow, nothrowAsync, placeholder } from "@root/utils";
-import { ChatMessage } from "@root/types";
-import { getBlobLink, idb, listen } from "@root/persist";
+import { b64Encoder, nothrow, nothrowAsync, placeholder } from "@root/utils";
+import { Chat, ChatContents, ChatMessage } from "@root/types";
+import { getBlobLink, idb, listen, upload } from "@root/persist";
 import { mudcrack } from "rampike";
 
 export const mainUnit: RampikeUnit = {
@@ -22,6 +22,14 @@ export const mainUnit: RampikeUnit = {
 		// 		.filter(c => c.success)
 		// 		.map((c, ix) => stcToInternal(c.value, ix));
 		// });
+
+		const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
+		importButton.addEventListener("input", () => {
+			const file = importButton.input.files?.[0];
+			if (!file) return;
+
+			importChat(file);
+		});
 
 		listen(update => {
 			if (update.storage !== "idb") return;
@@ -146,3 +154,21 @@ function deleteChat(id: string, name: string, messageCount: number) {
 	idb.del("chatContents", id);
 	idb.del("chats", id);
 }
+
+async function importChat(file: File) {
+	const json = await file.text();
+	const parsed = nothrow(() => JSON.parse(json));
+	if (!parsed.success) return;
+
+	const chat     = parsed.value.chat as Chat;
+	const contents = parsed.value.contents as ChatContents;
+	const media    = parsed.value.media;
+
+	for (const m of media) {
+		m.media = await b64Encoder.decode(m.media);
+		await idb.set("media", m);
+	}
+
+	await idb.set("chats", chat);
+	await idb.set("chatContents", contents);
+};

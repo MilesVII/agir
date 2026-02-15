@@ -161,7 +161,7 @@ async function downloadScenario(card: ScenarioCard) {
 
 async function importScenario(file: File) {
 	const raw = await file.text();
-	const parsed = JSON.parse(raw);
+	const parsed = JSON.parse(raw) as ScenarioCard;
 
 	parsed.id = crypto.randomUUID();
 	
@@ -173,6 +173,7 @@ async function importScenario(file: File) {
 	}
 	parsed.card.picture = await decode(parsed.card.picture);
 	parsed.chat.picture = await decode(parsed.chat.picture);
+	parsed.lastUpdate = Date.now();
 
 	idb.set("scenarios", parsed);
 }

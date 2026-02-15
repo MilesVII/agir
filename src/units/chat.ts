@@ -1,4 +1,4 @@
-import { getRoute, makeResizable, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
+import { asyncMap, b64Encoder, download, getRoute, makeResizable, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
 import { RampikeUnit } from "./types";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
@@ -35,18 +35,10 @@ export const chatUnit: RampikeUnit = {
 
 		const { open: openChatEditor } = initChatEditor();
 		setSelectMenu(menuButton, "menu", [
-			["Scenario card", async () => {
-				const [, chatId] = getRoute();
-				if (!chatId) return;
-				const chat = await idb.get("chats", chatId);
-				if (!chat.success) return;
-
-				const cardId = chat.value.scenario.id;
-				if (await idb.get("scenarios", cardId))
-					window.open(`#scenario-editor.${cardId}`);
-			}],
+			["Scenario card",   openScenarioIfExists],
 			["Edit definition", openChatEditor],
-			["rEmber", () => {}]
+			["rEmber", () => {}],
+			["Export",          exportChat]
 		]);
 	}
 };
@@ -95,4 +87,48 @@ function pickMainEngine(id: string) {
 	const old = readActiveEngines();
 	old.main = id;
 	local.set("activeEngine", JSON.stringify(old));
+}
+
+async function openScenarioIfExists() {
+	const [, chatId] = getRoute();
+	if (!chatId) return;
+	const chat = await idb.get("chats", chatId);
+	if (!chat.success) return;
+
+	const cardId = chat.value.scenario.id;
+	if (await idb.get("scenarios", cardId))
+		window.open(`#scenario-editor.${cardId}`);
+}
+
+async function exportChat() {
+	const [, chatId] = getRoute();
+	if (!chatId) return;
+	const [chat, contents] = await Promise.all([
+		idb.get("chats", chatId),
+		idb.get("chatContents", chatId)
+	]);
+	if (!chat.success || !contents.success) return;
+
+	const mediaIDs = [
+			chat.value.userPersona.picture,
+			chat.value.scenario.picture
+		].filter(id => id) as string[];
+	const encodedMedia = await asyncMap(mediaIDs,
+		async (id: string) => {
+			const picture = await idb.get("media", id);
+			if (!picture.success) return null;
+			return {
+				...picture.value,
+				media: await b64Encoder.encode(picture.value.media)
+			};
+		}
+	);
+
+	const payload = {
+		chat: chat.value,
+		contents: contents.value,
+		media: encodedMedia.filter(m => m)
+	};
+
+	download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
 }

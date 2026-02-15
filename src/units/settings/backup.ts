@@ -1,6 +1,6 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { idb, local, LocalKey } from "@root/persist";
-import { b64Encoder } from "@root/utils";
+import { b64Encoder, download } from "@root/utils";
 import { mudcrack } from "rampike";
 
 export function initBackup() {
@@ -47,18 +47,7 @@ async function backup() {
 		local: localData
 	});
 
-	const blob = new Blob([payload], { type: "text/plain" });
-	const url = URL.createObjectURL(blob);
-
-	mudcrack({
-		tagName: "a",
-		attributes: {
-			href: url,
-			download: `backup-${new Date().toLocaleString()}.json`
-		}
-	}).click();
-
-	URL.revokeObjectURL(url);
+	download(payload, `backup-${new Date().toLocaleString()}.json`);
 }
 
 async function restore(picker: RampikeFilePicker) {

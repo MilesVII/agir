@@ -2761,6 +2761,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function updateTitle(page) {
     document.title = page ? `${page} | ${MAIN_TITLE}` : MAIN_TITLE;
   }
+  async function asyncMap(a, map2) {
+    return await Promise.all(a.map(map2));
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -3420,16 +3423,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       idb: validOnly,
       local: localData
     });
-    const blob = new Blob([payload], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    d({
-      tagName: "a",
-      attributes: {
-        href: url,
-        download: `backup-${(/* @__PURE__ */ new Date()).toLocaleString()}.json`
-      }
-    }).click();
-    URL.revokeObjectURL(url);
+    download(payload, `backup-${(/* @__PURE__ */ new Date()).toLocaleString()}.json`);
   }
   async function restore(picker) {
     const file = picker.input.files?.[0];
@@ -4172,18 +4166,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       updateEngines();
       const { open: openChatEditor } = initChatEditor();
       setSelectMenu(menuButton, "menu", [
-        ["Scenario card", async () => {
-          const [, chatId] = getRoute();
-          if (!chatId) return;
-          const chat = await idb.get("chats", chatId);
-          if (!chat.success) return;
-          const cardId = chat.value.scenario.id;
-          if (await idb.get("scenarios", cardId))
-            window.open(`#scenario-editor.${cardId}`);
-        }],
+        ["Scenario card", openScenarioIfExists],
         ["Edit definition", openChatEditor],
         ["rEmber", () => {
-        }]
+        }],
+        ["Export", exportChat]
       ]);
     }
   };
@@ -4226,10 +4213,55 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     old.main = id;
     local.set("activeEngine", JSON.stringify(old));
   }
+  async function openScenarioIfExists() {
+    const [, chatId] = getRoute();
+    if (!chatId) return;
+    const chat = await idb.get("chats", chatId);
+    if (!chat.success) return;
+    const cardId = chat.value.scenario.id;
+    if (await idb.get("scenarios", cardId))
+      window.open(`#scenario-editor.${cardId}`);
+  }
+  async function exportChat() {
+    const [, chatId] = getRoute();
+    if (!chatId) return;
+    const [chat, contents] = await Promise.all([
+      idb.get("chats", chatId),
+      idb.get("chatContents", chatId)
+    ]);
+    if (!chat.success || !contents.success) return;
+    const mediaIDs = [
+      chat.value.userPersona.picture,
+      chat.value.scenario.picture
+    ].filter((id) => id);
+    const encodedMedia = await asyncMap(
+      mediaIDs,
+      async (id) => {
+        const picture = await idb.get("media", id);
+        if (!picture.success) return null;
+        return {
+          ...picture.value,
+          media: await b64Encoder.encode(picture.value.media)
+        };
+      }
+    );
+    const payload = {
+      chat: chat.value,
+      contents: contents.value,
+      media: encodedMedia.filter((m2) => m2)
+    };
+    download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
+  }
 
   // src/units/main.ts
   var mainUnit = {
     init: () => {
+      const importButton = document.querySelector("#main-import");
+      importButton.addEventListener("input", () => {
+        const file = importButton.input.files?.[0];
+        if (!file) return;
+        importChat(file);
+      });
       listen((update3) => {
         if (update3.storage !== "idb") return;
         if (update3.store !== "chats") return;
@@ -4322,19 +4354,30 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     idb.del("chatContents", id);
     idb.del("chats", id);
   }
+  async function importChat(file) {
+    const json = await file.text();
+    const parsed = nothrow(() => JSON.parse(json));
+    if (!parsed.success) return;
+    const chat = parsed.value.chat;
+    const contents = parsed.value.contents;
+    const media = parsed.value.media;
+    for (const m2 of media) {
+      m2.media = await b64Encoder.decode(m2.media);
+      await idb.set("media", m2);
+    }
+    await idb.set("chats", chat);
+    await idb.set("chatContents", contents);
+  }
 
   // src/units/scenario.ts
   var definitionTemplate = [
     "# Characters",
     "## {{char}} ",
-    "{{char}} is Odin-class coastal defense ship",
-    "{{char}} is 79 meters-long, she weighs 3600 tons and is armed with three 24cm SK L/35 guns and eight 8.8cm guns which. she enjoys shooting the latter ones.",
     "",
     "## {{user}}",
     "{{persona}}",
     "",
     "# Scenario",
-    "{{char}} is {{user}}'s roommate, they're on a trip in Gotland, Sweden",
     "",
     "# Instructions",
     "You play as {{char}}, the user is {{user}}"
@@ -4684,6 +4727,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
     parsed.card.picture = await decode(parsed.card.picture);
     parsed.chat.picture = await decode(parsed.chat.picture);
+    parsed.lastUpdate = Date.now();
     idb.set("scenarios", parsed);
   }
   function deleteScenario(id, name) {

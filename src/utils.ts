@@ -149,3 +149,10 @@ const MAIN_TITLE = "Ägir";
 export function updateTitle(page: string | null) {
 	document.title = page ? `${page} | ${MAIN_TITLE}` : MAIN_TITLE;
 }
+
+export async function asyncMap<T, R>(
+	a: T[],
+	map: (v: T, i: number, a: T[]) => Promise<R>
+): Promise<R[]> {
+	return await Promise.all(a.map(map));
+}
