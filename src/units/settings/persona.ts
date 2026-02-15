@@ -41,6 +41,7 @@ export const personaUnit: RampikeUnit = {
 		const personaList = document.querySelector<HTMLElement>("#settings-persona-list")!;
 		const submitButton = document.querySelector<HTMLButtonElement>("#settings-add-persona")!;
 		const form = document.querySelector<HTMLElement>("#settings-persona-form")!;
+		const divider = document.querySelector("#settings-persona-divider")!;
 		let editingPersona: Persona | null = null;
 
 		submitButton.addEventListener("click", async () => {
@@ -90,7 +91,7 @@ export const personaUnit: RampikeUnit = {
 			if (persona.picture) {
 				filePicker.value = persona.picture;
 			}
-			nameInput.scrollIntoView({ behavior: "smooth" });
+			divider.scrollIntoView({ behavior: "smooth" });
 		}
 		async function updatePersonaList() {
 			const personas = await idb.getAll("personas");

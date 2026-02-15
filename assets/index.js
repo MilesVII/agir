@@ -3055,6 +3055,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       };
       const submitButton = document.querySelector("#settings-engines-submit");
       const list = document.querySelector("#settings-engines-list");
+      const divider = document.querySelector("#settings-engines-divider");
       let editing = null;
       submitButton.addEventListener("click", submit);
       listen((update3) => {
@@ -3113,7 +3114,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         inputs.temp.value = String(e.temp);
         inputs.max.value = String(e.max);
         inputs.params.value = stringifyParams();
-        inputs.name.scrollIntoView({ behavior: "smooth" });
+        divider.scrollIntoView({ behavior: "smooth" });
       }
       function updateList() {
         list.innerHTML = "";
@@ -3247,6 +3248,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const personaList = document.querySelector("#settings-persona-list");
       const submitButton = document.querySelector("#settings-add-persona");
       const form = document.querySelector("#settings-persona-form");
+      const divider = document.querySelector("#settings-persona-divider");
       let editingPersona = null;
       submitButton.addEventListener("click", async () => {
         const name = nameInput.value;
@@ -3286,7 +3288,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         if (persona.picture) {
           filePicker.value = persona.picture;
         }
-        nameInput.scrollIntoView({ behavior: "smooth" });
+        divider.scrollIntoView({ behavior: "smooth" });
       }
       async function updatePersonaList() {
         const personas = await idb.getAll("personas");

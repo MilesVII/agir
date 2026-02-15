@@ -83,6 +83,9 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	background-color: var(--color-base);
 	z-index: 2;
 }
+.topbar-scroll-offset {
+	scroll-margin-top: calc(var(--dims-huge) * 2 + 32px);
+}
 
 .main-chats-item > img {
 	border-radius: var(--dims-smol);

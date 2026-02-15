@@ -2,7 +2,7 @@
 .theme-dark-pink {
 	--color-base: #171717;
 	--color-base-semi: rgb(23 23 23 / 70%);
-	--color-secondary: #696969;
+	--color-secondary: #777;
 	--color-subtext: #868686;
 	--color-accent: #DA0037;
 	--color-text: #EDEDED;
@@ -10,7 +10,7 @@
 .theme-dark-lime {
 	--color-base: #171717;
 	--color-base-semi: rgb(23 23 23 / 70%);
-	--color-secondary: #696969;
+	--color-secondary: #777;
 	--color-subtext: #868686;
 	--color-accent: #29DF47;
 	--color-text: #EDEDED;

@@ -21,6 +21,7 @@ export const enginesUnit: RampikeUnit = {
 		};
 		const submitButton = document.querySelector<HTMLButtonElement>("#settings-engines-submit")!;
 		const list = document.querySelector<HTMLElement>("#settings-engines-list")!;
+		const divider = document.querySelector("#settings-engines-divider")!;
 		let editing: string | null = null;
 
 		submitButton.addEventListener("click", submit);
@@ -87,7 +88,7 @@ export const enginesUnit: RampikeUnit = {
 			inputs.max.value =    String(e.max);
 			inputs.params.value = stringifyParams();
 
-			inputs.name.scrollIntoView({ behavior: "smooth" });
+			divider.scrollIntoView({ behavior: "smooth", });
 		}
 
 		function updateList() {

@@ -51,12 +51,12 @@
 :root {
 	color-scheme: only dark;
 
-	--color-base: #171717;
-	--color-base-semi: rgb(23 23 23 / 70%);
-	--color-secondary: #444444;
-	--color-accent: #DA0037;
-	--color-text: #EDEDED;
-	--color-subtext: #808080;
+	--color-base: #222831;
+	--color-base-semi: rgb(34 40 49 / 70%);
+	--color-secondary: #777;
+	--color-subtext: #777;
+	--color-accent: #00ADB5;
+	--color-text: #EEEEEE;
 
 	--font-smol: normal 400 14px/18px "Ubuntu Sans";
 	--font-main: normal 400 18px/22px "Ubuntu Sans";
