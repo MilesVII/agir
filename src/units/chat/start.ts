@@ -25,7 +25,7 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 		idb.set("chats", {
 			id: chatId,
 			lastUpdate: Date.now(),
-			messageCount: 1,
+			messageCount: messages?.length ?? 1,
 			scenario: preparedScenario,
 			userPersona: persona.value
 		}),
