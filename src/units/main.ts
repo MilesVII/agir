@@ -32,10 +32,15 @@ async function updateChatHandles() {
 	list.innerHTML = "";
 
 	const items = handles.value.reverse().map(handle => {
+		const play = () => window.location.hash = `play.${handle.id}`;
 		const icon = mudcrack({
 			tagName: "img",
+			className: "pointer",
 			attributes: {
 				src: placeholder(null)
+			},
+			events: {
+				click: play
 			}
 		});
 		const userIcon = mudcrack({
@@ -58,7 +63,11 @@ async function updateChatHandles() {
 					contents: [
 						mudcrack({
 							tagName: "h2",
+							className: "pointer",
 							contents: handle.scenario.name,
+							events: {
+								click: play
+							}
 						}),
 						mudcrack({
 							className: "row-compact main-chats-item-user",
@@ -83,7 +92,7 @@ async function updateChatHandles() {
 							className: "lineout",
 							contents: "play",
 							events: {
-								click: () => window.location.hash = `play.${handle.id}`
+								click: play
 							}
 						}),
 						mudcrack({

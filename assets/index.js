@@ -4286,10 +4286,15 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (!handles.success) return;
     list.innerHTML = "";
     const items = handles.value.reverse().map((handle) => {
+      const play = () => window.location.hash = `play.${handle.id}`;
       const icon = d({
         tagName: "img",
+        className: "pointer",
         attributes: {
           src: placeholder(null)
+        },
+        events: {
+          click: play
         }
       });
       const userIcon = d({
@@ -4311,7 +4316,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
             contents: [
               d({
                 tagName: "h2",
-                contents: handle.scenario.name
+                className: "pointer",
+                contents: handle.scenario.name,
+                events: {
+                  click: play
+                }
               }),
               d({
                 className: "row-compact main-chats-item-user",
@@ -4336,7 +4345,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                 className: "lineout",
                 contents: "play",
                 events: {
-                  click: () => window.location.hash = `play.${handle.id}`
+                  click: play
                 }
               }),
               d({
@@ -4538,13 +4547,20 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       idb.get("scenarios", scenarioId)
     ]);
     if (!persona.success || !scenario.success) return;
+    if (messages) {
+      messages = messages.map((m2) => {
+        if (m2.from === "model") m2.name = scenario.value.chat.name;
+        if (m2.from === "user") m2.name = persona.value.name;
+        return m2;
+      });
+    }
     const preparedScenario = prepareScenario(scenario.value, persona.value);
     const chatId = crypto.randomUUID();
     await Promise.all([
       idb.set("chats", {
         id: chatId,
         lastUpdate: Date.now(),
-        messageCount: 1,
+        messageCount: messages?.length ?? 1,
         scenario: preparedScenario,
         userPersona: persona.value
       }),
@@ -4592,7 +4608,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function importSTMessages(file) {
     const raw = await nothrowAsync(file.text());
     if (!raw.success) return [];
-    return raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(() => JSON.parse(l2))).filter((c2) => c2.success).map((c2, ix) => stcToInternal(c2.value, ix));
+    const pre = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(() => JSON.parse(l2))).filter((c2) => c2.success).map((c2, ix) => stcToInternal(c2.value, ix));
+    const text2 = (c2) => c2.swipes[c2.selectedSwipe];
+    if (pre.length > 2 && text2(pre[0]) === text2(pre[1])) {
+      pre.splice(0, 1);
+    }
+    return pre;
   }
   function stcToInternal(stc, index) {
     return {
@@ -4653,10 +4674,15 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const items = await idb.getAll("scenarios");
     if (!items.success) return;
     const contents = items.value.reverse().map((item) => {
+      const play = () => openStartModal(item.id, item.card.description);
       let icon = d({
         tagName: "img",
+        className: "pointer",
         attributes: {
           src: placeholder(null)
+        },
+        events: {
+          click: play
         }
       });
       if (item.card.picture) {
@@ -4680,7 +4706,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                 contents: [
                   d({
                     tagName: "h6",
-                    contents: item.card.title
+                    className: "pointer",
+                    contents: item.card.title,
+                    events: {
+                      click: play
+                    }
                   }),
                   d({
                     tagName: "button",
@@ -4712,7 +4742,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                     tagName: "button",
                     className: "lineout",
                     events: {
-                      click: () => openStartModal(item.id, item.card.description)
+                      click: play
                     },
                     contents: "play"
                   })

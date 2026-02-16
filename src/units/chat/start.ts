@@ -20,9 +20,10 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 	if (!persona.success || !scenario.success) return;
 	// override imported names
 	if (messages) {
-		messages.forEach(m => {
+		messages = messages.map(m => {
 			if (m.from === "model") m.name = scenario.value.chat.name;
 			if (m.from === "user")  m.name = persona.value.name;
+			return m;
 		});
 	}
 

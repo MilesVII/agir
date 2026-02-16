@@ -68,10 +68,16 @@ async function update() {
 	if (!items.success) return;
 
 	const contents = items.value.reverse().map(item => {
+		const play = () => openStartModal(item.id, item.card.description);
+
 		let icon = mudcrack({
 			tagName: "img",
+			className: "pointer",
 			attributes: {
 				src: placeholder(null)
+			},
+			events: {
+				click: play
 			}
 		});
 		if (item.card.picture) {
@@ -82,6 +88,7 @@ async function update() {
 			className: "scenario-card-description"
 		});
 		description.innerHTML = renderMD(item.card.description);
+
 		return mudcrack({
 			className: "scenario-card lineout",
 			contents: [
@@ -94,7 +101,11 @@ async function update() {
 							contents: [
 								mudcrack({
 									tagName: "h6",
-									contents: item.card.title
+									className: "pointer",
+									contents: item.card.title,
+									events: {
+										click: play
+									}
 								}),
 								mudcrack({
 									tagName: "button",
@@ -126,7 +137,7 @@ async function update() {
 									tagName: "button",
 									className: "lineout",
 									events: {
-										click: () => openStartModal(item.id, item.card.description)
+										click: play
 									},
 									contents: "play"
 								})
