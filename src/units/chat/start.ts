@@ -18,6 +18,13 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 		idb.get("scenarios", scenarioId)
 	]);
 	if (!persona.success || !scenario.success) return;
+	// override imported names
+	if (messages) {
+		messages.forEach(m => {
+			if (m.from === "model") m.name = scenario.value.chat.name;
+			if (m.from === "user")  m.name = persona.value.name;
+		});
+	}
 
 	const preparedScenario = prepareScenario(scenario.value, persona.value);
 	const chatId = crypto.randomUUID();
