@@ -2690,11 +2690,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function getRoute() {
     return window.location.hash.slice(1).split(".");
   }
+  var markedOptions = {
+    gfm: false
+  };
   function renderMD(content) {
-    return purify.sanitize(d2.parse(content, { async: false }));
+    return purify.sanitize(d2.parse(content, { ...markedOptions, async: false }));
   }
   async function renderMDAsync(content) {
-    return purify.sanitize(await d2.parse(content));
+    return purify.sanitize(await d2.parse(content, markedOptions));
   }
   var PLACHEOLDER = "assets/gfx/placeholder.png";
   function placeholder(url) {

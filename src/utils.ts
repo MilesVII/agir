@@ -1,4 +1,4 @@
-import { marked } from "marked";
+import { marked, MarkedOptions } from "marked";
 import * as dompurify from "dompurify";
 
 import type { Result } from "./types";
@@ -57,11 +57,14 @@ export function getRoute() {
 	return window.location.hash.slice(1).split(".");
 }
 
+const markedOptions: MarkedOptions = {
+	gfm: false
+};
 export function renderMD(content: string) {
-	return dompurify.default.sanitize(marked.parse(content, { async: false }));
+	return dompurify.default.sanitize(marked.parse(content, { ...markedOptions, async: false }));
 }
 export async function renderMDAsync(content: string) {
-	return dompurify.default.sanitize(await marked.parse(content));
+	return dompurify.default.sanitize(await marked.parse(content, markedOptions));
 }
 
 const PLACHEOLDER = "assets/gfx/placeholder.png";
