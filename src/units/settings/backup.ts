@@ -46,7 +46,7 @@ async function backup() {
 		local: localData
 	});
 
-	download(payload, `backup-${new Date().toLocaleString()}.json`);
+	download(payload, `${new Date().toLocaleString()}.aegir.backup.json`);
 }
 
 async function restore(picker: RampikeFilePicker) {

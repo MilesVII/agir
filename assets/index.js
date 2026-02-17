@@ -3436,7 +3436,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       idb: validOnly,
       local: localData
     });
-    download(payload, `backup-${(/* @__PURE__ */ new Date()).toLocaleString()}.json`);
+    download(payload, `${(/* @__PURE__ */ new Date()).toLocaleString()}.aegir.backup.json`);
   }
   async function restore(picker) {
     const file = picker.input.files?.[0];
