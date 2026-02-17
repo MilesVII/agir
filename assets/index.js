@@ -4792,7 +4792,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function importScenario(file) {
     const raw = await file.text();
     const parsed = JSON.parse(raw);
-    parsed.id = crypto.randomUUID();
     async function decode(b64) {
       if (!b64) return null;
       const file2 = await b64Encoder.decode(b64);

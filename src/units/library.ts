@@ -191,7 +191,7 @@ async function importScenario(file: File) {
 	const raw = await file.text();
 	const parsed = JSON.parse(raw) as ScenarioCard;
 
-	parsed.id = crypto.randomUUID();
+	// parsed.id = crypto.randomUUID();
 	
 	async function decode(b64: string | null) {
 		if (!b64) return null;
