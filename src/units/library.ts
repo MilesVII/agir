@@ -183,8 +183,8 @@ async function downloadScenario(card: ScenarioCard) {
 	payload.card.picture = await encoded(card.card.picture);
 	payload.chat.picture = await encoded(card.chat.picture);
 
-	const filename = payload.chat.name || payload.card.title || "scenario";
-	download(JSON.stringify(payload), `${filename}.json`);
+	const filename = [payload.card.title, payload.chat.name].filter(t => t).join(" | ");
+	download(JSON.stringify(payload), `${filename}.aegir.scenario.json`);
 }
 
 async function importScenario(file: File) {
