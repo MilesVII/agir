@@ -10,6 +10,12 @@
 	font-style: italic;
 }
 
+@font-face {
+	font-family: "Ubuntu Sans Mono";
+	src: url("./ubuntu-sans-mono.ttf") format("truetype");
+	font-style: italic;
+}
+
 @media screen and (min-aspect-ratio: 1.2) {
 	:root {
 		--content-width: calc(min(120vh, 50vw) - var(--min-content-pad));
@@ -177,4 +183,9 @@ input {
 
 dl {
 	margin: 0;
+}
+
+code {
+	font-family: "Ubuntu Sans Mono";
+	font-size: 16px;
 }
