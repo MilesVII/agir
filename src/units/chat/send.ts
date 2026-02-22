@@ -1,6 +1,6 @@
 import { getRoute, textareaReconsider } from "@root/utils";
 import { idb } from "@root/persist";
-import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, pushSwipe, reroll, setSwipe } from "./utils";
+import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, reroll, setSwipe, updateSwipeIndex } from "./utils";
 import { makeMessageView } from "./message-view";
 
 export async function sendMessage() {
@@ -40,7 +40,8 @@ export async function sendMessage() {
 		},
 		// on reroll
 		() => { throw Error("haha nope"); },
-		() => deleteMessage(chatId, newUserMessage.id)
+		() => deleteMessage(chatId, newUserMessage.id),
+		(six) => updateSwipeIndex(six, newUserMessage.id, chatId)
 	);
 	const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
 	if (!newModelMessage) {
@@ -57,11 +58,12 @@ export async function sendMessage() {
 			setSwipe(chatId, newModelMessage.id, swipeIx, value);
 		},
 		// reroll
-		() => reroll(chatId, newModelMessage.id, meta.value.scenario.name),
-		() => { throw Error("haha nope"); }
+		() => reroll(chatId, newModelMessage.id),
+		() => { throw Error("haha nope"); },
+		(six) => updateSwipeIndex(six, newUserMessage.id, chatId)
 	);
 	list.append(userMessage, responseMessage);
-	loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
+	loadResponse(payload, newModelMessage.id, meta.value.id);
 
 	textarea.value = "";
 	textareaReconsider(textarea);

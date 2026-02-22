@@ -70,6 +70,14 @@ export async function addMessage(chatId: string, value: string, fromUser: boolea
 	return newMessage;
 }
 
+export async function updateSwipeIndex(six: number, mid: number, chatId: string) {
+	const contents = await idb.get("chatContents", chatId);
+	if (!contents.success) return;
+	const mix = contents.value.messages.findIndex(m => m.id === mid);
+	contents.value.messages[mix].selectedSwipe = six;
+	await idb.set("chatContents", contents.value);
+}
+
 export async function deleteMessage(chatId: string, messageId: number) {
 	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;
 	if (inputModes.tab !== "main") return;
@@ -103,10 +111,10 @@ export async function deleteMessage(chatId: string, messageId: number) {
 	});
 }
 
-export async function reroll(chatId: string, messageId: number, name: string) {
+export async function reroll(chatId: string, messageId: number) {
 	const payload = await prepareRerollPayload(chatId, messageId);
 	if (!payload) return;
-	loadResponse(payload, messageId, chatId, name);
+	loadResponse(payload, messageId, chatId);
 }
 
 export async function preparePayload(contents: ChatMessage[], systemPrompt: string, userMessage: string) {
@@ -137,7 +145,7 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 	if (mix < 0) return null;
 
 	const history = messages.slice(0, mix);
-	
+
 	const settings = loadMiscSettings();
 	const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
 
@@ -150,7 +158,7 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 	return payload;
 }
 
-export async function loadResponse(payload: ChatMessage[], msgId: number, chatId: string, name: string) {
+export async function loadResponse(payload: ChatMessage[], msgId: number, chatId: string) {
 	const engineOptions = Object.entries(readEngines());
 	if (engineOptions.length <= 0) {
 		console.error("no engines!");

@@ -3679,6 +3679,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ]);
     return newMessage;
   }
+  async function updateSwipeIndex(six, mid, chatId) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const mix = contents.value.messages.findIndex((m2) => m2.id === mid);
+    contents.value.messages[mix].selectedSwipe = six;
+    await idb.set("chatContents", contents.value);
+  }
   async function deleteMessage(chatId, messageId) {
     const inputModes = document.querySelector("#chat-controls");
     if (inputModes.tab !== "main") return;
@@ -3705,10 +3712,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       if (mid === messageId - 1) m2.rampike.params.setIsLast(true);
     });
   }
-  async function reroll(chatId, messageId, name) {
+  async function reroll(chatId, messageId) {
     const payload = await prepareRerollPayload(chatId, messageId);
     if (!payload) return;
-    loadResponse(payload, messageId, chatId, name);
+    loadResponse(payload, messageId, chatId);
   }
   async function preparePayload(contents, systemPrompt, userMessage) {
     const settings = loadMiscSettings();
@@ -3742,7 +3749,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ];
     return payload;
   }
-  async function loadResponse(payload, msgId, chatId, name) {
+  async function loadResponse(payload, msgId, chatId) {
     const engineOptions = Object.entries(readEngines());
     if (engineOptions.length <= 0) {
       console.error("no engines!");
@@ -3785,7 +3792,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/chat/message-view.ts
-  function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete) {
+  function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete, onSwipe) {
     function controlButton(caption, hint, cb) {
       return d({
         tagName: "button",
@@ -3836,6 +3843,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
+      onSwipe(msg.selectedSwipe);
     }
     async function setSwipeToLast() {
       msg.selectedSwipe = msg.swipes.length - 1;
@@ -4036,8 +4044,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         (swipeIx, value) => {
           setSwipe(chatId, item.id, swipeIx, value);
         },
-        () => reroll(chatId, item.id, meta.value.scenario.name),
-        () => deleteMessage(chatId, item.id)
+        () => reroll(chatId, item.id),
+        () => deleteMessage(chatId, item.id),
+        (six) => updateSwipeIndex(six, item.id, chatId)
       );
     });
     list.append(...items);
@@ -4077,7 +4086,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       () => {
         throw Error("haha nope");
       },
-      () => deleteMessage(chatId, newUserMessage.id)
+      () => deleteMessage(chatId, newUserMessage.id),
+      (six) => updateSwipeIndex(six, newUserMessage.id, chatId)
     );
     const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
     if (!newModelMessage) {
@@ -4093,13 +4103,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         setSwipe(chatId, newModelMessage.id, swipeIx, value);
       },
       // reroll
-      () => reroll(chatId, newModelMessage.id, meta.value.scenario.name),
+      () => reroll(chatId, newModelMessage.id),
       () => {
         throw Error("haha nope");
-      }
+      },
+      (six) => updateSwipeIndex(six, newUserMessage.id, chatId)
     );
     list.append(userMessage, responseMessage);
-    loadResponse(payload, newModelMessage.id, meta.value.id, meta.value.scenario.name);
+    loadResponse(payload, newModelMessage.id, meta.value.id);
     textarea.value = "";
     textareaReconsider(textarea);
     list.scrollTop = list.scrollHeight;

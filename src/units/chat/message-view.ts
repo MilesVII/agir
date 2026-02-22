@@ -8,7 +8,8 @@ export function makeMessageView(
 	isLast: boolean,
 	onEdit: (swipeIx: number, value: string) => void,
 	onReroll: () => void,
-	onDelete: () => void
+	onDelete: () => void,
+	onSwipe: (six: number) => void
 ) {
 	function controlButton(caption: string, hint: string, cb: () => void) {
 		return mudcrack({
@@ -59,6 +60,7 @@ export function makeMessageView(
 		textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (isLast && msg.swipes.length > 1) ? "flex" : "none";
+		onSwipe(msg.selectedSwipe);
 	}
 	async function setSwipeToLast() {
 		msg.selectedSwipe = msg.swipes.length - 1;

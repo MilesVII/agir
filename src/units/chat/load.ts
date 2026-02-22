@@ -1,5 +1,5 @@
 import { idb } from "@root/persist";
-import { deleteMessage, loadPictures, reroll, setSwipe } from "./utils";
+import { deleteMessage, loadPictures, reroll, setSwipe, updateSwipeIndex } from "./utils";
 import { makeMessageView } from "./message-view";
 import { updateTitle } from "@root/utils";
 
@@ -26,8 +26,9 @@ export async function loadMessages(chatId: string) {
 			(swipeIx, value) => {
 				setSwipe(chatId, item.id, swipeIx, value);
 			},
-			() => reroll(chatId, item.id, meta.value.scenario.name),
-			() => deleteMessage(chatId, item.id)
+			() => reroll(chatId, item.id),
+			() => deleteMessage(chatId, item.id),
+			(six) => updateSwipeIndex(six, item.id, chatId)
 		);
 	});
 
