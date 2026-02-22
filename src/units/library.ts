@@ -229,7 +229,7 @@ async function openStartModal(scenario: string, descriptionMD: string) {
 	setSelectOptions(
 		picker,
 		personas.value.map(({id, name}) => [id, name]),
-		true
+		personas.value[0]?.id
 	);
 
 	openerRelay = {

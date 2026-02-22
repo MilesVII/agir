@@ -2703,7 +2703,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function placeholder(url) {
     return url || PLACHEOLDER;
   }
-  function setSelectOptions(target, options, pickFirst = false) {
+  function setSelectOptions(target, options, pick = null) {
     const optionsList = options.map(([id, caption]) => d({
       tagName: "option",
       attributes: {
@@ -2713,8 +2713,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }));
     target.innerHTML = "";
     target.append(...optionsList);
-    if (pickFirst && options.length > 0)
-      target.value = options[0][0];
+    if (pick && options.length > 0) {
+      target.value = pick;
+    }
   }
   function setSelectMenu(target, displayCaption, options) {
     const option = (id, caption) => d({
@@ -3181,6 +3182,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const activeEngines = readActiveEngines();
     for (const e in engines.value) {
       engines.value[e].isActive = e === activeEngines.main;
+      engines.value[e].remberActive = e === activeEngines.rember;
     }
     return engines.value;
   }
@@ -3470,12 +3472,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function initMisc() {
     const tailInput = document.querySelector("#settings-options-tail");
     const miscSave = document.querySelector("#settings-misc-save");
-    const rember = {
-      stride: document.querySelector("#settings-rember-stride"),
-      prompt: document.querySelector("#settings-rember-prompt"),
-      template: document.querySelector("#settings-rember-template"),
-      save: document.querySelector("#settings-rember-save")
-    };
     listen((u3) => {
       if (u3.storage !== "local") return;
       if (u3.key !== "settings") return;
@@ -3488,49 +3484,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       settings.tail = isNaN(tail) ? 0 : tail;
       local.set("settings", JSON.stringify(settings));
     });
-    rember.save.addEventListener("click", () => {
-      const settings = loadMiscSettings();
-      const stride = parseInt(rember.stride.value, 10);
-      settings.remberStride = isNaN(stride) ? 0 : stride;
-      settings.remberPrompt = rember.prompt.value.trim();
-      settings.remberTemplate = rember.template.value.trim();
-      local.set("settings", JSON.stringify(settings));
-    });
     function updateSettings() {
       const settings = loadMiscSettings();
       tailInput.value = String(settings.tail);
-      rember.stride.value = String(settings.remberStride);
-      rember.prompt.value = settings.remberPrompt, rember.template.value = settings.remberTemplate;
     }
   }
-  var remberDefaults = {
-    prompt: [
-      "you are tasked with providing summary of a text roleplay session.",
-      "update provided state to reflect any changes to the state of the scenario.",
-      "keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
-      "note plans and intentions of the character.",
-      "format trivia as a list of facts.",
-      "stay concise and remove info irrelevant to possible future scenarios.",
-      "do not provide any commentary, only describe the new state, do not change the format (the headings), but you may add sub-headings if needed"
-    ].join("\n"),
-    stateTemplate: [
-      "# state",
-      "## current location",
-      "",
-      "## locations and objects",
-      "",
-      "## trivia",
-      "",
-      "## plans and intentions",
-      ""
-    ].join("\n")
-  };
   var DEFAULT_SETTINGS = {
-    tail: 70,
-    remberStride: 0,
-    remberPrompt: remberDefaults.prompt,
-    remberTemplate: remberDefaults.stateTemplate,
-    remberEngine: null
+    tail: 70
   };
   function loadMiscSettings() {
     const raw = local.get("settings");
@@ -3628,22 +3588,22 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/chat/utils.ts
-  async function setSwipe(chatId, messageId, swipeIx, value) {
-    const contents = await idb.get("chatContents", chatId);
+  async function setSwipe(chatId2, messageId2, swipeIx, value) {
+    const contents = await idb.get("chatContents", chatId2);
     if (!contents.success) return;
-    const tix = contents.value.messages.findIndex((m2) => m2.id === messageId);
+    const tix = contents.value.messages.findIndex((m2) => m2.id === messageId2);
     if (tix < 0) return;
     contents.value.messages[tix].swipes[swipeIx] = value;
     await idb.set("chatContents", contents.value);
   }
-  async function pushSwipe(chatId, messageId, value) {
+  async function pushSwipe(chatId2, messageId2, value) {
     const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
+      idb.get("chatContents", chatId2),
+      idb.get("chats", chatId2)
     ]);
     if (!contents.success || !chat.success) return null;
     const messages = contents.value.messages;
-    const mix = messages.findIndex((m2) => m2.id === messageId);
+    const mix = messages.findIndex((m2) => m2.id === messageId2);
     if (mix < 0) return;
     messages[mix].swipes = messages[mix].swipes.filter((m2) => m2.trim());
     messages[mix].swipes.push(value);
@@ -3655,10 +3615,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ]);
     return messages[mix];
   }
-  async function addMessage(chatId, value, fromUser, name) {
+  async function addMessage(chatId2, value, fromUser, name) {
     const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
+      idb.get("chatContents", chatId2),
+      idb.get("chats", chatId2)
     ]);
     if (!contents.success || !chat.success) return null;
     const messages = contents.value.messages;
@@ -3679,24 +3639,24 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ]);
     return newMessage;
   }
-  async function updateSwipeIndex(six, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
+  async function updateSwipeIndex(six, mid, chatId2) {
+    const contents = await idb.get("chatContents", chatId2);
     if (!contents.success) return;
     const mix = contents.value.messages.findIndex((m2) => m2.id === mid);
     contents.value.messages[mix].selectedSwipe = six;
     await idb.set("chatContents", contents.value);
   }
-  async function deleteMessage(chatId, messageId) {
+  async function deleteMessage(chatId2, messageId2) {
     const inputModes = document.querySelector("#chat-controls");
     if (inputModes.tab !== "main") return;
     if (!confirm("all the following messages will be deleted too")) return;
     const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
+      idb.get("chatContents", chatId2),
+      idb.get("chats", chatId2)
     ]);
     if (!contents.success || !chat.success) return;
     const messages = contents.value.messages;
-    const mix = messages.findIndex((m2) => m2.id === messageId);
+    const mix = messages.findIndex((m2) => m2.id === messageId2);
     if (mix < 0) return;
     contents.value.messages.splice(mix);
     chat.value.lastUpdate = Date.now();
@@ -3708,14 +3668,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const messageViews = document.querySelectorAll(".message[data-mid]");
     messageViews.forEach((m2) => {
       const mid = parseInt(m2.dataset.mid, 10);
-      if (mid >= messageId) m2.remove();
-      if (mid === messageId - 1) m2.rampike.params.setIsLast(true);
+      if (mid >= messageId2) m2.remove();
+      if (mid === messageId2 - 1) m2.rampike.params.setIsLast(true);
     });
   }
-  async function reroll(chatId, messageId) {
-    const payload = await prepareRerollPayload(chatId, messageId);
+  async function reroll(chatId2, messageId2) {
+    const payload = await prepareRerollPayload(chatId2, messageId2);
     if (!payload) return;
-    loadResponse(payload, messageId, chatId);
+    loadResponse(payload, messageId2, chatId2);
   }
   async function preparePayload(contents, systemPrompt, userMessage) {
     const settings = loadMiscSettings();
@@ -3730,14 +3690,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     payload.push(user);
     return payload;
   }
-  async function prepareRerollPayload(chatId, messageId) {
+  async function prepareRerollPayload(chatId2, messageId2) {
     const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
+      idb.get("chatContents", chatId2),
+      idb.get("chats", chatId2)
     ]);
     if (!contents.success || !chat.success) return null;
     const messages = contents.value.messages;
-    const mix = messages.findIndex((m2) => m2.id === messageId);
+    const mix = messages.findIndex((m2) => m2.id === messageId2);
     if (mix < 0) return null;
     const history = messages.slice(0, mix);
     const settings = loadMiscSettings();
@@ -3749,7 +3709,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     ];
     return payload;
   }
-  async function loadResponse(payload, msgId, chatId) {
+  async function loadResponse(payload, msgId, chatId2) {
     const engineOptions = Object.entries(readEngines());
     if (engineOptions.length <= 0) {
       console.error("no engines!");
@@ -3767,7 +3727,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const responseStreamingUpdater = responseMessageControls.startStreaming();
     const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
     if (streamingResult.success) {
-      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
+      const updatedMessage = await pushSwipe(chatId2, msgId, streamingResult.value);
       if (!updatedMessage) {
         console.error("failed to save response message");
         return;
@@ -3783,12 +3743,37 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       chat.scenario.picture && getBlobLink(chat.scenario.picture)
     ]);
   }
-  function getMessageViewByID(messageId) {
+  function getMessageViewByID(messageId2) {
     const list = document.querySelector("#play-messages");
-    return list.querySelector(`.message[data-mid="${messageId}"]`);
+    return list.querySelector(`.message[data-mid="${messageId2}"]`);
   }
   function dullMessage(from, text2) {
     return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
+  }
+  async function getCurrentChat(chat = true, contents = true) {
+    const [page, chatId2] = getRoute();
+    if (page !== "play") return null;
+    if (chat && contents) {
+      const [messages, chat2] = await Promise.all([
+        idb.get("chatContents", chatId2),
+        idb.get("chats", chatId2)
+      ]);
+      if (!messages.success || !chat2.success) return null;
+      return { messages: messages.value, chat: chat2.value };
+    } else if (chat) {
+      const chat2 = await idb.get("chats", chatId2);
+      if (chat2.success)
+        return { chat: chat2.value };
+      else
+        return null;
+    } else if (contents) {
+      const messages = await idb.get("chatContents", chatId2);
+      if (messages.success)
+        return { messages: messages.value };
+      else
+        return null;
+    }
+    return null;
   }
 
   // src/units/chat/message-view.ts
@@ -4024,12 +4009,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/chat/load.ts
-  async function loadMessages(chatId) {
+  async function loadMessages(chatId2) {
     const list = document.querySelector("#play-messages");
     list.innerHTML = "";
     const [contents, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
+      idb.get("chatContents", chatId2),
+      idb.get("chats", chatId2)
     ]);
     if (!contents.success || !meta.success) return;
     updateTitle(meta.value.scenario.name);
@@ -4042,11 +4027,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         [userPic, modelPic],
         ix === messages.length - 1,
         (swipeIx, value) => {
-          setSwipe(chatId, item.id, swipeIx, value);
+          setSwipe(chatId2, item.id, swipeIx, value);
         },
-        () => reroll(chatId, item.id),
-        () => deleteMessage(chatId, item.id),
-        (six) => updateSwipeIndex(six, item.id, chatId)
+        () => reroll(chatId2, item.id),
+        () => deleteMessage(chatId2, item.id),
+        (six) => updateSwipeIndex(six, item.id, chatId2)
       );
     });
     list.append(...items);
@@ -4059,11 +4044,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const textarea = document.querySelector("#chat-textarea");
     const message = textarea.value?.trim();
     if (!message) return;
-    const [, chatId] = getRoute();
-    if (!chatId) return;
+    const [, chatId2] = getRoute();
+    if (!chatId2) return;
     const [messages, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
+      idb.get("chatContents", chatId2),
+      idb.get("chats", chatId2)
     ]);
     if (!messages.success || !meta.success) return;
     const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
@@ -4080,14 +4065,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       false,
       // on edit
       (swipeIx, value) => {
-        setSwipe(chatId, newUserMessage.id, swipeIx, value);
+        setSwipe(chatId2, newUserMessage.id, swipeIx, value);
       },
       // on reroll
       () => {
         throw Error("haha nope");
       },
-      () => deleteMessage(chatId, newUserMessage.id),
-      (six) => updateSwipeIndex(six, newUserMessage.id, chatId)
+      () => deleteMessage(chatId2, newUserMessage.id),
+      (six) => updateSwipeIndex(six, newUserMessage.id, chatId2)
     );
     const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
     if (!newModelMessage) {
@@ -4100,14 +4085,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       true,
       // on edit
       (swipeIx, value) => {
-        setSwipe(chatId, newModelMessage.id, swipeIx, value);
+        setSwipe(chatId2, newModelMessage.id, swipeIx, value);
       },
       // reroll
-      () => reroll(chatId, newModelMessage.id),
+      () => reroll(chatId2, newModelMessage.id),
       () => {
         throw Error("haha nope");
       },
-      (six) => updateSwipeIndex(six, newUserMessage.id, chatId)
+      (six) => updateSwipeIndex(six, newUserMessage.id, chatId2)
     );
     list.append(userMessage, responseMessage);
     loadResponse(payload, newModelMessage.id, meta.value.id);
@@ -4133,9 +4118,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     resetButton.addEventListener("click", updateDefinition);
     updateDefinition();
     async function getChat() {
-      const [page, chatId] = getRoute();
-      if (page !== "play" || !chatId) return null;
-      const chat = await idb.get("chats", chatId);
+      const [page, chatId2] = getRoute();
+      if (page !== "play" || !chatId2) return null;
+      const chat = await idb.get("chats", chatId2);
       if (!chat.success) return null;
       return chat.value;
     }
@@ -4165,6 +4150,150 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     };
   }
 
+  // src/units/chat/rember.ts
+  var remberDefaults = {
+    prompt: [
+      "you are tasked with providing summary of a text roleplay session.",
+      "update provided state to reflect any changes to the state of the scenario.",
+      "keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
+      "note plans and intentions of the character.",
+      "format trivia as a list of facts.",
+      "stay concise and remove info irrelevant to possible future scenarios.",
+      "do not provide any commentary, only describe the new state, do not change the format (the headings), but you may add sub-headings if needed"
+    ].join("\n"),
+    stateTemplate: [
+      "# state",
+      "## current location",
+      "",
+      "## locations and objects",
+      "",
+      "## trivia",
+      "",
+      "## plans and intentions",
+      ""
+    ].join("\n")
+  };
+  function initRember() {
+    const modal = document.querySelector("#play-rember");
+    const enginePicker = document.querySelector("#play-rember-engine-picker");
+    const stride = document.querySelector("#play-rember-stride");
+    const prompt = document.querySelector("#play-rember-prompt");
+    const template = document.querySelector("#play-rember-template");
+    const buttons = {
+      one: document.querySelector("#play-rember-add-one"),
+      all: document.querySelector("#play-rember-add-all"),
+      stop: document.querySelector("#play-rember-stop"),
+      save: document.querySelector("#play-rember-save")
+    };
+    const list = document.querySelector("#play-rember-messages");
+    buttons.one.addEventListener("click", runOne);
+    buttons.all.addEventListener("click", runAll);
+    buttons.save.addEventListener("click", saveSettings);
+    buttons.stop.addEventListener("click", forgor);
+    enginePicker.addEventListener("input", enginePickerChanged);
+    listen((u3) => {
+      if (u3.storage !== "local") return;
+      if (u3.key !== "activeEngine") return;
+      updateEnginePicker();
+    });
+    updateEnginePicker();
+    function updateEnginePicker() {
+      const engineMap = readEngines();
+      const engineOptions = Object.entries(engineMap);
+      const activeId = engineOptions.find(([, e]) => e.remberActive)?.[0];
+      setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId);
+    }
+    async function onOpen() {
+      const state = await getCurrentChat();
+      if (!state) return;
+      prompt.value = state.chat.rember?.prompt ?? remberDefaults.prompt;
+      template.value = state.chat.rember?.template ?? remberDefaults.stateTemplate;
+      list.innerHTML = "";
+      const remberMessages = state.messages.messages.filter((m2) => m2.rember);
+      list.append(...remberMessages.map((m2) => remberMessageView(m2).container));
+    }
+    async function runOne() {
+      await runRember(chatId);
+    }
+    async function runAll() {
+      await runRember(chatId);
+    }
+    function forgor() {
+    }
+    async function saveSettings() {
+      const state = await getCurrentChat(true, false);
+      if (!state) return;
+      state.chat.rember.prompt = prompt.value;
+      state.chat.rember.template = template.value;
+      await idb.set("chats", state.chat);
+    }
+    function enginePickerChanged() {
+      const actives = readActiveEngines();
+      actives.rember = enginePicker.value;
+      local.set("activeEngine", JSON.stringify(actives));
+    }
+    return {
+      open: () => {
+        onOpen();
+        modal.open();
+      }
+    };
+  }
+  async function runRember(onChunk, stride, prompt, state) {
+    const eh = await getCurrentChat();
+    if (!eh) return;
+    const { chat, messages } = eh;
+    const lix = messages.messages.findLastIndex((m2) => m2.rember);
+    const mix = messages.findIndex((m2) => m2.id === messageId);
+    if (mix < 0) return;
+    const payload = prepareMessages(
+      messages.slice(0, mix + 1),
+      {
+        user: chat.userPersona.name,
+        model: chat.scenario.name,
+        system: ""
+      },
+      prompt,
+      state
+    );
+    const activeEngines = readActiveEngines();
+    const engines = readEngines();
+    if (!activeEngines.rember || !engines[activeEngines.rember]) return;
+    const response = await runEngine(payload, engines[activeEngines.rember], onChunk);
+    if (!response.success) return;
+    const thinkingParts = response.value.split("</think>");
+    return (thinkingParts[1] ?? thinkingParts[0]).trim();
+  }
+  function prepareMessages(parts, names, prompt, state) {
+    const chat = parts.map((m2) => `## ${names[m2.from]}:
+${m2.swipes[m2.selectedSwipe]}
+
+`).join("\n");
+    const payload = [
+      state,
+      "# chat history",
+      chat
+    ].join("\n");
+    return [
+      dullMessage("system", prompt),
+      dullMessage("user", payload)
+    ];
+  }
+  function remberMessageView(message) {
+    const container = d({
+      tagName: "div",
+      className: "lineout",
+      contents: message.rember
+    });
+    function appendContent(value) {
+      container.textContent += value;
+    }
+    return {
+      container,
+      appendContent
+    };
+  }
+
   // src/units/chat.ts
   var chatUnit = {
     init: () => {
@@ -4189,11 +4318,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       update();
       updateEngines();
       const { open: openChatEditor } = initChatEditor();
+      const { open: openRember } = initRember();
       setSelectMenu(menuButton, "menu", [
         ["Scenario card", openScenarioIfExists],
         ["Edit definition", openChatEditor],
-        ["rEmber", () => {
-        }],
+        ["rEmber", openRember],
         ["Export", exportChat]
       ]);
     }
@@ -4214,7 +4343,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const engineMap = readEngines();
     const engineOptions = Object.entries(engineMap);
     const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
-    setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), !activeId);
+    setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId || engineOptions[0]?.[0]);
     if (engineOptions.length > 0) {
       if (activeId) {
         enginePicker.value = activeId;
@@ -4238,20 +4367,20 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     local.set("activeEngine", JSON.stringify(old));
   }
   async function openScenarioIfExists() {
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const chat = await idb.get("chats", chatId);
+    const [, chatId2] = getRoute();
+    if (!chatId2) return;
+    const chat = await idb.get("chats", chatId2);
     if (!chat.success) return;
     const cardId = chat.value.scenario.id;
     if (await idb.get("scenarios", cardId))
       window.open(`#scenario-editor.${cardId}`);
   }
   async function exportChat() {
-    const [, chatId] = getRoute();
-    if (!chatId) return;
+    const [, chatId2] = getRoute();
+    if (!chatId2) return;
     const [chat, contents] = await Promise.all([
-      idb.get("chats", chatId),
-      idb.get("chatContents", chatId)
+      idb.get("chats", chatId2),
+      idb.get("chatContents", chatId2)
     ]);
     if (!chat.success || !contents.success) return;
     const mediaIDs = [
@@ -4569,17 +4698,17 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       });
     }
     const preparedScenario = prepareScenario(scenario.value, persona.value);
-    const chatId = crypto.randomUUID();
+    const chatId2 = crypto.randomUUID();
     await Promise.all([
       idb.set("chats", {
-        id: chatId,
+        id: chatId2,
         lastUpdate: Date.now(),
         messageCount: messages?.length ?? 1,
         scenario: preparedScenario,
         userPersona: persona.value
       }),
       idb.set("chatContents", {
-        id: chatId,
+        id: chatId2,
         messages: messages ?? [{
           id: 0,
           from: "model",
@@ -4590,7 +4719,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         }]
       })
     ]);
-    window.location.hash = `play.${chatId}`;
+    window.location.hash = `play.${chatId2}`;
   }
   function macros(template, pronouns, charName, userName, persona) {
     for (const [from, toKey] of Object.entries(PRON_MACROS)) {
@@ -4832,7 +4961,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     setSelectOptions(
       picker,
       personas.value.map(({ id, name }) => [id, name]),
-      true
+      personas.value[0]?.id
     );
     openerRelay = {
       scenarioId: scenario

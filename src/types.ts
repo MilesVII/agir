@@ -39,7 +39,7 @@ export type Engine = {
 	params: Record<string, any>
 };
 export type EngineMap = Record<string, Engine>;
-export type EngineMapWithActive = Record<string, Engine & { isActive: boolean }>;
+export type EngineMapWithActive = Record<string, Engine & { isActive: boolean, remberActive: boolean }>;
 
 export type ActiveEngines = {
 	main:   string | null,
@@ -61,7 +61,7 @@ export type ScenarioCard = {
 		definition: string,
 		initials: string[]
 	}
-}
+};
 
 export type Chat = {
 	id: string,
@@ -70,7 +70,8 @@ export type Chat = {
 		id: string,
 	} & ScenarioCard["chat"],
 	lastUpdate: number,
-	messageCount: number
+	messageCount: number,
+	rember: RemberSettings
 };
 export type ChatMessage = {
 	id: number,
@@ -80,6 +81,13 @@ export type ChatMessage = {
 	selectedSwipe: number,
 	rember: string | null
 };
+
+export type RemberSettings = {
+	stride: number,
+	prompt: string,
+	template: string
+};
+
 export type ChatContents = {
 	id: string,
 	messages: ChatMessage[],

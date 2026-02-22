@@ -154,7 +154,8 @@ export function readEngines(): EngineMapWithActive {
 
 	const activeEngines = readActiveEngines();
 	for (const e in engines.value) {
-		engines.value[e].isActive = e === activeEngines.main;
+		engines.value[e].isActive     = e === activeEngines.main;
+		engines.value[e].remberActive = e === activeEngines.rember;
 	}
 
 	return engines.value;

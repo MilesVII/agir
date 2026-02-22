@@ -8,6 +8,7 @@ import { sendMessage } from "./chat/send";
 import { abortController } from "@root/run";
 import { ActiveEngines } from "@root/types";
 import { initChatEditor } from "./chat/editor";
+import { initRember } from "./chat/rember";
 
 export const chatUnit: RampikeUnit = {
 	init: () => {
@@ -34,10 +35,11 @@ export const chatUnit: RampikeUnit = {
 		updateEngines();
 
 		const { open: openChatEditor } = initChatEditor();
+		const { open: openRember } = initRember();
 		setSelectMenu(menuButton, "menu", [
 			["Scenario card",   openScenarioIfExists],
 			["Edit definition", openChatEditor],
-			["rEmber", () => {}],
+			["rEmber",          openRember],
 			["Export",          exportChat]
 		]);
 	}
@@ -63,7 +65,7 @@ function updateEngines() {
 
 	const engineOptions = Object.entries(engineMap);
 	const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
-	setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), !activeId);
+	setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId || engineOptions[0]?.[0]);
 
 	if (engineOptions.length > 0) {
 		if (activeId) {
