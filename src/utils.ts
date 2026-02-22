@@ -72,7 +72,7 @@ export function placeholder(url: string | null) {
 	return url || PLACHEOLDER;
 }
 
-export function setSelectOptions(target: HTMLSelectElement, options: [id: string, caption: string][], pickFirst = false) {
+export function setSelectOptions(target: HTMLSelectElement, options: [id: string, caption: string][], pick: string | null = null) {
 	const optionsList = options.map(([id, caption]) => mudcrack({
 		tagName: "option",
 		attributes: {
@@ -83,8 +83,9 @@ export function setSelectOptions(target: HTMLSelectElement, options: [id: string
 
 	target.innerHTML = "";
 	target.append(...optionsList);
-	if (pickFirst && options.length > 0)
-		target.value = options[0][0];
+	if (pick && options.length > 0) {
+		target.value = pick;
+	}
 }
 export function setSelectMenu(target: HTMLSelectElement, displayCaption: string, options: [caption: string, cb: () => void][]) {
 	const option = (id: string, caption: string) => mudcrack({
@@ -136,7 +137,7 @@ export const b64Encoder = {
 }
 
 export function download(payload: string, filename: string) {
-	const blob = new Blob([payload], { type: "text/plain" });
+	const blob = new Blob([payload], { type: "application/json" });
 	const url = URL.createObjectURL(blob);
 	mudcrack({
 		tagName: "a",

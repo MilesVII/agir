@@ -137,33 +137,6 @@
 					</details>
 					<details>
 						<summary class="settings-label">
-							rEmber
-						</summary>
-						<div class="list">
-							<div class="hint">Stride is a number of message pairs (model + user) that will be summarized. 0 to disable automatic runs</div>
-							<ram-labeled
-								legend="Stride"
-								id="settings-rember-stride"
-								class="strip wide"
-								placeholder="2"
-							></ram-labeled>
-							<ram-labeled
-								legend="Prompt"
-								id="settings-rember-prompt"
-								class="strip wide"
-								multiline
-							></ram-labeled>
-							<ram-labeled
-								legend="State template"
-								id="settings-rember-template"
-								class="strip wide"
-								multiline
-							></ram-labeled>
-							<button id="settings-rember-save" class="lineout">Save</button>
-						</div>
-					</details>
-					<details>
-						<summary class="settings-label">
 							Backup & Sync
 						</summary>
 						<div class="row-wrap">
@@ -178,7 +151,7 @@
 							Other options
 						</summary>
 						<div class="list">
-							<div class="hint">Max count of messages to send to API. 0 to send all</div>
+							<div class="hint">Max count of messages to send to API. 0 to send all (not recommended due to potential context overflow)</div>
 							<ram-labeled
 								legend="Chat tail length"
 								id="settings-options-tail"
@@ -371,6 +344,40 @@
 				multiline
 				rows="1"
 			></ram-labeled>
+		</ram-modal>
+		<ram-modal id="play-rember">
+			<div class="chat-engine-control row-compact">
+				<div>Engine:</div>
+				<select id="play-rember-engine-picker" class="lineout"></select>
+			</div>
+			<div class="list">
+				<div class="hint">Stride is a number of message pairs (model + user) that will be summarized for each step</div>
+				<ram-labeled
+					legend="Stride"
+					id="play-rember-stride"
+					class="strip wide"
+					placeholder="10"
+				></ram-labeled>
+			</div>
+			<ram-labeled
+				legend="Prompt"
+				id="play-rember-prompt"
+				class="strip wide"
+				multiline
+			></ram-labeled>
+			<ram-labeled
+				legend="State template"
+				id="play-rember-template"
+				class="strip wide"
+				multiline
+			></ram-labeled>
+			<div class="row">
+				<button id="play-rember-add-one" class="lineout fit">Add one</button>
+				<button id="play-rember-add-all" class="lineout fit">Add all</button>
+				<button id="play-rember-stop" class="lineout fit">Stop</button>
+				<button id="play-rember-save" class="lineout fit">Save settings</button>
+			</div>
+			<div id="play-rember-messages" class="list"></div>
 		</ram-modal>
 	</body>
 
