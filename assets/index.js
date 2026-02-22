@@ -2757,7 +2757,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
   };
   function download(payload, filename) {
-    const blob = new Blob([payload], { type: "text/plain" });
+    const blob = new Blob([payload], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     d({
       tagName: "a",

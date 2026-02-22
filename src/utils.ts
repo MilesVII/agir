@@ -136,7 +136,7 @@ export const b64Encoder = {
 }
 
 export function download(payload: string, filename: string) {
-	const blob = new Blob([payload], { type: "text/plain" });
+	const blob = new Blob([payload], { type: "application/json" });
 	const url = URL.createObjectURL(blob);
 	mudcrack({
 		tagName: "a",
