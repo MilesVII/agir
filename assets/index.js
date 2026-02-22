@@ -3024,155 +3024,151 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/navigation.ts
-  var navigationUnit = {
-    init: () => {
-      const tabs = document.querySelector("ram-tabs#tabs-main");
-      function nav(to) {
-        window.location.hash = to;
-      }
-      function readHash() {
-        tabs.tab = getRoute()[0] || "chats";
-      }
-      window.addEventListener("hashchange", readHash);
-      readHash();
-      const buttons = document.querySelectorAll("button[data-to]");
-      buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
+  function navigationUnit() {
+    const tabs = document.querySelector("ram-tabs#tabs-main");
+    function nav(to) {
+      window.location.hash = to;
     }
-  };
+    function readHash() {
+      tabs.tab = getRoute()[0] || "chats";
+    }
+    window.addEventListener("hashchange", readHash);
+    readHash();
+    const buttons = document.querySelectorAll("button[data-to]");
+    buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
+  }
 
   // src/units/settings/engines.ts
-  var enginesUnit = {
-    init: () => {
-      const inputs = {
-        name: document.querySelector("#settings-engines-name"),
-        url: document.querySelector("#settings-engines-url"),
-        key: document.querySelector("#settings-engines-key"),
-        model: document.querySelector("#settings-engines-model"),
-        temp: document.querySelector("#settings-engines-temp"),
-        max: document.querySelector("#settings-engines-max"),
-        params: document.querySelector("#settings-engines-additional")
-      };
-      const defaults = {
-        temp: 0.9,
-        max: 720
-      };
-      const submitButton = document.querySelector("#settings-engines-submit");
-      const list = document.querySelector("#settings-engines-list");
-      const divider = document.querySelector("#settings-engines-divider");
-      let editing = null;
-      submitButton.addEventListener("click", submit);
-      listen((update3) => {
-        if (update3.storage !== "local") return;
-        if (update3.key !== "engines") return;
-        updateList();
-      });
+  function enginesUnit() {
+    const inputs = {
+      name: document.querySelector("#settings-engines-name"),
+      url: document.querySelector("#settings-engines-url"),
+      key: document.querySelector("#settings-engines-key"),
+      model: document.querySelector("#settings-engines-model"),
+      temp: document.querySelector("#settings-engines-temp"),
+      max: document.querySelector("#settings-engines-max"),
+      params: document.querySelector("#settings-engines-additional")
+    };
+    const defaults = {
+      temp: 0.9,
+      max: 720
+    };
+    const submitButton = document.querySelector("#settings-engines-submit");
+    const list = document.querySelector("#settings-engines-list");
+    const divider = document.querySelector("#settings-engines-divider");
+    let editing = null;
+    submitButton.addEventListener("click", submit);
+    listen((update3) => {
+      if (update3.storage !== "local") return;
+      if (update3.key !== "engines") return;
       updateList();
-      function submit() {
-        const id = editing ?? crypto.randomUUID();
-        function parseNumber(key) {
-          const f = parseFloat(inputs[key].value);
-          if (isNaN(f) || f < 0) return defaults[key];
-          return f;
-        }
-        function parseParams(raw) {
-          const result = nothrow(() => JSON.parse(raw));
-          const value = result.success ? result.value : {};
-          if (typeof value !== "object") return {};
-          return value;
-        }
-        const e = {
-          name: inputs.name.value,
-          url: inputs.url.value,
-          key: inputs.key.value,
-          model: inputs.model.value,
-          temp: parseNumber("temp"),
-          max: parseNumber("max"),
-          params: parseParams(inputs.params.value)
-        };
-        const missing = ["name", "url", "model"].some((k2) => !e[k2]);
-        if (missing) return;
-        const eMap = readEngines();
-        eMap[id] = e;
-        saveEngines(eMap);
-        editing = null;
-        inputs.name.value = "";
-        inputs.url.value = "";
-        inputs.key.value = "";
-        inputs.model.value = "";
-        inputs.temp.value = String(defaults.temp);
-        inputs.max.value = String(defaults.max);
-        inputs.params.value = "";
+    });
+    updateList();
+    function submit() {
+      const id = editing ?? crypto.randomUUID();
+      function parseNumber(key) {
+        const f = parseFloat(inputs[key].value);
+        if (isNaN(f) || f < 0) return defaults[key];
+        return f;
       }
-      function edit(id, e) {
-        function stringifyParams() {
-          if (!e.params) return "";
-          if (Object.keys(e.params).length === 0) return "";
-          return JSON.stringify(e.params);
-        }
-        editing = id;
-        inputs.name.value = e.name;
-        inputs.url.value = e.url;
-        inputs.key.value = e.key;
-        inputs.model.value = e.model;
-        inputs.temp.value = String(e.temp);
-        inputs.max.value = String(e.max);
-        inputs.params.value = stringifyParams();
-        divider.scrollIntoView({ behavior: "smooth" });
+      function parseParams(raw) {
+        const result = nothrow(() => JSON.parse(raw));
+        const value = result.success ? result.value : {};
+        if (typeof value !== "object") return {};
+        return value;
       }
-      function updateList() {
-        list.innerHTML = "";
-        const enginesMap = readEngines();
-        const engines = Object.entries(enginesMap);
-        const items = engines.map(
-          ([id, e]) => d({
-            className: "lineout row settings-engine-item",
-            contents: [
-              d({
-                contents: e.name
-              }),
-              d({
-                className: "row-compact",
-                contents: [
-                  d({
-                    tagName: "button",
-                    className: "lineout",
-                    events: {
-                      click: (ev) => {
-                        ev.stopPropagation();
-                        copyEngine(id);
-                      }
-                    },
-                    contents: "copy"
-                  }),
-                  d({
-                    tagName: "button",
-                    className: "lineout",
-                    events: {
-                      click: (ev) => {
-                        ev.stopPropagation();
-                        deleteEngine(id);
-                      }
-                    },
-                    contents: "delete"
-                  })
-                ]
-              })
-            ],
-            events: {
-              click: () => edit(id, e)
-            }
-          })
-        );
-        if (items.length > 0)
-          list.append(...items);
-        else
-          list.append(d({
-            className: "placeholder",
-            contents: "No engines found"
-          }));
-      }
+      const e = {
+        name: inputs.name.value,
+        url: inputs.url.value,
+        key: inputs.key.value,
+        model: inputs.model.value,
+        temp: parseNumber("temp"),
+        max: parseNumber("max"),
+        params: parseParams(inputs.params.value)
+      };
+      const missing = ["name", "url", "model"].some((k2) => !e[k2]);
+      if (missing) return;
+      const eMap = readEngines();
+      eMap[id] = e;
+      saveEngines(eMap);
+      editing = null;
+      inputs.name.value = "";
+      inputs.url.value = "";
+      inputs.key.value = "";
+      inputs.model.value = "";
+      inputs.temp.value = String(defaults.temp);
+      inputs.max.value = String(defaults.max);
+      inputs.params.value = "";
     }
-  };
+    function edit(id, e) {
+      function stringifyParams() {
+        if (!e.params) return "";
+        if (Object.keys(e.params).length === 0) return "";
+        return JSON.stringify(e.params);
+      }
+      editing = id;
+      inputs.name.value = e.name;
+      inputs.url.value = e.url;
+      inputs.key.value = e.key;
+      inputs.model.value = e.model;
+      inputs.temp.value = String(e.temp);
+      inputs.max.value = String(e.max);
+      inputs.params.value = stringifyParams();
+      divider.scrollIntoView({ behavior: "smooth" });
+    }
+    function updateList() {
+      list.innerHTML = "";
+      const enginesMap = readEngines();
+      const engines = Object.entries(enginesMap);
+      const items = engines.map(
+        ([id, e]) => d({
+          className: "lineout row settings-engine-item",
+          contents: [
+            d({
+              contents: e.name
+            }),
+            d({
+              className: "row-compact",
+              contents: [
+                d({
+                  tagName: "button",
+                  className: "lineout",
+                  events: {
+                    click: (ev) => {
+                      ev.stopPropagation();
+                      copyEngine(id);
+                    }
+                  },
+                  contents: "copy"
+                }),
+                d({
+                  tagName: "button",
+                  className: "lineout",
+                  events: {
+                    click: (ev) => {
+                      ev.stopPropagation();
+                      deleteEngine(id);
+                    }
+                  },
+                  contents: "delete"
+                })
+              ]
+            })
+          ],
+          events: {
+            click: () => edit(id, e)
+          }
+        })
+      );
+      if (items.length > 0)
+        list.append(...items);
+      else
+        list.append(d({
+          className: "placeholder",
+          contents: "No engines found"
+        }));
+    }
+  }
   function readEngines() {
     const enginesRaw = local.get("engines");
     if (!enginesRaw) return {};
@@ -3242,131 +3238,129 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     she: PRONOUNS_SHE,
     they: PRONOUNS_THEY
   };
-  var personaUnit = {
-    init: () => {
-      const filePicker = document.querySelector("#settings-persona-picture");
-      const nameInput = document.querySelector("#settings-persona-name");
-      const descInput = document.querySelector("#settings-persona-desc");
-      const pronInput = document.querySelector("#settings-persona-pronouns");
-      const personaList = document.querySelector("#settings-persona-list");
-      const submitButton = document.querySelector("#settings-add-persona");
-      const form = document.querySelector("#settings-persona-form");
-      const divider = document.querySelector("#settings-persona-divider");
-      let editingPersona = null;
-      submitButton.addEventListener("click", async () => {
-        const name = nameInput.value;
-        const desc = descInput.value;
-        if (!name || !desc) return;
-        const file = filePicker.value;
-        const picture = typeof file === "string" ? file || null : await upload(file);
-        await idb.set("personas", {
-          id: editingPersona?.id ?? crypto.randomUUID(),
-          name,
-          description: desc,
-          pronouns: pronMap[pronInput.value],
-          picture,
-          lastUpdate: Date.now()
-        });
-        filePicker.usePlaceholder();
-        nameInput.value = "";
-        descInput.value = "";
-        pronInput.value = "they";
-        editingPersona = null;
+  function personaUnit() {
+    const filePicker = document.querySelector("#settings-persona-picture");
+    const nameInput = document.querySelector("#settings-persona-name");
+    const descInput = document.querySelector("#settings-persona-desc");
+    const pronInput = document.querySelector("#settings-persona-pronouns");
+    const personaList = document.querySelector("#settings-persona-list");
+    const submitButton = document.querySelector("#settings-add-persona");
+    const form = document.querySelector("#settings-persona-form");
+    const divider = document.querySelector("#settings-persona-divider");
+    let editingPersona = null;
+    submitButton.addEventListener("click", async () => {
+      const name = nameInput.value;
+      const desc = descInput.value;
+      if (!name || !desc) return;
+      const file = filePicker.value;
+      const picture = typeof file === "string" ? file || null : await upload(file);
+      await idb.set("personas", {
+        id: editingPersona?.id ?? crypto.randomUUID(),
+        name,
+        description: desc,
+        pronouns: pronMap[pronInput.value],
+        picture,
+        lastUpdate: Date.now()
       });
-      form.addEventListener("paste", (e) => {
-        const file = e.clipboardData?.files[0];
-        if (!file) return;
-        e.preventDefault();
-        filePicker.paste(file);
-      });
-      function removePersona(id) {
-        if (!confirm("confirm deletion")) return;
-        return idb.del("personas", id);
-      }
-      async function startEditing(persona) {
-        editingPersona = persona;
-        nameInput.value = persona.name;
-        descInput.value = persona.description;
-        pronInput.value = persona.pronouns.subjective;
-        if (persona.picture) {
-          filePicker.value = persona.picture;
-        }
-        divider.scrollIntoView({ behavior: "smooth" });
-      }
-      async function updatePersonaList() {
-        const personas = await idb.getAll("personas");
-        if (!personas.success) return;
-        personaList.innerHTML = "";
-        const items = personas.value.reverse().map((p) => d({
-          className: "lineout row settings-persona-item",
-          attributes: {
-            "data-id": p.id
-          },
-          contents: [
-            d({
-              tagName: "img",
-              className: "shadow",
-              attributes: {
-                src: placeholder(null)
-              }
-            }),
-            d({
-              className: "list settings-persona-item-main",
-              contents: [
-                d({
-                  className: "row-compact",
-                  contents: [
-                    d({
-                      tagName: "h6",
-                      contents: p.name
-                    }),
-                    d({
-                      tagName: "button",
-                      className: "lineout",
-                      events: {
-                        click: () => startEditing(p)
-                      },
-                      contents: "edit"
-                    }),
-                    d({
-                      tagName: "button",
-                      className: "lineout",
-                      events: {
-                        click: () => removePersona(p.id)
-                      },
-                      contents: "delete"
-                    })
-                  ]
-                }),
-                d({
-                  contents: p.description
-                })
-              ]
-            })
-          ]
-        }));
-        personas.value.forEach(async ({ picture }, ix) => {
-          if (!picture) return;
-          const src = await getBlobLink(picture);
-          if (src)
-            items[ix].querySelector("img").src = src;
-        });
-        if (items.length > 0)
-          personaList.append(...items);
-        else
-          personaList.append(d({
-            className: "placeholder",
-            contents: "No personas found"
-          }));
-      }
-      listen(async (update3) => {
-        if (update3.storage !== "idb") return;
-        if (update3.store !== "personas") return;
-        updatePersonaList();
-      });
-      updatePersonaList();
+      filePicker.usePlaceholder();
+      nameInput.value = "";
+      descInput.value = "";
+      pronInput.value = "they";
+      editingPersona = null;
+    });
+    form.addEventListener("paste", (e) => {
+      const file = e.clipboardData?.files[0];
+      if (!file) return;
+      e.preventDefault();
+      filePicker.paste(file);
+    });
+    function removePersona(id) {
+      if (!confirm("confirm deletion")) return;
+      return idb.del("personas", id);
     }
-  };
+    async function startEditing(persona) {
+      editingPersona = persona;
+      nameInput.value = persona.name;
+      descInput.value = persona.description;
+      pronInput.value = persona.pronouns.subjective;
+      if (persona.picture) {
+        filePicker.value = persona.picture;
+      }
+      divider.scrollIntoView({ behavior: "smooth" });
+    }
+    async function updatePersonaList() {
+      const personas = await idb.getAll("personas");
+      if (!personas.success) return;
+      personaList.innerHTML = "";
+      const items = personas.value.reverse().map((p) => d({
+        className: "lineout row settings-persona-item",
+        attributes: {
+          "data-id": p.id
+        },
+        contents: [
+          d({
+            tagName: "img",
+            className: "shadow",
+            attributes: {
+              src: placeholder(null)
+            }
+          }),
+          d({
+            className: "list settings-persona-item-main",
+            contents: [
+              d({
+                className: "row-compact",
+                contents: [
+                  d({
+                    tagName: "h6",
+                    contents: p.name
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: () => startEditing(p)
+                    },
+                    contents: "edit"
+                  }),
+                  d({
+                    tagName: "button",
+                    className: "lineout",
+                    events: {
+                      click: () => removePersona(p.id)
+                    },
+                    contents: "delete"
+                  })
+                ]
+              }),
+              d({
+                contents: p.description
+              })
+            ]
+          })
+        ]
+      }));
+      personas.value.forEach(async ({ picture }, ix) => {
+        if (!picture) return;
+        const src = await getBlobLink(picture);
+        if (src)
+          items[ix].querySelector("img").src = src;
+      });
+      if (items.length > 0)
+        personaList.append(...items);
+      else
+        personaList.append(d({
+          className: "placeholder",
+          contents: "No personas found"
+        }));
+    }
+    listen(async (update3) => {
+      if (update3.storage !== "idb") return;
+      if (update3.store !== "personas") return;
+      updatePersonaList();
+    });
+    updatePersonaList();
+  }
 
   // src/units/settings/themes.ts
   var STORAGE_KEY_THEME = "theme";
@@ -3544,15 +3538,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/settings.ts
-  var settingsUnit = {
-    init: () => {
-      initTheme();
-      personaUnit.init(void 0);
-      enginesUnit.init(void 0);
-      initBackup();
-      initMisc();
-    }
-  };
+  function settingsUnit() {
+    initTheme();
+    personaUnit();
+    enginesUnit();
+    initBackup();
+    initMisc();
+  }
 
   // src/run.ts
   var abortController;
@@ -4166,38 +4158,36 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/chat.ts
-  var chatUnit = {
-    init: () => {
-      const scroller = document.querySelector("#play-messages");
-      const textarea = document.querySelector("#chat-textarea");
-      const sendButton = document.querySelector("#chat-send-button");
-      const stopButton = document.querySelector("#chat-stop-button");
-      const enginePicker = document.querySelector("#chat-engine-picker");
-      const menuButton = document.querySelector("#chat-menu-select");
-      makeResizable(textarea, scroller);
-      window.addEventListener("hashchange", update);
-      listen((u3) => {
-        if (u3.storage !== "local") return;
-        if (u3.key !== "engines" && u3.key !== "activeEngine") return;
-        updateEngines();
-      });
-      sendButton.addEventListener("click", sendMessage);
-      stopButton.addEventListener("click", () => abortController.abort());
-      enginePicker.addEventListener("input", () => {
-        pickMainEngine(enginePicker.value);
-      });
-      update();
+  function chatUnit() {
+    const scroller = document.querySelector("#play-messages");
+    const textarea = document.querySelector("#chat-textarea");
+    const sendButton = document.querySelector("#chat-send-button");
+    const stopButton = document.querySelector("#chat-stop-button");
+    const enginePicker = document.querySelector("#chat-engine-picker");
+    const menuButton = document.querySelector("#chat-menu-select");
+    makeResizable(textarea, scroller);
+    window.addEventListener("hashchange", update);
+    listen((u3) => {
+      if (u3.storage !== "local") return;
+      if (u3.key !== "engines" && u3.key !== "activeEngine") return;
       updateEngines();
-      const { open: openChatEditor } = initChatEditor();
-      setSelectMenu(menuButton, "menu", [
-        ["Scenario card", openScenarioIfExists],
-        ["Edit definition", openChatEditor],
-        ["rEmber", () => {
-        }],
-        ["Export", exportChat]
-      ]);
-    }
-  };
+    });
+    sendButton.addEventListener("click", sendMessage);
+    stopButton.addEventListener("click", () => abortController.abort());
+    enginePicker.addEventListener("input", () => {
+      pickMainEngine(enginePicker.value);
+    });
+    update();
+    updateEngines();
+    const { open: openChatEditor } = initChatEditor();
+    setSelectMenu(menuButton, "menu", [
+      ["Scenario card", openScenarioIfExists],
+      ["Edit definition", openChatEditor],
+      ["rEmber", () => {
+      }],
+      ["Export", exportChat]
+    ]);
+  }
   async function update() {
     const route = getRoute();
     if (route[0] !== "play") {
@@ -4278,22 +4268,20 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
 
   // src/units/main.ts
-  var mainUnit = {
-    init: () => {
-      const importButton = document.querySelector("#main-import");
-      importButton.addEventListener("input", () => {
-        const file = importButton.input.files?.[0];
-        if (!file) return;
-        importChat(file);
-      });
-      listen((update3) => {
-        if (update3.storage !== "idb") return;
-        if (update3.store !== "chats") return;
-        updateChatHandles();
-      });
+  function mainUnit() {
+    const importButton = document.querySelector("#main-import");
+    importButton.addEventListener("input", () => {
+      const file = importButton.input.files?.[0];
+      if (!file) return;
+      importChat(file);
+    });
+    listen((update3) => {
+      if (update3.storage !== "idb") return;
+      if (update3.store !== "chats") return;
       updateChatHandles();
-    }
-  };
+    });
+    updateChatHandles();
+  }
   async function updateChatHandles() {
     const list = document.querySelector("#main-chats");
     const handles = await idb.getAll("chats");
@@ -4415,90 +4403,88 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     "# Instructions",
     "You play as {{char}}, the user is {{user}}"
   ].join("\n");
-  var scenarioUnit = {
-    init: () => {
-      const chatIcon = document.querySelector("#scenario-chat-picture");
-      const cardIcon = document.querySelector("#scenario-card-picture");
-      const cardTitle = document.querySelector("#scenario-card-title");
-      const cardDescription = document.querySelector("#scenario-description");
-      const cardTags = document.querySelector("#scenario-tags");
-      const preview = document.querySelector("#scenario-preview");
-      const characterName = document.querySelector("#scenario-character-name");
-      const defintion = document.querySelector("#scenario-defintion");
-      const previewButton = document.querySelector("#scenario-preview-button");
-      const submitButton = document.querySelector("#scenario-submit-button");
-      const firstMessage = document.querySelector("#scenario-messages");
-      makeResizable(cardDescription);
-      makeResizable(defintion);
-      const messagesControl = initFirstMessages();
-      window.addEventListener("hashchange", load);
-      load();
-      async function load() {
-        const path = getRoute();
-        if (path[0] !== "scenario-editor") return;
-        if (path[1]) {
-          const scenario = await idb.get("scenarios", path[1]);
-          if (!scenario.success) return;
-          cardIcon.value = scenario.value.card.picture ?? "";
-          cardTitle.value = scenario.value.card.title;
-          cardDescription.value = scenario.value.card.description;
-          cardTags.value = scenario.value.card.tags.join(", ");
-          chatIcon.value = scenario.value.chat.picture ?? "";
-          characterName.value = scenario.value.chat.name;
-          defintion.value = scenario.value.chat.definition;
-          messagesControl.set(scenario.value.chat.initials);
-        } else {
-          cardIcon.usePlaceholder();
-          cardTitle.value = "";
-          cardDescription.value = "";
-          cardTags.value = "";
-          chatIcon.usePlaceholder();
-          characterName.value = "";
-          defintion.value = definitionTemplate;
-          messagesControl.set([""]);
-        }
-        textareaReconsider(cardDescription);
-        textareaReconsider(defintion);
-        textareaReconsider(cardTags);
-        textareaReconsider(firstMessage);
+  function scenarioUnit() {
+    const chatIcon = document.querySelector("#scenario-chat-picture");
+    const cardIcon = document.querySelector("#scenario-card-picture");
+    const cardTitle = document.querySelector("#scenario-card-title");
+    const cardDescription = document.querySelector("#scenario-description");
+    const cardTags = document.querySelector("#scenario-tags");
+    const preview = document.querySelector("#scenario-preview");
+    const characterName = document.querySelector("#scenario-character-name");
+    const defintion = document.querySelector("#scenario-defintion");
+    const previewButton = document.querySelector("#scenario-preview-button");
+    const submitButton = document.querySelector("#scenario-submit-button");
+    const firstMessage = document.querySelector("#scenario-messages");
+    makeResizable(cardDescription);
+    makeResizable(defintion);
+    const messagesControl = initFirstMessages();
+    window.addEventListener("hashchange", load);
+    load();
+    async function load() {
+      const path = getRoute();
+      if (path[0] !== "scenario-editor") return;
+      if (path[1]) {
+        const scenario = await idb.get("scenarios", path[1]);
+        if (!scenario.success) return;
+        cardIcon.value = scenario.value.card.picture ?? "";
+        cardTitle.value = scenario.value.card.title;
+        cardDescription.value = scenario.value.card.description;
+        cardTags.value = scenario.value.card.tags.join(", ");
+        chatIcon.value = scenario.value.chat.picture ?? "";
+        characterName.value = scenario.value.chat.name;
+        defintion.value = scenario.value.chat.definition;
+        messagesControl.set(scenario.value.chat.initials);
+      } else {
+        cardIcon.usePlaceholder();
+        cardTitle.value = "";
+        cardDescription.value = "";
+        cardTags.value = "";
+        chatIcon.usePlaceholder();
+        characterName.value = "";
+        defintion.value = definitionTemplate;
+        messagesControl.set([""]);
       }
-      submitButton.addEventListener("click", async () => {
-        const firstMessages = messagesControl.get();
-        const required = [
-          cardTitle.value,
-          defintion.value
-        ];
-        if (required.some((v2) => !v2) || firstMessages.length <= 0) return;
-        const cardPicture = await cardIcon.valueHandle();
-        const chatPicture = await chatIcon.valueHandle();
-        const tags = cardTags.value.split(",").map((t) => t.trim()).filter((t) => t);
-        const id = getRoute()[1] ?? crypto.randomUUID();
-        const payload = {
-          id,
-          lastUpdate: Date.now(),
-          card: {
-            picture: cardPicture,
-            title: cardTitle.value,
-            description: cardDescription.value,
-            tags
-          },
-          chat: {
-            picture: chatPicture,
-            name: characterName.value,
-            definition: defintion.value,
-            initials: firstMessages
-          }
-        };
-        await idb.set("scenarios", payload);
-        window.location.hash = "library";
-      });
-      previewButton.addEventListener("click", () => {
-        const content = cardDescription.value;
-        preview.innerHTML = renderMD(content);
-        preview.hidden = false;
-      });
+      textareaReconsider(cardDescription);
+      textareaReconsider(defintion);
+      textareaReconsider(cardTags);
+      textareaReconsider(firstMessage);
     }
-  };
+    submitButton.addEventListener("click", async () => {
+      const firstMessages = messagesControl.get();
+      const required = [
+        cardTitle.value,
+        defintion.value
+      ];
+      if (required.some((v2) => !v2) || firstMessages.length <= 0) return;
+      const cardPicture = await cardIcon.valueHandle();
+      const chatPicture = await chatIcon.valueHandle();
+      const tags = cardTags.value.split(",").map((t) => t.trim()).filter((t) => t);
+      const id = getRoute()[1] ?? crypto.randomUUID();
+      const payload = {
+        id,
+        lastUpdate: Date.now(),
+        card: {
+          picture: cardPicture,
+          title: cardTitle.value,
+          description: cardDescription.value,
+          tags
+        },
+        chat: {
+          picture: chatPicture,
+          name: characterName.value,
+          definition: defintion.value,
+          initials: firstMessages
+        }
+      };
+      await idb.set("scenarios", payload);
+      window.location.hash = "library";
+    });
+    previewButton.addEventListener("click", () => {
+      const content = cardDescription.value;
+      preview.innerHTML = renderMD(content);
+      preview.hidden = false;
+    });
+  }
   function initFirstMessages() {
     const messagesControls = document.querySelector("#scenario-messages-clicker");
     const messagesControlsButtons = messagesControls.querySelectorAll("button");
@@ -4642,46 +4628,44 @@ Please report this to https://github.com/markedjs/marked.`, e) {
 
   // src/units/library.ts
   var openerRelay = null;
-  var libraryUnit = {
-    init: () => {
-      const startButton = document.querySelector("#library-start-button");
-      const startPersonaPicker = document.querySelector("#library-start-persona");
-      const startImportButton = document.querySelector("#library-start-import");
-      const importButton = document.querySelector("#library-import");
-      const modal = document.querySelector("#library-start");
-      startButton.addEventListener("click", async () => {
-        if (!openerRelay) return;
-        const personaId = startPersonaPicker.value;
-        if (!personaId) return;
-        await start(personaId, openerRelay.scenarioId);
-        modal.close();
-      });
-      startImportButton.addEventListener("input", async () => {
-        const file = startImportButton.input.files?.[0];
-        if (!file) return;
-        const personaId = startPersonaPicker.value;
-        if (!personaId) return;
-        if (!openerRelay) return;
-        const messages = await importSTMessages(file);
-        if (messages.length === 0) return;
-        await start(personaId, openerRelay.scenarioId, messages);
-        modal.close();
-      });
-      importButton.addEventListener("input", () => {
-        const files = importButton.input.files;
-        if (!files?.[0]) return;
-        for (let i2 = 0; i2 < files.length; ++i2) {
-          importScenario(files.item(i2));
-        }
-      });
-      listen(async (u3) => {
-        if (u3.storage !== "idb") return;
-        if (u3.store !== "scenarios") return;
-        update2();
-      });
+  function libraryUnit() {
+    const startButton = document.querySelector("#library-start-button");
+    const startPersonaPicker = document.querySelector("#library-start-persona");
+    const startImportButton = document.querySelector("#library-start-import");
+    const importButton = document.querySelector("#library-import");
+    const modal = document.querySelector("#library-start");
+    startButton.addEventListener("click", async () => {
+      if (!openerRelay) return;
+      const personaId = startPersonaPicker.value;
+      if (!personaId) return;
+      await start(personaId, openerRelay.scenarioId);
+      modal.close();
+    });
+    startImportButton.addEventListener("input", async () => {
+      const file = startImportButton.input.files?.[0];
+      if (!file) return;
+      const personaId = startPersonaPicker.value;
+      if (!personaId) return;
+      if (!openerRelay) return;
+      const messages = await importSTMessages(file);
+      if (messages.length === 0) return;
+      await start(personaId, openerRelay.scenarioId, messages);
+      modal.close();
+    });
+    importButton.addEventListener("input", () => {
+      const files = importButton.input.files;
+      if (!files?.[0]) return;
+      for (let i2 = 0; i2 < files.length; ++i2) {
+        importScenario(files.item(i2));
+      }
+    });
+    listen(async (u3) => {
+      if (u3.storage !== "idb") return;
+      if (u3.store !== "scenarios") return;
       update2();
-    }
-  };
+    });
+    update2();
+  }
   async function update2() {
     const list = document.querySelector("#library-cards");
     list.innerHTML = "";
@@ -4860,7 +4844,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     scenarioUnit
   ];
   async function main() {
-    units.forEach((u3) => u3.init?.(void 0));
+    units.forEach((u3) => u3());
     const dbAvailable = init();
     if (!dbAvailable) alert("indexeddb init failed");
   }

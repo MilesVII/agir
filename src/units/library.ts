@@ -1,5 +1,4 @@
 import { getBlobLink, idb, listen, upload } from "@root/persist";
-import { RampikeUnit } from "./types";
 import { mudcrack } from "rampike";
 import { b64Encoder, download, placeholder, renderMD, setSelectOptions } from "@root/utils";
 import { RampikeModal } from "@rampike/modal";
@@ -12,53 +11,51 @@ let openerRelay: {
 	scenarioId: string
 } | null = null;
 
-export const libraryUnit: RampikeUnit = {
-	init: () => {
-		const startButton = document.querySelector<HTMLButtonElement>("#library-start-button")!;
-		const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
-		const startImportButton = document.querySelector<RampikeFilePicker>("#library-start-import")!;
-		const importButton = document.querySelector<RampikeFilePicker>("#library-import")!;
-		const modal = document.querySelector<RampikeModal>("#library-start")!;
+export function libraryUnit() {
+	const startButton = document.querySelector<HTMLButtonElement>("#library-start-button")!;
+	const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
+	const startImportButton = document.querySelector<RampikeFilePicker>("#library-start-import")!;
+	const importButton = document.querySelector<RampikeFilePicker>("#library-import")!;
+	const modal = document.querySelector<RampikeModal>("#library-start")!;
 
-		startButton.addEventListener("click", async () => {
-			if (!openerRelay) return;
-			const personaId = startPersonaPicker.value;
-			if (!personaId) return;
-			await start(personaId, openerRelay.scenarioId);
-			modal.close();
-		});
-		startImportButton.addEventListener("input", async () => {
-			const file = startImportButton.input.files?.[0];
-			if (!file) return;
-			const personaId = startPersonaPicker.value;
-			if (!personaId) return;
-			if (!openerRelay) return;
+	startButton.addEventListener("click", async () => {
+		if (!openerRelay) return;
+		const personaId = startPersonaPicker.value;
+		if (!personaId) return;
+		await start(personaId, openerRelay.scenarioId);
+		modal.close();
+	});
+	startImportButton.addEventListener("input", async () => {
+		const file = startImportButton.input.files?.[0];
+		if (!file) return;
+		const personaId = startPersonaPicker.value;
+		if (!personaId) return;
+		if (!openerRelay) return;
 
-			const messages = await importSTMessages(file);
-			if (messages.length === 0) return;
+		const messages = await importSTMessages(file);
+		if (messages.length === 0) return;
 
-			await start(personaId, openerRelay.scenarioId, messages);
-			modal.close();
-		});
+		await start(personaId, openerRelay.scenarioId, messages);
+		modal.close();
+	});
 
-		importButton.addEventListener("input", () => {
-			const files = importButton.input.files;
-			if (!files?.[0]) return;
+	importButton.addEventListener("input", () => {
+		const files = importButton.input.files;
+		if (!files?.[0]) return;
 
-			for (let i = 0; i < files.length; ++i) {
-				importScenario(files.item(i)!);
-			}
-		});
+		for (let i = 0; i < files.length; ++i) {
+			importScenario(files.item(i)!);
+		}
+	});
 
-		listen(async u => {
-			if (u.storage !== "idb") return;
-			if (u.store !== "scenarios") return;
+	listen(async u => {
+		if (u.storage !== "idb") return;
+		if (u.store !== "scenarios") return;
 
-			update();
-		});
 		update();
-	}
-};
+	});
+	update();
+}
 
 async function update() {
 	const list = document.querySelector<HTMLElement>("#library-cards")!;

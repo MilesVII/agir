@@ -7,7 +7,6 @@ import { define as defineFilePicker}   from "@rampike/filepicker";
 import { define as defineLabeled }     from "@rampike/fieldset";
 import { define as defineImagePicker } from "@rampike/imagepicker";
 import { navigationUnit } from "@units/navigation";
-import { RampikeUnit }    from "@units/types";
 import { settingsUnit }   from "@units/settings";
 import { chatUnit }       from "@units/chat";
 import { mainUnit }       from "@units/main";
@@ -26,7 +25,7 @@ defineLabeled("ram-labeled");
 
 window.addEventListener("DOMContentLoaded", main);
 
-const units: RampikeUnit[] = [
+const units: (() => void)[] = [
 	navigationUnit,
 	settingsUnit,
 	chatUnit,
@@ -36,7 +35,7 @@ const units: RampikeUnit[] = [
 ];
 
 async function main() {
-	units.forEach(u => u.init?.(undefined));
+	units.forEach(u => u());
 
 	const dbAvailable = initPersist();
 	if (!dbAvailable) alert("indexeddb init failed");

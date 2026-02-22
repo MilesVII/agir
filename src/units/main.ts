@@ -1,28 +1,25 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
-import { RampikeUnit } from "./types";
-import { b64Encoder, nothrow, nothrowAsync, placeholder } from "@root/utils";
-import { Chat, ChatContents, ChatMessage } from "@root/types";
-import { getBlobLink, idb, listen, upload } from "@root/persist";
+import { b64Encoder, nothrow, placeholder } from "@root/utils";
+import { Chat, ChatContents } from "@root/types";
+import { getBlobLink, idb, listen } from "@root/persist";
 import { mudcrack } from "rampike";
 
-export const mainUnit: RampikeUnit = {
-	init: () => {
-		const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
-		importButton.addEventListener("input", () => {
-			const file = importButton.input.files?.[0];
-			if (!file) return;
+export function mainUnit() {
+	const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
+	importButton.addEventListener("input", () => {
+		const file = importButton.input.files?.[0];
+		if (!file) return;
 
-			importChat(file);
-		});
+		importChat(file);
+	});
 
-		listen(update => {
-			if (update.storage !== "idb") return;
-			if (update.store !== "chats") return;
+	listen(update => {
+		if (update.storage !== "idb") return;
+		if (update.store !== "chats") return;
 
-			updateChatHandles();
-		});
 		updateChatHandles();
-	}
+	});
+	updateChatHandles();
 }
 
 async function updateChatHandles() {

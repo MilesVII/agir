@@ -1,5 +1,4 @@
 import { idb } from "@root/persist";
-import { RampikeUnit } from "./types";
 import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
@@ -17,104 +16,102 @@ const definitionTemplate = [
 	"You play as {{char}}, the user is {{user}}"
 ].join("\n");
 
-export const scenarioUnit: RampikeUnit = {
-	init: () => {
-		const chatIcon         = document.querySelector<RampikeImagePicker> ("#scenario-chat-picture")!;
-		const cardIcon         = document.querySelector<RampikeImagePicker> ("#scenario-card-picture")!;
-		const cardTitle        = document.querySelector<HTMLInputElement>   ("#scenario-card-title")!;
-		const cardDescription  = document.querySelector<HTMLTextAreaElement>("#scenario-description")!;
-		const cardTags         = document.querySelector<HTMLTextAreaElement>("#scenario-tags")!;
-		const preview          = document.querySelector<HTMLDivElement>     ("#scenario-preview")!;
-		const characterName    = document.querySelector<HTMLInputElement>   ("#scenario-character-name")!;
-		const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-defintion")!;
-		const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
-		const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
-		const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
-		makeResizable(cardDescription);
-		makeResizable(defintion);
-		const messagesControl = initFirstMessages();
+export function scenarioUnit() {
+	const chatIcon         = document.querySelector<RampikeImagePicker> ("#scenario-chat-picture")!;
+	const cardIcon         = document.querySelector<RampikeImagePicker> ("#scenario-card-picture")!;
+	const cardTitle        = document.querySelector<HTMLInputElement>   ("#scenario-card-title")!;
+	const cardDescription  = document.querySelector<HTMLTextAreaElement>("#scenario-description")!;
+	const cardTags         = document.querySelector<HTMLTextAreaElement>("#scenario-tags")!;
+	const preview          = document.querySelector<HTMLDivElement>     ("#scenario-preview")!;
+	const characterName    = document.querySelector<HTMLInputElement>   ("#scenario-character-name")!;
+	const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-defintion")!;
+	const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
+	const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
+	const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
+	makeResizable(cardDescription);
+	makeResizable(defintion);
+	const messagesControl = initFirstMessages();
 
-		window.addEventListener("hashchange", load);
-		load();
+	window.addEventListener("hashchange", load);
+	load();
 
-		async function load() {
-			const path = getRoute();
-			if (path[0] !== "scenario-editor") return;
+	async function load() {
+		const path = getRoute();
+		if (path[0] !== "scenario-editor") return;
 
-			if (path[1]) {
-				const scenario = await idb.get("scenarios", path[1]);
-				if (!scenario.success) return;
-				cardIcon.value = scenario.value.card.picture ?? "";
-				cardTitle.value = scenario.value.card.title;
-				cardDescription.value = scenario.value.card.description;
-				cardTags.value = scenario.value.card.tags.join(", ");
+		if (path[1]) {
+			const scenario = await idb.get("scenarios", path[1]);
+			if (!scenario.success) return;
+			cardIcon.value = scenario.value.card.picture ?? "";
+			cardTitle.value = scenario.value.card.title;
+			cardDescription.value = scenario.value.card.description;
+			cardTags.value = scenario.value.card.tags.join(", ");
 
-				chatIcon.value = scenario.value.chat.picture ?? "";
-				characterName.value = scenario.value.chat.name;
-				defintion.value = scenario.value.chat.definition;
-				
-				messagesControl.set(scenario.value.chat.initials);
-			} else {
-				cardIcon.usePlaceholder();
-				cardTitle.value = "";
-				cardDescription.value = "";
-				cardTags.value = "";
+			chatIcon.value = scenario.value.chat.picture ?? "";
+			characterName.value = scenario.value.chat.name;
+			defintion.value = scenario.value.chat.definition;
+			
+			messagesControl.set(scenario.value.chat.initials);
+		} else {
+			cardIcon.usePlaceholder();
+			cardTitle.value = "";
+			cardDescription.value = "";
+			cardTags.value = "";
 
-				chatIcon.usePlaceholder();
-				characterName.value = "";
-				defintion.value = definitionTemplate;
+			chatIcon.usePlaceholder();
+			characterName.value = "";
+			defintion.value = definitionTemplate;
 
-				messagesControl.set([""]);
-			}
-			textareaReconsider(cardDescription);
-			textareaReconsider(defintion);
-			textareaReconsider(cardTags);
-			textareaReconsider(firstMessage);
+			messagesControl.set([""]);
 		}
-
-		submitButton.addEventListener("click", async () => {
-			const firstMessages = messagesControl.get();
-			const required = [
-				cardTitle.value,
-				defintion.value,
-			];
-			if (required.some(v => !v) || firstMessages.length <= 0) return;
-
-			const cardPicture = await cardIcon.valueHandle();
-			const chatPicture = await chatIcon.valueHandle();
-			const tags = cardTags.value
-				.split(",")
-				.map(t => t.trim())
-				.filter(t => t);
-
-			const id = getRoute()[1] ?? crypto.randomUUID();
-			const payload: ScenarioCard = {
-				id,
-				lastUpdate: Date.now(),
-				card: {
-					picture: cardPicture,
-					title: cardTitle.value,
-					description: cardDescription.value,
-					tags
-				},
-				chat: {
-					picture: chatPicture,
-					name: characterName.value,
-					definition: defintion.value,
-					initials: firstMessages
-				}
-			};
-
-			await idb.set("scenarios", payload);
-			window.location.hash = "library";
-		});
-
-		previewButton.addEventListener("click", () => {
-			const content = cardDescription.value;
-			preview.innerHTML = renderMD(content);
-			preview.hidden = false;
-		});
+		textareaReconsider(cardDescription);
+		textareaReconsider(defintion);
+		textareaReconsider(cardTags);
+		textareaReconsider(firstMessage);
 	}
+
+	submitButton.addEventListener("click", async () => {
+		const firstMessages = messagesControl.get();
+		const required = [
+			cardTitle.value,
+			defintion.value,
+		];
+		if (required.some(v => !v) || firstMessages.length <= 0) return;
+
+		const cardPicture = await cardIcon.valueHandle();
+		const chatPicture = await chatIcon.valueHandle();
+		const tags = cardTags.value
+			.split(",")
+			.map(t => t.trim())
+			.filter(t => t);
+
+		const id = getRoute()[1] ?? crypto.randomUUID();
+		const payload: ScenarioCard = {
+			id,
+			lastUpdate: Date.now(),
+			card: {
+				picture: cardPicture,
+				title: cardTitle.value,
+				description: cardDescription.value,
+				tags
+			},
+			chat: {
+				picture: chatPicture,
+				name: characterName.value,
+				definition: defintion.value,
+				initials: firstMessages
+			}
+		};
+
+		await idb.set("scenarios", payload);
+		window.location.hash = "library";
+	});
+
+	previewButton.addEventListener("click", () => {
+		const content = cardDescription.value;
+		preview.innerHTML = renderMD(content);
+		preview.hidden = false;
+	});
 }
 
 function initFirstMessages() {

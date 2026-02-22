@@ -1,5 +1,4 @@
 import { asyncMap, b64Encoder, download, getRoute, makeResizable, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
-import { RampikeUnit } from "./types";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
 import { idb, listen, local } from "@root/persist";
@@ -9,39 +8,37 @@ import { abortController } from "@root/run";
 import { ActiveEngines } from "@root/types";
 import { initChatEditor } from "./chat/editor";
 
-export const chatUnit: RampikeUnit = {
-	init: () => {
-		const scroller     = document.querySelector<HTMLElement>("#play-messages")!;
-		const textarea     = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
-		const sendButton   = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
-		const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
-		const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
-		const menuButton   = document.querySelector<HTMLSelectElement>("#chat-menu-select")!;
+export function chatUnit() {
+	const scroller     = document.querySelector<HTMLElement>("#play-messages")!;
+	const textarea     = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
+	const sendButton   = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
+	const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
+	const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
+	const menuButton   = document.querySelector<HTMLSelectElement>("#chat-menu-select")!;
 
-		makeResizable(textarea, scroller);
-		window.addEventListener("hashchange", update);
-		listen(u => {
-			if (u.storage !== "local") return;
-			if (u.key !== "engines" && u.key !== "activeEngine") return;
-			updateEngines();
-		});
-
-		sendButton.addEventListener("click", sendMessage);
-		stopButton.addEventListener("click", () => abortController.abort());
-		enginePicker.addEventListener("input", () => { pickMainEngine(enginePicker.value); })
-
-		update();
+	makeResizable(textarea, scroller);
+	window.addEventListener("hashchange", update);
+	listen(u => {
+		if (u.storage !== "local") return;
+		if (u.key !== "engines" && u.key !== "activeEngine") return;
 		updateEngines();
+	});
 
-		const { open: openChatEditor } = initChatEditor();
-		setSelectMenu(menuButton, "menu", [
-			["Scenario card",   openScenarioIfExists],
-			["Edit definition", openChatEditor],
-			["rEmber", () => {}],
-			["Export",          exportChat]
-		]);
-	}
-};
+	sendButton.addEventListener("click", sendMessage);
+	stopButton.addEventListener("click", () => abortController.abort());
+	enginePicker.addEventListener("input", () => { pickMainEngine(enginePicker.value); })
+
+	update();
+	updateEngines();
+
+	const { open: openChatEditor } = initChatEditor();
+	setSelectMenu(menuButton, "menu", [
+		["Scenario card",   openScenarioIfExists],
+		["Edit definition", openChatEditor],
+		["rEmber", () => {}],
+		["Export",          exportChat]
+	]);
+}
 
 async function update() {
 	const route = getRoute();
