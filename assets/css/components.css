@@ -262,6 +262,9 @@ summary.settings-label {
 .chat-rember-view {
 	white-space: pre-wrap;
 }
+#play-rember-messages>*:not(:first-child) {
+	opacity: 60%;
+}
 
 .message {
 	--profile-pictire-size: 64px;

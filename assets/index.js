@@ -4204,8 +4204,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       template.value = state.chat.rember?.template ?? remberDefaults.stateTemplate;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m2) => m2.rember);
-      const items = remberMessages.map((m2) => remberMessageView(m2.id, m2.rember).container);
-      list.prepend(...items);
+      const items = remberMessages.map((m2) => remberMessageView(m2.id, m2.rember).container).toReversed();
+      list.append(...items);
     }
     async function step() {
       let view = null;
@@ -4239,19 +4239,22 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       buttons.all.hidden = false;
       buttons.stop.hidden = true;
     }
+    let interruptFlag = false;
     async function runAll() {
       buttons.one.hidden = true;
       buttons.all.hidden = true;
       buttons.stop.hidden = false;
-      while (true) {
+      while (!interruptFlag) {
         const proceed = await step();
         if (!proceed) break;
       }
+      interruptFlag = false;
       buttons.one.hidden = false;
       buttons.all.hidden = false;
       buttons.stop.hidden = true;
     }
     function forgor() {
+      interruptFlag = true;
       abortController.abort();
     }
     async function saveSettings() {
@@ -4307,10 +4310,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const response = await runEngine(payload, engines[engine], (value) => onChunk(value, tix));
     if (!response.success) return { success: false, error: "failed" };
     const thinkingParts = response.value.split("</think>");
+    const result = (thinkingParts[1] ?? thinkingParts[0]).trim();
+    messages.messages[tix].rember = result;
+    await idb.set("chatContents", messages);
     return {
       success: true,
       value: {
-        response: (thinkingParts[1] ?? thinkingParts[0]).trim(),
+        response: result,
         mid: tix
       }
     };
