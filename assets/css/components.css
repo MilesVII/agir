@@ -195,7 +195,7 @@ summary.settings-label {
 	gap: var(--dims-smol);
 }
 .scenario-card-tags > span {
-	background-color: var(--color-secondary);
+	background-color: var(--color-base-semi);
 	transition: background-color .2s ease;
 	padding-inline: var(--dims-reg);
 	padding-block: var(--dims-smol);

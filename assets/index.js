@@ -4494,7 +4494,8 @@ ${m2.swipes[m2.selectedSwipe]}
         };
         local.set("activeEngine", JSON.stringify(actives));
       }
-      inputModes.tab = "main";
+      if (inputModes.tab !== "pending")
+        inputModes.tab = "main";
       engineControl.hidden = false;
     } else {
       inputModes.tab = "disabled";
@@ -4512,8 +4513,11 @@ ${m2.swipes[m2.selectedSwipe]}
     const chat = await idb.get("chats", chatId);
     if (!chat.success) return;
     const cardId = chat.value.scenario.id;
-    if (await idb.get("scenarios", cardId))
+    const card = await idb.get("scenarios", cardId);
+    if (card.success)
       window.open(`#scenario-editor.${cardId}`);
+    else
+      toast("Scenario card not found");
   }
   async function exportChat() {
     const [, chatId] = getRoute();

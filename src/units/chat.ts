@@ -34,21 +34,21 @@ export function chatUnit() {
 	update();
 	updateEngines();
 
-		const { open: openChatEditor } = initChatEditor();
-		const { open: openRember } = initRember();
-		const openRemberGuarded = () => {
-			if (inputModes.tab !== "main") {
-				toast("please wait until message generation is over");
-				return;
-			}
-			openRember();
+	const { open: openChatEditor } = initChatEditor();
+	const { open: openRember } = initRember();
+	const openRemberGuarded = () => {
+		if (inputModes.tab !== "main") {
+			toast("please wait until message generation is over");
+			return;
 		}
-		setSelectMenu(menuButton, "menu", [
-			["Scenario card",   openScenarioIfExists],
-			["Edit definition", openChatEditor],
-			["rEmber",          openRemberGuarded],
-			["Export",          exportChat]
-		]);
+		openRember();
+	}
+	setSelectMenu(menuButton, "menu", [
+		["Scenario card",   openScenarioIfExists],
+		["Edit definition", openChatEditor],
+		["rEmber",          openRemberGuarded],
+		["Export",          exportChat]
+	]);
 }
 
 async function update() {
@@ -83,7 +83,8 @@ function updateEngines() {
 			};
 			local.set("activeEngine", JSON.stringify(actives));
 		}
-		inputModes.tab = "main";
+		if (inputModes.tab !== "pending")
+			inputModes.tab = "main";
 		engineControl.hidden = false;
 	} else {
 		inputModes.tab = "disabled";
@@ -104,8 +105,11 @@ async function openScenarioIfExists() {
 	if (!chat.success) return;
 
 	const cardId = chat.value.scenario.id;
-	if (await idb.get("scenarios", cardId))
+	const card = await idb.get("scenarios", cardId)
+	if (card.success)
 		window.open(`#scenario-editor.${cardId}`);
+	else
+		toast("Scenario card not found");
 }
 
 async function exportChat() {
