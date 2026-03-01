@@ -7,6 +7,7 @@ import { sendMessage } from "./chat/send";
 import { abortController } from "@root/run";
 import { ActiveEngines } from "@root/types";
 import { initChatEditor } from "./chat/editor";
+import { initRember } from "./chat/rember";
 
 export function chatUnit() {
 	const scroller     = document.querySelector<HTMLElement>("#play-messages")!;
@@ -15,6 +16,7 @@ export function chatUnit() {
 	const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
 	const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
 	const menuButton   = document.querySelector<HTMLSelectElement>("#chat-menu-select")!;
+	const inputModes   = document.querySelector<RampikeTabs>("#chat-controls")!;
 
 	makeResizable(textarea, scroller);
 	window.addEventListener("hashchange", update);
@@ -31,13 +33,21 @@ export function chatUnit() {
 	update();
 	updateEngines();
 
-	const { open: openChatEditor } = initChatEditor();
-	setSelectMenu(menuButton, "menu", [
-		["Scenario card",   openScenarioIfExists],
-		["Edit definition", openChatEditor],
-		["rEmber", () => {}],
-		["Export",          exportChat]
-	]);
+		const { open: openChatEditor } = initChatEditor();
+		const { open: openRember } = initRember();
+		const openRemberGuarded = () => {
+			if (inputModes.tab !== "main") {
+				alert("please wait until message generation is over");
+				return;
+			}
+			openRember();
+		}
+		setSelectMenu(menuButton, "menu", [
+			["Scenario card",   openScenarioIfExists],
+			["Edit definition", openChatEditor],
+			["rEmber",          openRemberGuarded],
+			["Export",          exportChat]
+		]);
 }
 
 async function update() {
@@ -60,7 +70,7 @@ function updateEngines() {
 
 	const engineOptions = Object.entries(engineMap);
 	const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
-	setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), !activeId);
+	setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId || engineOptions[0]?.[0]);
 
 	if (engineOptions.length > 0) {
 		if (activeId) {

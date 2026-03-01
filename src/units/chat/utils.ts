@@ -1,10 +1,11 @@
 import { RampikeTabs } from "@rampike/tabs";
-import { getBlobLink, idb } from "@root/persist";
+import { getBlobLink, idb, listen } from "@root/persist";
 import { runEngine } from "@root/run";
-import { Chat, ChatMessage } from "@root/types";
+import { Chat, ChatContents, ChatMessage } from "@root/types";
 import { readEngines } from "@units/settings/engines";
 import { RampikeMessageView } from "./message-view";
 import { loadMiscSettings } from "@units/settings/misc";
+import { getRoute } from "@root/utils";
 
 export async function setSwipe(chatId: string, messageId: number, swipeIx: number, value: string) {
 	const contents = await idb.get("chatContents", chatId);
@@ -205,4 +206,37 @@ export function getMessageViewByID(messageId: number) {
 
 export function dullMessage(from: ChatMessage["from"], text: string): ChatMessage {
 	return { from, id: -1, name: "", rember: null, swipes: [text], selectedSwipe: 0 };
+}
+
+export async function getCurrentChat(chat?: true, contents?: true): Promise<{ chat: Chat, messages: ChatContents } | null>;
+export async function getCurrentChat(chat?: false, contents?: true): Promise<{ messages: ChatContents } | null>;
+export async function getCurrentChat(chat?: true, contents?: false): Promise<{ chat: Chat } | null>;
+
+export async function getCurrentChat(chat = true, contents = true) {
+	const [page, chatId] = getRoute();
+	if (page !== "play") return null;
+
+	if (chat && contents) {
+		const [messages, chat] = await Promise.all([
+			idb.get("chatContents", chatId),
+			idb.get("chats", chatId)
+		]);
+		if (!messages.success || !chat.success) return null;
+
+		return { messages: messages.value, chat: chat.value };
+	} else if (chat) {
+		const chat = await idb.get("chats", chatId);
+		if (chat.success)
+			return { chat: chat.value };
+		else
+			return null;
+	} else if (contents) {
+		const messages = await idb.get("chatContents", chatId);
+		if (messages.success)
+			return { messages: messages.value };
+		else
+			return null;
+	}
+
+	return null;
 }

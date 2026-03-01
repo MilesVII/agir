@@ -4,12 +4,6 @@ import { nothrow } from "@root/utils";
 export function initMisc() {
 	const tailInput = document.querySelector<HTMLInputElement>("#settings-options-tail")!;
 	const miscSave = document.querySelector<HTMLButtonElement>("#settings-misc-save")!;
-	const rember = {
-		stride:   document.querySelector<HTMLInputElement>("#settings-rember-stride")!,
-		prompt:   document.querySelector<HTMLTextAreaElement>("#settings-rember-prompt")!,
-		template: document.querySelector<HTMLTextAreaElement>("#settings-rember-template")!,
-		save:     document.querySelector<HTMLButtonElement>("#settings-rember-save")!
-	};
 
 	listen(u => {
 		if (u.storage !== "local") return;
@@ -26,56 +20,15 @@ export function initMisc() {
 
 		local.set("settings", JSON.stringify(settings));
 	});
-	rember.save.addEventListener("click", () => {
-		const settings = loadMiscSettings();
-		const stride = parseInt(rember.stride.value, 10);
-		settings.remberStride = isNaN(stride) ? 0 : stride;
-		settings.remberPrompt = rember.prompt.value.trim();
-		settings.remberTemplate = rember.template.value.trim();
-
-		local.set("settings", JSON.stringify(settings));
-	});
 
 	function updateSettings() {
 		const settings = loadMiscSettings();
 		tailInput.value = String(settings.tail);
-
-		rember.stride.value = String(settings.remberStride);
-		rember.prompt.value = settings.remberPrompt,
-		rember.template.value = settings.remberTemplate;
 	}
 }
 
-
-const remberDefaults = {
-	prompt: [
-		"you are tasked with providing summary of a text roleplay session.",
-		"update provided state to reflect any changes to the state of the scenario.",
-		"keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
-		"note plans and intentions of the character.",
-		"format trivia as a list of facts.",
-		"stay concise and remove info irrelevant to possible future scenarios.",
-		"do not provide any commentary, only describe the new state, do not change the format (the headings), but you may add sub-headings if needed"
-	].join("\n"),
-	stateTemplate: [
-		"# state",
-		"## current location",
-		"",
-		"## locations and objects",
-		"",
-		"## trivia",
-		"",
-		"## plans and intentions",
-		""
-	].join("\n")
-}
-
 const DEFAULT_SETTINGS = {
-	tail: 70,
-	remberStride: 0,
-	remberPrompt: remberDefaults.prompt,
-	remberTemplate: remberDefaults.stateTemplate,
-	remberEngine: null as null | string
+	tail: 70
 }
 
 export function loadMiscSettings() {

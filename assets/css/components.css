@@ -259,6 +259,10 @@ summary.settings-label {
 	box-shadow: 0 0 var(--dims-smol) var(--color-base);
 }
 
+.chat-rember-view {
+	white-space: pre-wrap;
+}
+
 .message {
 	--profile-pictire-size: 64px;
 	display: grid;

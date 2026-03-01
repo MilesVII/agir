@@ -2703,7 +2703,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function placeholder(url) {
     return url || PLACHEOLDER;
   }
-  function setSelectOptions(target, options, pickFirst = false) {
+  function setSelectOptions(target, options, pick = null) {
     const optionsList = options.map(([id, caption]) => d({
       tagName: "option",
       attributes: {
@@ -2713,8 +2713,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }));
     target.innerHTML = "";
     target.append(...optionsList);
-    if (pickFirst && options.length > 0)
-      target.value = options[0][0];
+    if (pick && options.length > 0) {
+      target.value = pick;
+    }
   }
   function setSelectMenu(target, displayCaption, options) {
     const option = (id, caption) => d({
@@ -3177,6 +3178,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const activeEngines = readActiveEngines();
     for (const e in engines.value) {
       engines.value[e].isActive = e === activeEngines.main;
+      engines.value[e].remberActive = e === activeEngines.rember;
     }
     return engines.value;
   }
@@ -3464,12 +3466,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function initMisc() {
     const tailInput = document.querySelector("#settings-options-tail");
     const miscSave = document.querySelector("#settings-misc-save");
-    const rember = {
-      stride: document.querySelector("#settings-rember-stride"),
-      prompt: document.querySelector("#settings-rember-prompt"),
-      template: document.querySelector("#settings-rember-template"),
-      save: document.querySelector("#settings-rember-save")
-    };
     listen((u3) => {
       if (u3.storage !== "local") return;
       if (u3.key !== "settings") return;
@@ -3482,49 +3478,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       settings.tail = isNaN(tail) ? 0 : tail;
       local.set("settings", JSON.stringify(settings));
     });
-    rember.save.addEventListener("click", () => {
-      const settings = loadMiscSettings();
-      const stride = parseInt(rember.stride.value, 10);
-      settings.remberStride = isNaN(stride) ? 0 : stride;
-      settings.remberPrompt = rember.prompt.value.trim();
-      settings.remberTemplate = rember.template.value.trim();
-      local.set("settings", JSON.stringify(settings));
-    });
     function updateSettings() {
       const settings = loadMiscSettings();
       tailInput.value = String(settings.tail);
-      rember.stride.value = String(settings.remberStride);
-      rember.prompt.value = settings.remberPrompt, rember.template.value = settings.remberTemplate;
     }
   }
-  var remberDefaults = {
-    prompt: [
-      "you are tasked with providing summary of a text roleplay session.",
-      "update provided state to reflect any changes to the state of the scenario.",
-      "keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
-      "note plans and intentions of the character.",
-      "format trivia as a list of facts.",
-      "stay concise and remove info irrelevant to possible future scenarios.",
-      "do not provide any commentary, only describe the new state, do not change the format (the headings), but you may add sub-headings if needed"
-    ].join("\n"),
-    stateTemplate: [
-      "# state",
-      "## current location",
-      "",
-      "## locations and objects",
-      "",
-      "## trivia",
-      "",
-      "## plans and intentions",
-      ""
-    ].join("\n")
-  };
   var DEFAULT_SETTINGS = {
-    tail: 70,
-    remberStride: 0,
-    remberPrompt: remberDefaults.prompt,
-    remberTemplate: remberDefaults.stateTemplate,
-    remberEngine: null
+    tail: 70
   };
   function loadMiscSettings() {
     const raw = local.get("settings");
@@ -3781,6 +3741,31 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function dullMessage(from, text2) {
     return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
+  }
+  async function getCurrentChat(chat = true, contents = true) {
+    const [page, chatId] = getRoute();
+    if (page !== "play") return null;
+    if (chat && contents) {
+      const [messages, chat2] = await Promise.all([
+        idb.get("chatContents", chatId),
+        idb.get("chats", chatId)
+      ]);
+      if (!messages.success || !chat2.success) return null;
+      return { messages: messages.value, chat: chat2.value };
+    } else if (chat) {
+      const chat2 = await idb.get("chats", chatId);
+      if (chat2.success)
+        return { chat: chat2.value };
+      else
+        return null;
+    } else if (contents) {
+      const messages = await idb.get("chatContents", chatId);
+      if (messages.success)
+        return { messages: messages.value };
+      else
+        return null;
+    }
+    return null;
   }
 
   // src/units/chat/message-view.ts
@@ -4157,6 +4142,216 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     };
   }
 
+  // src/units/chat/rember.ts
+  var remberDefaults = {
+    stride: 10,
+    prompt: [
+      "you are tasked with providing summary of a text roleplay session.",
+      "update provided state to reflect any changes to the state of the scenario.",
+      "keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
+      "note plans and intentions of the character.",
+      "format trivia as a list of facts.",
+      "stay concise and ignore any info irrelevant to possible future scenarios.",
+      "do not provide any commentary, only describe the new state, do not change the format (the headings)"
+    ].join("\n"),
+    stateTemplate: [
+      "# state",
+      "## current location",
+      "",
+      "## locations and objects",
+      "",
+      "## trivia",
+      "",
+      "## plans and intentions",
+      ""
+    ].join("\n")
+  };
+  function initRember() {
+    const modal = document.querySelector("#play-rember");
+    const enginePicker = document.querySelector("#play-rember-engine-picker");
+    const strideInput = document.querySelector("#play-rember-stride");
+    const prompt = document.querySelector("#play-rember-prompt");
+    const template = document.querySelector("#play-rember-template");
+    const buttons = {
+      one: document.querySelector("#play-rember-add-one"),
+      all: document.querySelector("#play-rember-add-all"),
+      stop: document.querySelector("#play-rember-stop"),
+      save: document.querySelector("#play-rember-save")
+    };
+    const list = document.querySelector("#play-rember-messages");
+    buttons.one.addEventListener("click", runOne);
+    buttons.all.addEventListener("click", runAll);
+    buttons.stop.addEventListener("click", forgor);
+    buttons.save.addEventListener("click", saveSettings);
+    enginePicker.addEventListener("input", enginePickerChanged);
+    buttons.stop.hidden = true;
+    listen((u3) => {
+      if (u3.storage !== "local") return;
+      if (u3.key !== "activeEngine") return;
+      updateEnginePicker();
+    });
+    updateEnginePicker();
+    function updateEnginePicker() {
+      const engineMap = readEngines();
+      const engineOptions = Object.entries(engineMap);
+      const activeId = engineOptions.find(([, e]) => e.remberActive)?.[0];
+      setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId);
+    }
+    async function onOpen() {
+      const state = await getCurrentChat();
+      if (!state) return;
+      prompt.value = state.chat.rember?.prompt ?? remberDefaults.prompt;
+      template.value = state.chat.rember?.template ?? remberDefaults.stateTemplate;
+      list.innerHTML = "";
+      const remberMessages = state.messages.messages.filter((m2) => m2.rember);
+      const items = remberMessages.map((m2) => remberMessageView(m2.id, m2.rember).container);
+      list.prepend(...items);
+    }
+    async function step() {
+      let view = null;
+      function checkView(mid) {
+        if (!view) {
+          view = remberMessageView(mid);
+          list.prepend(view.container);
+        }
+        return view;
+      }
+      const result = await runRember(
+        (content, mid) => {
+          checkView(mid).appendContent(content);
+        },
+        enginePicker.value,
+        getStride(),
+        prompt.value.trim(),
+        template.value.trim()
+      );
+      console.log(result);
+      if (!result.success) return false;
+      checkView(result.value.mid).enable(result.value.response);
+      return true;
+    }
+    async function runOne() {
+      buttons.one.hidden = true;
+      buttons.all.hidden = true;
+      buttons.stop.hidden = false;
+      await step();
+      buttons.one.hidden = false;
+      buttons.all.hidden = false;
+      buttons.stop.hidden = true;
+    }
+    async function runAll() {
+      buttons.one.hidden = true;
+      buttons.all.hidden = true;
+      buttons.stop.hidden = false;
+      while (true) {
+        const proceed = await step();
+        if (!proceed) break;
+      }
+      buttons.one.hidden = false;
+      buttons.all.hidden = false;
+      buttons.stop.hidden = true;
+    }
+    function forgor() {
+      abortController.abort();
+    }
+    async function saveSettings() {
+      const state = await getCurrentChat(true, false);
+      if (!state) return;
+      const v2 = {
+        prompt: prompt.value.trim(),
+        template: template.value.trim(),
+        stride: getStride()
+      };
+      state.chat.rember = v2;
+      await idb.set("chats", state.chat);
+    }
+    function enginePickerChanged() {
+      const actives = readActiveEngines();
+      actives.rember = enginePicker.value;
+      local.set("activeEngine", JSON.stringify(actives));
+    }
+    function getStride() {
+      const value = parseInt(strideInput.value, 10);
+      if (isNaN(value)) return remberDefaults.stride;
+      return value;
+    }
+    return {
+      open: () => {
+        onOpen();
+        modal.open();
+      }
+    };
+  }
+  async function runRember(onChunk, engine, stride, prompt, stateTemplate) {
+    const eh = await getCurrentChat();
+    if (!eh) return { success: false, error: "noload" };
+    const { chat, messages } = eh;
+    let lix = messages.messages.findLastIndex((m2) => m2.rember);
+    const state = lix === -1 ? stateTemplate : messages.messages[lix].rember;
+    if (lix === -1) lix = 0;
+    const tix = Math.min(messages.messages.length - 1, lix + stride * 2);
+    if (tix === lix) return { success: false, error: "iscomplete" };
+    const scope = messages.messages.slice(lix, tix);
+    const payload = prepareMessages(
+      scope,
+      {
+        user: chat.userPersona.name,
+        model: chat.scenario.name,
+        system: ""
+      },
+      prompt,
+      state
+    );
+    const engines = readEngines();
+    if (!engines[engine]) return { success: false, error: "noengines" };
+    const response = await runEngine(payload, engines[engine], (value) => onChunk(value, tix));
+    if (!response.success) return { success: false, error: "failed" };
+    const thinkingParts = response.value.split("</think>");
+    return {
+      success: true,
+      value: {
+        response: (thinkingParts[1] ?? thinkingParts[0]).trim(),
+        mid: tix
+      }
+    };
+  }
+  function prepareMessages(parts, names, prompt, state) {
+    const chat = parts.map((m2) => `## ${names[m2.from]}:
+${m2.swipes[m2.selectedSwipe]}
+
+`).join("\n");
+    const payload = [
+      state,
+      "# chat history",
+      chat
+    ].join("\n");
+    return [
+      dullMessage("system", prompt),
+      dullMessage("user", payload)
+    ];
+  }
+  function remberMessageView(messageId, contents = "") {
+    const container = d({
+      tagName: "div",
+      className: "lineout chat-rember-view",
+      contents,
+      attributes: {
+        title: String(messageId)
+      }
+    });
+    function appendContent(value) {
+      container.textContent += value;
+    }
+    function enable(value) {
+      container.textContent = value;
+    }
+    return {
+      container,
+      appendContent,
+      enable
+    };
+  }
+
   // src/units/chat.ts
   function chatUnit() {
     const scroller = document.querySelector("#play-messages");
@@ -4165,6 +4360,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const stopButton = document.querySelector("#chat-stop-button");
     const enginePicker = document.querySelector("#chat-engine-picker");
     const menuButton = document.querySelector("#chat-menu-select");
+    const inputModes = document.querySelector("#chat-controls");
     makeResizable(textarea, scroller);
     window.addEventListener("hashchange", update);
     listen((u3) => {
@@ -4180,11 +4376,18 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     update();
     updateEngines();
     const { open: openChatEditor } = initChatEditor();
+    const { open: openRember } = initRember();
+    const openRemberGuarded = () => {
+      if (inputModes.tab !== "main") {
+        alert("please wait until message generation is over");
+        return;
+      }
+      openRember();
+    };
     setSelectMenu(menuButton, "menu", [
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", openChatEditor],
-      ["rEmber", () => {
-      }],
+      ["rEmber", openRemberGuarded],
       ["Export", exportChat]
     ]);
   }
@@ -4204,7 +4407,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const engineMap = readEngines();
     const engineOptions = Object.entries(engineMap);
     const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
-    setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), !activeId);
+    setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId || engineOptions[0]?.[0]);
     if (engineOptions.length > 0) {
       if (activeId) {
         enginePicker.value = activeId;
@@ -4816,7 +5019,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     setSelectOptions(
       picker,
       personas.value.map(({ id, name }) => [id, name]),
-      true
+      personas.value[0]?.id
     );
     openerRelay = {
       scenarioId: scenario
