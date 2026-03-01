@@ -304,3 +304,20 @@ summary.settings-label {
 .message-control {
 	align-self: center;
 }
+
+.toast {
+	--gap: var(--dims-huge);
+	position: absolute;
+	width: fit-content;
+	max-width: 60vw;
+	backdrop-filter: blur(16px);
+	background-color: var(--color-base-semi);
+	border: 2px solid var(--color-accent);
+	padding: var(--dims-reg);
+	border-radius: var(--dims-smol);
+	white-space: pre-wrap;
+
+	transition-property: left bottom transform;
+	transition-duration: .42s;
+	transition-timing-function: ease;
+}

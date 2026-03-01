@@ -40,6 +40,29 @@ export async function runEngine(
 			signal: abortController.signal
 		});
 
+		if (!response.ok) {
+			const body = await nothrowAsync(response.text());
+			if (!body.success) {
+				return {
+					success: false,
+					error: `Status ${response.status}, unknown error`
+				};
+			}
+			const parsed = nothrow(() => JSON.parse(body.value));
+			if (!parsed.success || !parsed.value?.error?.message) {
+				return {
+					success: false,
+					error: `Engine says "${body}"\nStatus ${response.status}`
+				};
+			}
+			const meta = parsed.value?.error?.metadata;
+			const metaWrapped = meta ? `\nMetadata:\n${JSON.stringify(meta, null, "\t")}` : ""
+			return {
+				success: false,
+				error: `Engine says "${parsed.value.error.message}"\nStatus ${response.status}${metaWrapped}`
+			};
+		}
+
 		const reader = response.body?.getReader();
 		if (!reader) {
 			return {

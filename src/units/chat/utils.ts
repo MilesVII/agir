@@ -6,6 +6,7 @@ import { readEngines } from "@units/settings/engines";
 import { RampikeMessageView } from "./message-view";
 import { loadMiscSettings } from "@units/settings/misc";
 import { getRoute } from "@root/utils";
+import { toast } from "@units/toasts";
 
 export async function setSwipe(chatId: string, messageId: number, swipeIx: number, value: string) {
 	const contents = await idb.get("chatContents", chatId);
@@ -182,10 +183,12 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 	if (streamingResult.success) {
 		const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
 		if (!updatedMessage) {
-			console.error("failed to save response message");
+			toast("failed to save response message");
 			return;
 		}
 		responseMessageControls.updateMessage(updatedMessage);
+	} else {
+		toast(streamingResult.error);
 	}
 
 	responseMessageControls.endStreaming();

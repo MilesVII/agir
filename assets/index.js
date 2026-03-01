@@ -3536,6 +3536,32 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         body: JSON.stringify(params),
         signal: abortController.signal
       });
+      if (!response.ok) {
+        const body = await nothrowAsync(response.text());
+        if (!body.success) {
+          return {
+            success: false,
+            error: `Status ${response.status}, unknown error`
+          };
+        }
+        const parsed = nothrow(() => JSON.parse(body.value));
+        if (!parsed.success || !parsed.value?.error?.message) {
+          return {
+            success: false,
+            error: `Engine says "${body}"
+Status ${response.status}`
+          };
+        }
+        const meta = parsed.value?.error?.metadata;
+        const metaWrapped = meta ? `
+Metadata:
+${JSON.stringify(meta, null, "	")}` : "";
+        return {
+          success: false,
+          error: `Engine says "${parsed.value.error.message}"
+Status ${response.status}${metaWrapped}`
+        };
+      }
       const reader = response.body?.getReader();
       if (!reader) {
         return {
@@ -3577,6 +3603,45 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }
     }
     return { success: true, value };
+  }
+
+  // src/units/toasts.ts
+  function toast(message, actions = []) {
+    const list = document.querySelector("#toast-container");
+    const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
+    const totalH = rects.reduce((p, c2) => p + c2.height, 0);
+    const item = d({
+      tagName: "div",
+      className: "toast pointer",
+      contents: message,
+      style: {
+        left: "var(--gap)",
+        bottom: `calc(${totalH}px + var(--gap) * ${rects.length + 1})`,
+        transform: "translateX(calc(-100% - var(--gap) * 2))"
+      },
+      events: {
+        click: (_2, el) => {
+          const { width } = el.getBoundingClientRect();
+          el.style.left = `calc(${-width}px - var(--gap))`;
+          el.addEventListener("transitionend", () => {
+            item.remove();
+            squish();
+          });
+        }
+      }
+    });
+    list.append(item);
+    setTimeout(() => item.style.transform = `translateX(0px)`, 100);
+  }
+  function squish() {
+    const list = document.querySelector("#toast-container");
+    let totalH = 0;
+    const items = Array.from(list.children);
+    items.forEach((item, ix) => {
+      const { height } = item.getBoundingClientRect();
+      item.style.bottom = `calc(${totalH}px + var(--gap) * ${ix + 1})`;
+      totalH += height;
+    });
   }
 
   // src/units/chat/utils.ts
@@ -3721,10 +3786,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     if (streamingResult.success) {
       const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
       if (!updatedMessage) {
-        console.error("failed to save response message");
+        toast("failed to save response message");
         return;
       }
       responseMessageControls.updateMessage(updatedMessage);
+    } else {
+      toast(streamingResult.error);
     }
     responseMessageControls.endStreaming();
     inputModes.tab = "main";
@@ -4308,7 +4375,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const engines = readEngines();
     if (!engines[engine]) return { success: false, error: "noengines" };
     const response = await runEngine(payload, engines[engine], (value) => onChunk(value, tix));
-    if (!response.success) return { success: false, error: "failed" };
+    if (!response.success) {
+      toast(response.error);
+      return { success: false, error: "failed" };
+    }
     const thinkingParts = response.value.split("</think>");
     const result = (thinkingParts[1] ?? thinkingParts[0]).trim();
     messages.messages[tix].rember = result;
@@ -4385,7 +4455,7 @@ ${m2.swipes[m2.selectedSwipe]}
     const { open: openRember } = initRember();
     const openRemberGuarded = () => {
       if (inputModes.tab !== "main") {
-        alert("please wait until message generation is over");
+        toast("please wait until message generation is over");
         return;
       }
       openRember();
@@ -5055,7 +5125,7 @@ ${m2.swipes[m2.selectedSwipe]}
   async function main() {
     units.forEach((u3) => u3());
     const dbAvailable = init();
-    if (!dbAvailable) alert("indexeddb init failed");
+    if (!dbAvailable) toast("indexeddb init failed");
   }
 })();
 /*! Bundled license information:

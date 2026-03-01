@@ -8,6 +8,7 @@ import { abortController } from "@root/run";
 import { ActiveEngines } from "@root/types";
 import { initChatEditor } from "./chat/editor";
 import { initRember } from "./chat/rember";
+import { toast } from "./toasts";
 
 export function chatUnit() {
 	const scroller     = document.querySelector<HTMLElement>("#play-messages")!;
@@ -37,7 +38,7 @@ export function chatUnit() {
 		const { open: openRember } = initRember();
 		const openRemberGuarded = () => {
 			if (inputModes.tab !== "main") {
-				alert("please wait until message generation is over");
+				toast("please wait until message generation is over");
 				return;
 			}
 			openRember();

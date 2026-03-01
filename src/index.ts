@@ -13,6 +13,7 @@ import { mainUnit }       from "@units/main";
 import { scenarioUnit }   from "@units/scenario";
 import { init as initPersist } from "./persist";
 import { libraryUnit } from "@units/library";
+import { toast } from "@units/toasts";
 
 defineTabs();
 defineRadio();
@@ -38,5 +39,5 @@ async function main() {
 	units.forEach(u => u());
 
 	const dbAvailable = initPersist();
-	if (!dbAvailable) alert("indexeddb init failed");
+	if (!dbAvailable) toast("indexeddb init failed");
 }

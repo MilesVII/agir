@@ -7,6 +7,7 @@ import { readActiveEngines, readEngines } from "@units/settings/engines";
 import { RampikeModal } from "@rampike/modal";
 import { getRoute, setSelectOptions } from "@root/utils";
 import { mudcrack } from "rampike";
+import { toast } from "@units/toasts";
 
 const remberDefaults = {
 	stride: 10,
@@ -215,7 +216,10 @@ export async function runRember(
 
 	const response = await runEngine(payload, engines[engine], value => onChunk(value, tix));
 
-	if (!response.success) return { success: false, error: "failed"};
+	if (!response.success) {
+		toast(response.error);
+		return { success: false, error: "failed"};
+	}
 	
 	const thinkingParts = response.value.split("</think>");
 	const result = (thinkingParts[1] ?? thinkingParts[0]!).trim();
