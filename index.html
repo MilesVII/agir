@@ -181,30 +181,36 @@
 					<button id="scenario-submit-button" class="lineout">save scenario</button>
 				</div>
 				<div class="main col pad float-center low-pad">
-					<div class="scenario-pictures">
-						<div class="list">
-							<div>Card icon</div>
-							<ram-image-picker id="scenario-card-picture" class="lineout pointer"></ram-image-picker>
+					<div class="list">
+						<div class="scenario-pictures">
+							<div class="list">
+								<div>Card icon</div>
+								<ram-image-picker id="scenario-card-picture" class="lineout pointer"></ram-image-picker>
+							</div>
+							<div class="list">
+								<div>Chat icon</div>
+								<ram-image-picker id="scenario-chat-picture" class="lineout pointer"></ram-image-picker>
+							</div>
 						</div>
-						<div class="list">
-							<div>Chat icon</div>
-							<ram-image-picker id="scenario-chat-picture" class="lineout pointer"></ram-image-picker>
-						</div>
+						<div class="hint">Card icon is used in chat when no chat icon is provided</div>
 					</div>
-					
+
 					<ram-labeled
 						legend="Card title"
 						id="scenario-card-title"
 						class="strip wide"
 						placeholder=""
 					></ram-labeled>
-					<ram-labeled
-						legend="Card description"
-						id="scenario-description"
-						class="strip wide"
-						placeholder=""
-						multiline
-					></ram-labeled>
+					<div class="list">
+						<a href="https://www.markdownguide.org/cheat-sheet/" class="hint float-end" target="_blank">Markdown cheatsheet</a>
+						<ram-labeled
+							legend="Card description"
+							id="scenario-description"
+							class="strip wide"
+							placeholder=""
+							multiline
+						></ram-labeled>
+					</div>
 					<button id="scenario-preview-button" class="lineout">Card description preview</button>
 					<div id="scenario-preview" class="lineout" hidden></div>
 					<ram-labeled
