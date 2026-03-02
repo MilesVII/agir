@@ -4514,7 +4514,7 @@ ${m2.swipes[m2.selectedSwipe]}
     if (!chat.success) return;
     const cardId = chat.value.scenario.id;
     const card = await idb.get("scenarios", cardId);
-    if (card.success)
+    if (card.success && card.value)
       window.open(`#scenario-editor.${cardId}`);
     else
       toast("Scenario card not found");

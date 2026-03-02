@@ -2,7 +2,6 @@ import { idb } from "@root/persist";
 import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
-import { toast } from "./toasts";
 
 const definitionTemplate = [
 	"# Characters",

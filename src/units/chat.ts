@@ -106,7 +106,7 @@ async function openScenarioIfExists() {
 
 	const cardId = chat.value.scenario.id;
 	const card = await idb.get("scenarios", cardId)
-	if (card.success)
+	if (card.success && card.value) // ehhh
 		window.open(`#scenario-editor.${cardId}`);
 	else
 		toast("Scenario card not found");
