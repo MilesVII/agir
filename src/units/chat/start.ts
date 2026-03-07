@@ -1,5 +1,6 @@
 import { idb } from "@root/persist";
 import { Chat, ChatMessage, Persona, Pronouns, ScenarioCard } from "@root/types";
+import { REMBER_DEFAULTS } from "./rember";
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {
 	"{{sub}}":    "subjective",
@@ -35,7 +36,9 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 			lastUpdate: Date.now(),
 			messageCount: messages?.length ?? 1,
 			scenario: preparedScenario,
-			userPersona: persona.value
+			userPersona: persona.value,
+			messageChunks: [],
+			rember: REMBER_DEFAULTS
 		}),
 		idb.set("chatContents", {
 			id: chatId,

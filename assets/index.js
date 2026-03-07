@@ -4218,8 +4218,8 @@ Status ${response.status}${metaWrapped}`
   }
 
   // src/units/chat/rember.ts
-  var remberDefaults = {
-    stride: 10,
+  var REMBER_DEFAULTS = {
+    stride: 20,
     prompt: [
       "you are tasked with providing summary of a text roleplay session.",
       "update provided state to reflect any changes to the state of the scenario.",
@@ -4229,7 +4229,7 @@ Status ${response.status}${metaWrapped}`
       "stay concise and ignore any info irrelevant to possible future scenarios.",
       "do not provide any commentary, only describe the new state, do not change the format (the headings)"
     ].join("\n"),
-    stateTemplate: [
+    template: [
       "# state",
       "## current location",
       "",
@@ -4275,8 +4275,8 @@ Status ${response.status}${metaWrapped}`
     async function onOpen() {
       const state = await getCurrentChat();
       if (!state) return;
-      prompt.value = state.chat.rember?.prompt ?? remberDefaults.prompt;
-      template.value = state.chat.rember?.template ?? remberDefaults.stateTemplate;
+      prompt.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
+      template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m2) => m2.rember);
       const items = remberMessages.map((m2) => remberMessageView(m2.id, m2.rember).container).toReversed();
@@ -4350,7 +4350,7 @@ Status ${response.status}${metaWrapped}`
     }
     function getStride() {
       const value = parseInt(strideInput.value, 10);
-      if (isNaN(value)) return remberDefaults.stride;
+      if (isNaN(value)) return REMBER_DEFAULTS.stride;
       return value;
     }
     return {
@@ -4853,7 +4853,9 @@ ${m2.swipes[m2.selectedSwipe]}
         lastUpdate: Date.now(),
         messageCount: messages?.length ?? 1,
         scenario: preparedScenario,
-        userPersona: persona.value
+        userPersona: persona.value,
+        messageChunks: [],
+        rember: REMBER_DEFAULTS
       }),
       idb.set("chatContents", {
         id: chatId,

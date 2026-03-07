@@ -1,16 +1,15 @@
 import { abortController, runEngine } from "@root/run";
 import { ChatMessage, Result } from "@root/types";
-import { loadMiscSettings } from "@units/settings/misc";
 import { dullMessage, getCurrentChat } from "./utils";
 import { idb, listen, local } from "@root/persist";
 import { readActiveEngines, readEngines } from "@units/settings/engines";
 import { RampikeModal } from "@rampike/modal";
-import { getRoute, setSelectOptions } from "@root/utils";
+import { setSelectOptions } from "@root/utils";
 import { mudcrack } from "rampike";
 import { toast } from "@units/toasts";
 
-const remberDefaults = {
-	stride: 10,
+export const REMBER_DEFAULTS = {
+	stride: 20,
 	prompt: [
 		"you are tasked with providing summary of a text roleplay session.",
 		"update provided state to reflect any changes to the state of the scenario.",
@@ -20,7 +19,7 @@ const remberDefaults = {
 		"stay concise and ignore any info irrelevant to possible future scenarios.",
 		"do not provide any commentary, only describe the new state, do not change the format (the headings)"
 	].join("\n"),
-	stateTemplate: [
+	template: [
 		"# state",
 		"## current location",
 		"",
@@ -72,8 +71,9 @@ export function initRember() {
 		const state = await getCurrentChat();
 		if (!state) return;
 
-		prompt.value   = state.chat.rember?.prompt   ?? remberDefaults.prompt;
-		template.value = state.chat.rember?.template ?? remberDefaults.stateTemplate;
+		// HACK: Remove optional after migrations
+		prompt.value   = state.chat.rember?.prompt   ?? REMBER_DEFAULTS.prompt;
+		template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
 
 		list.innerHTML = "";
 
@@ -152,7 +152,7 @@ export function initRember() {
 	}
 	function getStride() {
 		const value = parseInt(strideInput.value, 10);
-		if (isNaN(value)) return remberDefaults.stride;
+		if (isNaN(value)) return REMBER_DEFAULTS.stride;
 		return value;
 	}
 
