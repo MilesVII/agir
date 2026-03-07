@@ -93,6 +93,21 @@ function scenarioCardView(item: ScenarioCard) {
 	});
 	description.innerHTML = renderMD(item.card.description);
 
+	const author = mudcrack({
+		tagName: item.card.author?.url ? "a" : "span",
+		contents: item.card.author?.name ?? ""
+	});
+	if (item.card.author?.url) {
+		author.setAttribute("href", item.card.author.url);
+	}
+	const tokens = mudcrack({
+		className: "hint float-end",
+		contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`,
+		attributes: {
+			title: `${item.chat.tokenCount ?? "N/A"} tokens`
+		}
+	});
+
 	return mudcrack({
 		className: "scenario-card lineout",
 		contents: [
@@ -148,8 +163,9 @@ function scenarioCardView(item: ScenarioCard) {
 						]
 					}),
 					mudcrack({
-						className: "hint float-end",
-						contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`
+						tagName: "div",
+						className: "row",
+						contents: [ author, tokens ]
 					}),
 					mudcrack({
 						tagName: "hr"

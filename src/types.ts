@@ -53,6 +53,10 @@ export type ScenarioCard = {
 		picture: string | null,
 		title: string,
 		description: string,
+		author: {
+			name: string,
+			url: string | null
+		} | null,
 		tags: string[]
 	},
 	chat: {

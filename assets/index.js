@@ -4768,6 +4768,8 @@ ${m2.swipes[m2.selectedSwipe]}
     const chatIcon = document.querySelector("#scenario-chat-picture");
     const cardIcon = document.querySelector("#scenario-card-picture");
     const cardTitle = document.querySelector("#scenario-card-title");
+    const cardAuthorName = document.querySelector("#scenario-card-author-name");
+    const cardAuthorURL = document.querySelector("#scenario-card-author-url");
     const cardDescription = document.querySelector("#scenario-description");
     const cardTags = document.querySelector("#scenario-tags");
     const previewModal = document.querySelector("#scenario-preview");
@@ -4794,6 +4796,8 @@ ${m2.swipes[m2.selectedSwipe]}
         if (!scenario.success) return;
         cardIcon.value = scenario.value.card.picture ?? "";
         cardTitle.value = scenario.value.card.title;
+        cardAuthorName.value = scenario.value.card.author?.name ?? "";
+        cardAuthorURL.value = scenario.value.card.author?.url ?? "";
         cardDescription.value = scenario.value.card.description;
         cardTags.value = scenario.value.card.tags.join(", ");
         chatIcon.value = scenario.value.chat.picture ?? "";
@@ -4803,6 +4807,8 @@ ${m2.swipes[m2.selectedSwipe]}
       } else {
         cardIcon.usePlaceholder();
         cardTitle.value = "";
+        cardAuthorName.value = "";
+        cardAuthorURL.value = "";
         cardDescription.value = "";
         cardTags.value = "";
         chatIcon.usePlaceholder();
@@ -4825,6 +4831,14 @@ ${m2.swipes[m2.selectedSwipe]}
       const cardPicture = await cardIcon.valueHandle();
       const chatPicture = await chatIcon.valueHandle();
       const tags = cardTags.value.split(",").map((t) => t.trim()).filter((t) => t);
+      function author() {
+        if (cardAuthorName.value.trim()) {
+          return {
+            name: cardAuthorName.value.trim(),
+            url: cardAuthorURL.value.trim() || null
+          };
+        } else return null;
+      }
       const id = getRoute()[1] ?? crypto.randomUUID();
       const payload = {
         id,
@@ -4833,7 +4847,8 @@ ${m2.swipes[m2.selectedSwipe]}
           picture: cardPicture,
           title: cardTitle.value,
           description: cardDescription.value,
-          tags
+          tags,
+          author: author()
         },
         chat: {
           picture: chatPicture,
@@ -5077,6 +5092,20 @@ ${m2.swipes[m2.selectedSwipe]}
       className: "scenario-card-description md"
     });
     description.innerHTML = renderMD(item.card.description);
+    const author = d({
+      tagName: item.card.author?.url ? "a" : "span",
+      contents: item.card.author?.name ?? ""
+    });
+    if (item.card.author?.url) {
+      author.setAttribute("href", item.card.author.url);
+    }
+    const tokens = d({
+      className: "hint float-end",
+      contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`,
+      attributes: {
+        title: `${item.chat.tokenCount ?? "N/A"} tokens`
+      }
+    });
     return d({
       className: "scenario-card lineout",
       contents: [
@@ -5132,8 +5161,9 @@ ${m2.swipes[m2.selectedSwipe]}
               ]
             }),
             d({
-              className: "hint float-end",
-              contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`
+              tagName: "div",
+              className: "row",
+              contents: [author, tokens]
             }),
             d({
               tagName: "hr"

@@ -23,6 +23,8 @@ export function scenarioUnit() {
 	const chatIcon         = document.querySelector<RampikeImagePicker> ("#scenario-chat-picture")!;
 	const cardIcon         = document.querySelector<RampikeImagePicker> ("#scenario-card-picture")!;
 	const cardTitle        = document.querySelector<HTMLInputElement>   ("#scenario-card-title")!;
+	const cardAuthorName   = document.querySelector<HTMLInputElement>   ("#scenario-card-author-name")!;
+	const cardAuthorURL    = document.querySelector<HTMLInputElement>   ("#scenario-card-author-url")!;
 	const cardDescription  = document.querySelector<HTMLTextAreaElement>("#scenario-description")!;
 	const cardTags         = document.querySelector<HTMLTextAreaElement>("#scenario-tags")!;
 	const previewModal     = document.querySelector<RampikeModal>       ("#scenario-preview")!;
@@ -50,19 +52,23 @@ export function scenarioUnit() {
 		if (path[1]) {
 			const scenario = await idb.get("scenarios", path[1]);
 			if (!scenario.success) return;
-			cardIcon.value = scenario.value.card.picture ?? "";
-			cardTitle.value = scenario.value.card.title;
+			cardIcon.value        = scenario.value.card.picture ?? "";
+			cardTitle.value       = scenario.value.card.title;
+			cardAuthorName.value  = scenario.value.card.author?.name ?? "";
+			cardAuthorURL.value   = scenario.value.card.author?.url ?? "";
 			cardDescription.value = scenario.value.card.description;
-			cardTags.value = scenario.value.card.tags.join(", ");
+			cardTags.value        = scenario.value.card.tags.join(", ");
 
-			chatIcon.value = scenario.value.chat.picture ?? "";
-			characterName.value = scenario.value.chat.name;
-			defintion.value = scenario.value.chat.definition;
-			
+			chatIcon.value        = scenario.value.chat.picture ?? "";
+			characterName.value   = scenario.value.chat.name;
+			defintion.value       = scenario.value.chat.definition;
+
 			messagesControl.set(scenario.value.chat.initials);
 		} else {
 			cardIcon.usePlaceholder();
 			cardTitle.value = "";
+			cardAuthorName.value = "";
+			cardAuthorURL.value = "";
 			cardDescription.value = "";
 			cardTags.value = "";
 
@@ -93,6 +99,15 @@ export function scenarioUnit() {
 			.map(t => t.trim())
 			.filter(t => t);
 
+		function author(): ScenarioCard["card"]["author"] {
+			if (cardAuthorName.value.trim()) {
+				return {
+					name: cardAuthorName.value.trim(),
+					url: cardAuthorURL.value.trim() || null
+				};
+			} else return null;
+		}
+
 		const id = getRoute()[1] ?? crypto.randomUUID();
 		const payload: ScenarioCard = {
 			id,
@@ -101,7 +116,8 @@ export function scenarioUnit() {
 				picture: cardPicture,
 				title: cardTitle.value,
 				description: cardDescription.value,
-				tags
+				tags,
+				author: author()
 			},
 			chat: {
 				picture: chatPicture,
