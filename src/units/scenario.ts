@@ -3,6 +3,7 @@ import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/uti
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
 import { toast } from "./toasts";
+import { estimateTokenCount } from "tokenx";
 
 const definitionTemplate = [
 	"# Characters",
@@ -100,7 +101,8 @@ export function scenarioUnit() {
 				picture: chatPicture,
 				name: characterName.value,
 				definition: defintion.value,
-				initials: firstMessages
+				initials: firstMessages,
+				tokenCount: estimateTokenCount(defintion.value)
 			}
 		};
 

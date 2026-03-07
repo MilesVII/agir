@@ -1,6 +1,7 @@
 import { RampikeModal } from "@rampike/modal";
 import { idb, listen } from "@root/persist";
 import { getRoute, makeResizable, textareaReconsider } from "@root/utils";
+import { estimateTokenCount } from "tokenx";
 
 export function initChatEditor() {
 	const saveButton = document.querySelector<HTMLButtonElement>("#play-editor-save")!;
@@ -41,6 +42,7 @@ export function initChatEditor() {
 		const chat = await getChat();
 		if (!chat) return;
 		chat.scenario.definition = value;
+		chat.scenario.tokenCount = estimateTokenCount(value);
 		await idb.set("chats", chat);
 
 		modal.close();

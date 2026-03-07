@@ -160,3 +160,11 @@ export async function asyncMap<T, R>(
 ): Promise<R[]> {
 	return await Promise.all(a.map(map));
 }
+
+export function neatNumber(v: number): string {
+	if (v < 1000) {
+		return String(Math.round(v));
+	}
+
+	return (v / 1000).toFixed(1) + "k";
+}

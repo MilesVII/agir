@@ -59,7 +59,8 @@ export type ScenarioCard = {
 		picture: string | null,
 		name: string,
 		definition: string,
-		initials: string[]
+		initials: string[],
+		tokenCount: number
 	}
 };
 

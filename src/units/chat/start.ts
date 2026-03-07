@@ -1,6 +1,7 @@
 import { idb } from "@root/persist";
 import { Chat, ChatMessage, Persona, Pronouns, ScenarioCard } from "@root/types";
 import { REMBER_DEFAULTS } from "./rember";
+import { estimateTokenCount } from "tokenx";
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {
 	"{{sub}}":    "subjective",
@@ -73,12 +74,15 @@ function prepareScenario(origin: ScenarioCard, persona: Persona): Chat["scenario
 		origin.chat.name, persona.name,
 		persona.description
 	);
-	
+
+	const definition = runMacros(origin.chat.definition);
+
 	return {
 		id: origin.id,
 		picture: origin.chat.picture || origin.card.picture,
 		name: origin.chat.name || origin.card.title,
-		definition: runMacros(origin.chat.definition),
-		initials: origin.chat.initials.map(runMacros)
+		definition,
+		initials: origin.chat.initials.map(runMacros),
+		tokenCount: estimateTokenCount(definition)
 	};
 }

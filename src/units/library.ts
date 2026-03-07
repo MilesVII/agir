@@ -1,6 +1,6 @@
 import { getBlobLink, idb, listen, upload } from "@root/persist";
 import { mudcrack } from "rampike";
-import { b64Encoder, download, placeholder, renderMD, setSelectOptions } from "@root/utils";
+import { b64Encoder, download, neatNumber, placeholder, renderMD, setSelectOptions } from "@root/utils";
 import { RampikeModal } from "@rampike/modal";
 import { start } from "./chat/start";
 import { ScenarioCard } from "@root/types";
@@ -64,105 +64,111 @@ async function update() {
 	const items = await idb.getAll("scenarios");
 	if (!items.success) return;
 
-	const contents = items.value.reverse().map(item => {
-		const play = () => openStartModal(item.id, item.card.description);
-
-		let icon = mudcrack({
-			tagName: "img",
-			className: "pointer",
-			attributes: {
-				src: placeholder(null)
-			},
-			events: {
-				click: play
-			}
-		});
-		if (item.card.picture) {
-			getBlobLink(item.card.picture)
-				.then(src => { if (src) icon.src = src });
-		}
-		const description = mudcrack({
-			className: "scenario-card-description"
-		});
-		description.innerHTML = renderMD(item.card.description);
-
-		return mudcrack({
-			className: "scenario-card lineout",
-			contents: [
-				icon,
-				mudcrack({
-					className: "list",
-					contents: [
-						mudcrack({
-							className: "row-compact",
-							contents: [
-								mudcrack({
-									tagName: "h6",
-									className: "pointer",
-									contents: item.card.title,
-									events: {
-										click: play
-									}
-								}),
-								mudcrack({
-									tagName: "button",
-									className: "strip ghost pointer",
-									events: {
-										click: () => downloadScenario(item)
-									},
-									contents: "⤓"
-								}),
-								mudcrack({
-									tagName: "button",
-									className: "strip ghost pointer",
-									events: {
-										click: () => deleteScenario(item.id, item.card.title)
-									},
-									contents: "✖"
-								}),
-								mudcrack({
-									tagName: "button",
-									className: "strip ghost pointer",
-									events: {
-										click: () => {
-											document.location.hash = `scenario-editor.${item.id}`
-										}
-									},
-									contents: "✎"
-								}),
-								mudcrack({
-									tagName: "button",
-									className: "lineout",
-									events: {
-										click: play
-									},
-									contents: "play"
-								})
-							]
-						}),
-						mudcrack({
-							tagName: "hr"
-						}),
-						description,
-						mudcrack({
-							className: "scenario-card-tags",
-							contents: item.card.tags.map(tag =>
-								mudcrack({
-									tagName: "span",
-									className: "pointer",
-									contents: tag
-								})
-							).toReversed()
-						})
-					]
-				})
-			]
-		})
-	});
+	const contents = items.value.reverse().map(scenarioCardView);
 
 	list.append(...contents);
 	if (contents.length === 0)
 		list.append(mudcrack({ className: "placeholder", contents: "No scenario cards found" }));
+}
+
+function scenarioCardView(item: ScenarioCard) {
+	const play = () => openStartModal(item.id, item.card.description);
+
+	let icon = mudcrack({
+		tagName: "img",
+		className: "pointer",
+		attributes: {
+			src: placeholder(null)
+		},
+		events: {
+			click: play
+		}
+	});
+	if (item.card.picture) {
+		getBlobLink(item.card.picture)
+			.then(src => { if (src) icon.src = src });
+	}
+	const description = mudcrack({
+		className: "scenario-card-description"
+	});
+	description.innerHTML = renderMD(item.card.description);
+
+	return mudcrack({
+		className: "scenario-card lineout",
+		contents: [
+			icon,
+			mudcrack({
+				className: "list",
+				contents: [
+					mudcrack({
+						className: "row-compact",
+						contents: [
+							mudcrack({
+								tagName: "h6",
+								className: "pointer",
+								contents: item.card.title,
+								events: {
+									click: play
+								}
+							}),
+							mudcrack({
+								tagName: "button",
+								className: "strip ghost pointer",
+								events: {
+									click: () => downloadScenario(item)
+								},
+								contents: "⤓"
+							}),
+							mudcrack({
+								tagName: "button",
+								className: "strip ghost pointer",
+								events: {
+									click: () => deleteScenario(item.id, item.card.title)
+								},
+								contents: "✖"
+							}),
+							mudcrack({
+								tagName: "button",
+								className: "strip ghost pointer",
+								events: {
+									click: () => {
+										document.location.hash = `scenario-editor.${item.id}`
+									}
+								},
+								contents: "✎"
+							}),
+							mudcrack({
+								tagName: "button",
+								className: "lineout",
+								events: {
+									click: play
+								},
+								contents: "play"
+							})
+						]
+					}),
+					mudcrack({
+						className: "hint float-end",
+						contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`
+					}),
+					mudcrack({
+						tagName: "hr"
+					}),
+					description,
+					mudcrack({
+						className: "scenario-card-tags",
+						contents: item.card.tags.map(tag =>
+							mudcrack({
+								tagName: "span",
+								className: "pointer",
+								contents: tag
+							})
+						).toReversed()
+					})
+				]
+			})
+		]
+	})
 }
 
 async function downloadScenario(card: ScenarioCard) {

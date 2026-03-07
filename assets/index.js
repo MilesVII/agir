@@ -2776,6 +2776,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function asyncMap(a, map2) {
     return await Promise.all(a.map(map2));
   }
+  function neatNumber(v2) {
+    if (v2 < 1e3) {
+      return String(Math.round(v2));
+    }
+    return (v2 / 1e3).toFixed(1) + "k";
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -4178,6 +4184,59 @@ Status ${response.status}${metaWrapped}`
     list.scrollTop = list.scrollHeight;
   }
 
+  // node_modules/tokenx/dist/index.mjs
+  var PATTERNS = {
+    whitespace: /^\s+$/,
+    cjk: /[\u4E00-\u9FFF\u3400-\u4DBF\u3000-\u303F\uFF00-\uFFEF\u30A0-\u30FF\u2E80-\u2EFF\u31C0-\u31EF\u3200-\u32FF\u3300-\u33FF\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF]/,
+    numeric: /^\d+(?:[.,]\d+)*$/,
+    punctuation: /[.,!?;(){}[\]<>:/\\|@#$%^&*+=`~_-]/,
+    alphanumeric: /^[a-zA-Z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+$/
+  };
+  var TOKEN_SPLIT_PATTERN = /* @__PURE__ */ new RegExp(`(\\s+|${PATTERNS.punctuation.source}+)`);
+  var DEFAULT_CHARS_PER_TOKEN = 6;
+  var SHORT_TOKEN_THRESHOLD = 3;
+  var DEFAULT_LANGUAGE_CONFIGS = [
+    {
+      pattern: /[äöüßẞ]/i,
+      averageCharsPerToken: 3
+    },
+    {
+      pattern: /[éèêëàâîïôûùüÿçœæáíóúñ]/i,
+      averageCharsPerToken: 3
+    },
+    {
+      pattern: /[ąćęłńóśźżěščřžýůúďťň]/i,
+      averageCharsPerToken: 3.5
+    }
+  ];
+  function estimateTokenCount(text2, options = {}) {
+    if (!text2) return 0;
+    const { defaultCharsPerToken = DEFAULT_CHARS_PER_TOKEN, languageConfigs = DEFAULT_LANGUAGE_CONFIGS } = options;
+    const segments = text2.split(TOKEN_SPLIT_PATTERN).filter(Boolean);
+    let tokenCount = 0;
+    for (const segment of segments) tokenCount += estimateSegmentTokens(segment, languageConfigs, defaultCharsPerToken);
+    return tokenCount;
+  }
+  function estimateSegmentTokens(segment, languageConfigs, defaultCharsPerToken) {
+    if (PATTERNS.whitespace.test(segment)) return 0;
+    if (PATTERNS.cjk.test(segment)) return getCharacterCount(segment);
+    if (PATTERNS.numeric.test(segment)) return 1;
+    if (segment.length <= SHORT_TOKEN_THRESHOLD) return 1;
+    if (PATTERNS.punctuation.test(segment)) return segment.length > 1 ? Math.ceil(segment.length / 2) : 1;
+    if (PATTERNS.alphanumeric.test(segment)) {
+      const charsPerToken$1 = getLanguageSpecificCharsPerToken(segment, languageConfigs) ?? defaultCharsPerToken;
+      return Math.ceil(segment.length / charsPerToken$1);
+    }
+    const charsPerToken = getLanguageSpecificCharsPerToken(segment, languageConfigs) ?? defaultCharsPerToken;
+    return Math.ceil(segment.length / charsPerToken);
+  }
+  function getLanguageSpecificCharsPerToken(segment, languageConfigs) {
+    for (const config of languageConfigs) if (config.pattern.test(segment)) return config.averageCharsPerToken;
+  }
+  function getCharacterCount(text2) {
+    return Array.from(text2).length;
+  }
+
   // src/units/chat/editor.ts
   function initChatEditor() {
     const saveButton = document.querySelector("#play-editor-save");
@@ -4213,6 +4272,7 @@ Status ${response.status}${metaWrapped}`
       const chat = await getChat();
       if (!chat) return;
       chat.scenario.definition = value;
+      chat.scenario.tokenCount = estimateTokenCount(value);
       await idb.set("chats", chat);
       modal.close();
     });
@@ -4774,7 +4834,8 @@ ${m2.swipes[m2.selectedSwipe]}
           picture: chatPicture,
           name: characterName.value,
           definition: defintion.value,
-          initials: firstMessages
+          initials: firstMessages,
+          tokenCount: estimateTokenCount(defintion.value)
         }
       };
       if (!payload.chat.definition.includes("{{persona}}")) {
@@ -4906,12 +4967,14 @@ ${m2.swipes[m2.selectedSwipe]}
       persona.name,
       persona.description
     );
+    const definition = runMacros(origin.chat.definition);
     return {
       id: origin.id,
       picture: origin.chat.picture || origin.card.picture,
       name: origin.chat.name || origin.card.title,
-      definition: runMacros(origin.chat.definition),
-      initials: origin.chat.initials.map(runMacros)
+      definition,
+      initials: origin.chat.initials.map(runMacros),
+      tokenCount: estimateTokenCount(definition)
     };
   }
 
@@ -4982,103 +5045,108 @@ ${m2.swipes[m2.selectedSwipe]}
     list.innerHTML = "";
     const items = await idb.getAll("scenarios");
     if (!items.success) return;
-    const contents = items.value.reverse().map((item) => {
-      const play = () => openStartModal(item.id, item.card.description);
-      let icon = d({
-        tagName: "img",
-        className: "pointer",
-        attributes: {
-          src: placeholder(null)
-        },
-        events: {
-          click: play
-        }
-      });
-      if (item.card.picture) {
-        getBlobLink(item.card.picture).then((src) => {
-          if (src) icon.src = src;
-        });
-      }
-      const description = d({
-        className: "scenario-card-description"
-      });
-      description.innerHTML = renderMD(item.card.description);
-      return d({
-        className: "scenario-card lineout",
-        contents: [
-          icon,
-          d({
-            className: "list",
-            contents: [
-              d({
-                className: "row-compact",
-                contents: [
-                  d({
-                    tagName: "h6",
-                    className: "pointer",
-                    contents: item.card.title,
-                    events: {
-                      click: play
-                    }
-                  }),
-                  d({
-                    tagName: "button",
-                    className: "strip ghost pointer",
-                    events: {
-                      click: () => downloadScenario(item)
-                    },
-                    contents: "\u2913"
-                  }),
-                  d({
-                    tagName: "button",
-                    className: "strip ghost pointer",
-                    events: {
-                      click: () => deleteScenario(item.id, item.card.title)
-                    },
-                    contents: "\u2716"
-                  }),
-                  d({
-                    tagName: "button",
-                    className: "strip ghost pointer",
-                    events: {
-                      click: () => {
-                        document.location.hash = `scenario-editor.${item.id}`;
-                      }
-                    },
-                    contents: "\u270E"
-                  }),
-                  d({
-                    tagName: "button",
-                    className: "lineout",
-                    events: {
-                      click: play
-                    },
-                    contents: "play"
-                  })
-                ]
-              }),
-              d({
-                tagName: "hr"
-              }),
-              description,
-              d({
-                className: "scenario-card-tags",
-                contents: item.card.tags.map(
-                  (tag) => d({
-                    tagName: "span",
-                    className: "pointer",
-                    contents: tag
-                  })
-                ).toReversed()
-              })
-            ]
-          })
-        ]
-      });
-    });
+    const contents = items.value.reverse().map(scenarioCardView);
     list.append(...contents);
     if (contents.length === 0)
       list.append(d({ className: "placeholder", contents: "No scenario cards found" }));
+  }
+  function scenarioCardView(item) {
+    const play = () => openStartModal(item.id, item.card.description);
+    let icon = d({
+      tagName: "img",
+      className: "pointer",
+      attributes: {
+        src: placeholder(null)
+      },
+      events: {
+        click: play
+      }
+    });
+    if (item.card.picture) {
+      getBlobLink(item.card.picture).then((src) => {
+        if (src) icon.src = src;
+      });
+    }
+    const description = d({
+      className: "scenario-card-description"
+    });
+    description.innerHTML = renderMD(item.card.description);
+    return d({
+      className: "scenario-card lineout",
+      contents: [
+        icon,
+        d({
+          className: "list",
+          contents: [
+            d({
+              className: "row-compact",
+              contents: [
+                d({
+                  tagName: "h6",
+                  className: "pointer",
+                  contents: item.card.title,
+                  events: {
+                    click: play
+                  }
+                }),
+                d({
+                  tagName: "button",
+                  className: "strip ghost pointer",
+                  events: {
+                    click: () => downloadScenario(item)
+                  },
+                  contents: "\u2913"
+                }),
+                d({
+                  tagName: "button",
+                  className: "strip ghost pointer",
+                  events: {
+                    click: () => deleteScenario(item.id, item.card.title)
+                  },
+                  contents: "\u2716"
+                }),
+                d({
+                  tagName: "button",
+                  className: "strip ghost pointer",
+                  events: {
+                    click: () => {
+                      document.location.hash = `scenario-editor.${item.id}`;
+                    }
+                  },
+                  contents: "\u270E"
+                }),
+                d({
+                  tagName: "button",
+                  className: "lineout",
+                  events: {
+                    click: play
+                  },
+                  contents: "play"
+                })
+              ]
+            }),
+            d({
+              className: "hint float-end",
+              contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`
+            }),
+            d({
+              tagName: "hr"
+            }),
+            description,
+            d({
+              className: "scenario-card-tags",
+              contents: item.card.tags.map(
+                (tag) => d({
+                  tagName: "span",
+                  className: "pointer",
+                  contents: tag
+                })
+              ).toReversed()
+            })
+          ]
+        })
+      ]
+    });
   }
   async function downloadScenario(card) {
     const payload = { ...card };
