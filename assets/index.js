@@ -3614,10 +3614,11 @@ Status ${response.status}${metaWrapped}`
   }
 
   // src/units/toasts.ts
-  function toast(message, actions = []) {
+  function toast(message, options) {
     const list = document.querySelector("#toast-container");
     const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
     const totalH = rects.reduce((p, c2) => p + c2.height, 0);
+    let closed = false;
     const item = d({
       tagName: "div",
       className: "toast pointer",
@@ -3628,18 +3629,24 @@ Status ${response.status}${metaWrapped}`
         transform: "translateX(calc(-100% - var(--gap) * 2))"
       },
       events: {
-        click: (_2, el) => {
-          const { width } = el.getBoundingClientRect();
-          el.style.left = `calc(${-width}px - var(--gap))`;
-          el.addEventListener("transitionend", () => {
-            item.remove();
-            squish();
-          });
-        }
+        click: close
       }
     });
+    function close() {
+      if (closed) return;
+      closed = true;
+      const { width } = item.getBoundingClientRect();
+      item.style.left = `calc(${-width}px - var(--gap))`;
+      item.addEventListener("transitionend", () => {
+        item.remove();
+        squish();
+      });
+    }
     list.append(item);
     setTimeout(() => item.style.transform = `translateX(0px)`, 100);
+    if (options?.timeoutMS) {
+      setTimeout(close, options.timeoutMS);
+    }
   }
   function squish() {
     const list = document.querySelector("#toast-container");
@@ -3941,7 +3948,10 @@ Status ${response.status}${metaWrapped}`
     const copyButton = controlButton(
       "\u29C9",
       "copy message",
-      () => navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe])
+      async () => {
+        await navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe]);
+        toast("message copied to clipboard", { timeoutMS: 3200 });
+      }
     );
     function updateRerollButtonStatus() {
       if (msg.from === "model" && isLast)
@@ -4767,6 +4777,14 @@ ${m2.swipes[m2.selectedSwipe]}
           initials: firstMessages
         }
       };
+      if (!payload.chat.definition.includes("{{persona}}")) {
+        toast([
+          "warning!\nthe saved definition lacks",
+          " {{persona}} macro -- meaning the bot",
+          " won't be able to know abything about",
+          " user's persona"
+        ].join(""));
+      }
       await idb.set("scenarios", payload);
       window.location.hash = "library";
     });

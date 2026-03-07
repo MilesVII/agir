@@ -2,6 +2,7 @@ import { idb } from "@root/persist";
 import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
+import { toast } from "./toasts";
 
 const definitionTemplate = [
 	"# Characters",
@@ -102,6 +103,15 @@ export function scenarioUnit() {
 				initials: firstMessages
 			}
 		};
+
+		if (!payload.chat.definition.includes("{{persona}}")) {
+			toast([
+				"warning!\nthe saved definition lacks",
+				" {{persona}} macro -- meaning the bot",
+				" won't be able to know abything about",
+				" user's persona"
+			].join(""));
+		}
 
 		await idb.set("scenarios", payload);
 		window.location.hash = "library";

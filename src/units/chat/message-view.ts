@@ -1,5 +1,6 @@
 import { ChatMessage } from "@root/types";
 import { elementVisible, placeholder, renderMD, renderMDAsync } from "@root/utils";
+import { toast } from "@units/toasts";
 import { mudcrack, rampike } from "rampike";
 
 export function makeMessageView(
@@ -103,7 +104,10 @@ export function makeMessageView(
 	);
 	const copyButton = controlButton(
 		"⧉", "copy message",
-		() => navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe])
+		async () => {
+			await navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe]);
+			toast("message copied to clipboard", { timeoutMS: 3200 });
+		}
 	);
 
 	function updateRerollButtonStatus() {

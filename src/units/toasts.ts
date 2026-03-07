@@ -1,10 +1,16 @@
 import { mudcrack } from "rampike";
 
-export function toast(message: string, actions: [caption: string, cb: () => void][] = []) {
+type ToastOptions = {
+	timeoutMS?: number,
+	actions?: [caption: string, cb: () => void][]
+};
+
+export function toast(message: string, options?: ToastOptions) {
 	const list = document.querySelector("#toast-container")!;
 	
 	const rects = Array.from(list.children).map(t => t.getBoundingClientRect());
 	const totalH = rects.reduce((p, c) => p + c.height, 0);
+	let closed = false;
 
 	const item = mudcrack({
 		tagName: "div",
@@ -16,19 +22,28 @@ export function toast(message: string, actions: [caption: string, cb: () => void
 			transform: "translateX(calc(-100% - var(--gap) * 2))"
 		},
 		events: {
-			click: (_, el) => {
-				const { width } = el.getBoundingClientRect();
-				el.style.left = `calc(${-width}px - var(--gap))`;
-				el.addEventListener("transitionend", () => {
-					item.remove();
-					squish();
-				});
-			}
+			click: close
 		}
 	});
 
+	function close() {
+		if (closed) return;
+		closed = true;
+
+		const { width } = item.getBoundingClientRect();
+		item.style.left = `calc(${-width}px - var(--gap))`;
+		item.addEventListener("transitionend", () => {
+			item.remove();
+			squish();
+		});
+	}
+
 	list.append(item);
 	setTimeout(() => item.style.transform = `translateX(0px)`, 100);
+
+	if (options?.timeoutMS) {
+		setTimeout(close, options.timeoutMS);
+	}
 }
 
 function squish() {
