@@ -10,7 +10,13 @@ export function initBackup() {
 }
 
 async function backup() {
-	const [chatContents, chats, personas, scenarios, media] = (await Promise.all([
+	const [
+		chatContents,
+		chats,
+		personas,
+		scenarios,
+		media
+	] = (await Promise.all([
 		idb.getAll("chatContents"),
 		idb.getAll("chats"),
 		idb.getAll("personas"),
@@ -73,6 +79,9 @@ async function restore(picker: RampikeFilePicker) {
 		if (store === "media") continue;
 
 		for (const item of data) {
+			// HACK: temporary migration upgrade
+			if (store === "chats" && !item.messageChunks)
+				item.messageChunks = [];
 			// @ts-ignore
 			await idb.set(store, item);
 		}

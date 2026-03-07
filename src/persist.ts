@@ -134,7 +134,7 @@ function open() {
 			const chats =     db.createObjectStore("chats",        { keyPath: "id" });
 			                  db.createObjectStore("chatContents", { keyPath: "id" });
 			const scenarios = db.createObjectStore("scenarios",    { keyPath: "id" });
-			
+
 			 personas.createIndex(INDEX_SORTED, IDB_INDESEX.personas);
 			    chats.createIndex(INDEX_SORTED, IDB_INDESEX.chats);
 			scenarios.createIndex(INDEX_SORTED, IDB_INDESEX.scenarios);

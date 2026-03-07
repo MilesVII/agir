@@ -3403,7 +3403,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     importPicker.addEventListener("input", () => restore(importPicker));
   }
   async function backup() {
-    const [chatContents, chats, personas, scenarios, media] = await Promise.all([
+    const [
+      chatContents,
+      chats,
+      personas,
+      scenarios,
+      media
+    ] = await Promise.all([
       idb.getAll("chatContents"),
       idb.getAll("chats"),
       idb.getAll("personas"),
@@ -3454,6 +3460,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     for (const [store, data] of Object.entries(parsed.idb)) {
       if (store === "media") continue;
       for (const item of data) {
+        if (store === "chats" && !item.messageChunks)
+          item.messageChunks = [];
         await idb.set(store, item);
       }
     }

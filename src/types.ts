@@ -71,6 +71,7 @@ export type Chat = {
 	} & ScenarioCard["chat"],
 	lastUpdate: number,
 	messageCount: number,
+	messageChunks: string[],
 	rember: RemberSettings
 };
 export type ChatMessage = {
