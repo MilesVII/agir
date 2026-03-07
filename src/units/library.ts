@@ -89,7 +89,7 @@ function scenarioCardView(item: ScenarioCard) {
 			.then(src => { if (src) icon.src = src });
 	}
 	const description = mudcrack({
-		className: "scenario-card-description"
+		className: "scenario-card-description md"
 	});
 	description.innerHTML = renderMD(item.card.description);
 

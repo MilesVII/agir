@@ -4,6 +4,7 @@ import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
 import { toast } from "./toasts";
 import { estimateTokenCount } from "tokenx";
+import { RampikeModal } from "@rampike/modal";
 
 const definitionTemplate = [
 	"# Characters",
@@ -24,7 +25,9 @@ export function scenarioUnit() {
 	const cardTitle        = document.querySelector<HTMLInputElement>   ("#scenario-card-title")!;
 	const cardDescription  = document.querySelector<HTMLTextAreaElement>("#scenario-description")!;
 	const cardTags         = document.querySelector<HTMLTextAreaElement>("#scenario-tags")!;
-	const preview          = document.querySelector<HTMLDivElement>     ("#scenario-preview")!;
+	const previewModal     = document.querySelector<RampikeModal>       ("#scenario-preview")!;
+	const preview          = document.querySelector<HTMLDivElement>     ("#scenario-preview-container")!;
+	const previewClose     = document.querySelector<HTMLDivElement>     ("#scenario-preview-close")!;
 	const characterName    = document.querySelector<HTMLInputElement>   ("#scenario-character-name")!;
 	const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-defintion")!;
 	const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
@@ -40,6 +43,9 @@ export function scenarioUnit() {
 	async function load() {
 		const path = getRoute();
 		if (path[0] !== "scenario-editor") return;
+		cardIcon.usePlaceholder();
+		chatIcon.usePlaceholder();
+		document.body.scrollTo({ behavior: "instant", top: 0 });
 
 		if (path[1]) {
 			const scenario = await idb.get("scenarios", path[1]);
@@ -119,10 +125,11 @@ export function scenarioUnit() {
 		window.location.hash = "library";
 	});
 
+	previewClose.addEventListener("click", () => previewModal.close());
 	previewButton.addEventListener("click", () => {
 		const content = cardDescription.value;
 		preview.innerHTML = renderMD(content);
-		preview.hidden = false;
+		previewModal.open();
 	});
 }
 

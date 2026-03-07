@@ -3874,7 +3874,7 @@ Status ${response.status}${metaWrapped}`
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = d({
       tagName: "div",
-      className: "message-text",
+      className: "message-text md",
       contents: text2
     });
     const swipesCaption = d({
@@ -4770,7 +4770,9 @@ ${m2.swipes[m2.selectedSwipe]}
     const cardTitle = document.querySelector("#scenario-card-title");
     const cardDescription = document.querySelector("#scenario-description");
     const cardTags = document.querySelector("#scenario-tags");
-    const preview = document.querySelector("#scenario-preview");
+    const previewModal = document.querySelector("#scenario-preview");
+    const preview = document.querySelector("#scenario-preview-container");
+    const previewClose = document.querySelector("#scenario-preview-close");
     const characterName = document.querySelector("#scenario-character-name");
     const defintion = document.querySelector("#scenario-defintion");
     const previewButton = document.querySelector("#scenario-preview-button");
@@ -4784,6 +4786,9 @@ ${m2.swipes[m2.selectedSwipe]}
     async function load() {
       const path = getRoute();
       if (path[0] !== "scenario-editor") return;
+      cardIcon.usePlaceholder();
+      chatIcon.usePlaceholder();
+      document.body.scrollTo({ behavior: "instant", top: 0 });
       if (path[1]) {
         const scenario = await idb.get("scenarios", path[1]);
         if (!scenario.success) return;
@@ -4849,10 +4854,11 @@ ${m2.swipes[m2.selectedSwipe]}
       await idb.set("scenarios", payload);
       window.location.hash = "library";
     });
+    previewClose.addEventListener("click", () => previewModal.close());
     previewButton.addEventListener("click", () => {
       const content = cardDescription.value;
       preview.innerHTML = renderMD(content);
-      preview.hidden = false;
+      previewModal.open();
     });
   }
   function initFirstMessages() {
@@ -5068,7 +5074,7 @@ ${m2.swipes[m2.selectedSwipe]}
       });
     }
     const description = d({
-      className: "scenario-card-description"
+      className: "scenario-card-description md"
     });
     description.innerHTML = renderMD(item.card.description);
     return d({

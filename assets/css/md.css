@@ -1,16 +1,18 @@
-.message-text em {
+
+
+.md em {
 	color: var(--color-subtext);
 	font-style: italic;
 }
 
-.message-text p:not(:first-child) {
+.md p:not(:first-child) {
 	padding-top: .42em;
 }
 
-.message-text p {
+.md p {
 	white-space: pre-wrap;
 }
 
-.message-text think {
+.md think {
 	opacity: .6;
 }

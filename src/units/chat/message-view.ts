@@ -29,7 +29,7 @@ export function makeMessageView(
 	const text = msg.swipes[msg.selectedSwipe];
 	const textBox = mudcrack({
 		tagName: "div",
-		className: "message-text",
+		className: "message-text md",
 		contents: text
 	});
 	const swipesCaption = mudcrack({

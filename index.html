@@ -212,7 +212,6 @@
 						></ram-labeled>
 					</div>
 					<button id="scenario-preview-button" class="lineout">Card description preview</button>
-					<div id="scenario-preview" class="lineout" hidden></div>
 					<ram-labeled
 						legend="Tags (comma separated)"
 						id="scenario-tags"
@@ -334,7 +333,11 @@
 					</ram-file-picker>
 				</div>
 			</div>
-			<div id="library-start-description" class="lineout"></div>
+			<div id="library-start-description" class="lineout md"></div>
+		</ram-modal>
+		<ram-modal id="scenario-preview">
+			<button id="scenario-preview-close" class="lineout float-end">close</button>
+			<div id="scenario-preview-container" class="lineout md"></div>
 		</ram-modal>
 		<ram-modal id="play-editor">
 			<div class="row-compact">
