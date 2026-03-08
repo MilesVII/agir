@@ -164,7 +164,7 @@ function scenarioCardView(item: ScenarioCard) {
 					}),
 					mudcrack({
 						tagName: "div",
-						className: "row",
+						className: "row baseline",
 						contents: [ author, tokens ]
 					}),
 					mudcrack({

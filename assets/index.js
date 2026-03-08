@@ -5186,7 +5186,7 @@ ${m3.swipes[m3.selectedSwipe]}
             }),
             T({
               tagName: "div",
-              className: "row",
+              className: "row baseline",
               contents: [author, tokens]
             }),
             T({

@@ -26,11 +26,9 @@
 }
 .row {
 	flex-flow: row nowrap;
-	align-items: baseline;
 }
 .row-wrap {
 	flex-flow: row wrap;
-	align-items: baseline;
 	gap: var(--dims-smol);
 }
 .list {
@@ -42,6 +40,10 @@
 	display: flex;
 	flex-flow: row nowrap;
 	gap: var(--dims-smol);
+}
+
+.baseline {
+	align-items: baseline;
 }
 
 .float-center {
