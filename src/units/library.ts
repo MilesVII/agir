@@ -111,9 +111,15 @@ function scenarioCardView(item: ScenarioCard) {
 	return mudcrack({
 		className: "scenario-card lineout",
 		contents: [
-			icon,
 			mudcrack({
-				className: "list",
+				tagName: "div",
+				className: "scenario-card-icon-container",
+				contents: [
+					icon
+				]
+			}),
+			mudcrack({
+				className: "list grow",
 				contents: [
 					mudcrack({
 						className: "row-compact",

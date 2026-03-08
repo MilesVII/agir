@@ -168,14 +168,15 @@ summary.settings-label {
 	gap: var(--dims-reg);
 	/* height: fit-content; */
 }
-.scenario-card img {
+.scenario-card-icon-container {
 	flex-shrink: 0;
-	aspect-ratio: 1/1;
-	object-fit: cover;
+	overflow: hidden;
 	border-radius: var(--dims-smol);
+	height: fit-content;
 }
-.scenario-card > div {
-	flex-grow: 1;
+.scenario-card-icon-container img {
+	object-fit: contain;
+	border-radius: var(--dims-smol);
 }
 .scenario-card h6 {
 	font: var(--font-bold);

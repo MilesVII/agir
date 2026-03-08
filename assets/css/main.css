@@ -30,7 +30,10 @@
 	.scenario-card {
 		flex-flow: column nowrap;
 	}
-	.scenario-card img {
+	.scenario-card-icon-container {
+		max-height: 32vh;
+		min-height: 32vh;
+		
 		width: 100%;
 	}
 }
@@ -49,7 +52,8 @@
 	.scenario-card {
 		flex-flow: row nowrap;
 	}
-	.scenario-card img {
+	.scenario-card-icon-container {
+		max-height: 32vh;
 		width: 20%;
 	}
 }

@@ -45,6 +45,9 @@
 .baseline {
 	align-items: baseline;
 }
+.grow {
+	flex-grow: 1;
+}
 
 .float-center {
 	margin-inline: auto;

@@ -5133,9 +5133,15 @@ ${m3.swipes[m3.selectedSwipe]}
     return T({
       className: "scenario-card lineout",
       contents: [
-        icon,
         T({
-          className: "list",
+          tagName: "div",
+          className: "scenario-card-icon-container",
+          contents: [
+            icon
+          ]
+        }),
+        T({
+          className: "list grow",
           contents: [
             T({
               className: "row-compact",

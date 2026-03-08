@@ -4,7 +4,7 @@ Janitor-inspired local roleplay frontend
 ## Features and and other cool things
 - Local and (optionally) self-hosted
 - Mobile-first
-- No sync
+- No sync between devices
 - No JLLM
 - No mobile app
 - Unlimited first messages
@@ -14,7 +14,7 @@ Janitor-inspired local roleplay frontend
 A customizable recap assistant that helps to keep track of roleplay state. Basically a "Chat Memory" from Janitor but not half-assed.
 
 ## Usage
-1. You need an LLM provider to use with Agir. Janitor AI calls them "proxies", in Agir they are "engines". Refer to [their guide](https://help.janitorai.com/en/article/the-absolute-beginners-guide-to-using-a-proxy-with-janitor-part-one-19to7y9/) to acquire one for free on OpenRouter.
+1. You need an LLM provider to use with Ägir. Janitor AI calls them "proxies", in Ägir they are "engines". Refer to [their guide](https://help.janitorai.com/en/article/the-absolute-beginners-guide-to-using-a-proxy-with-janitor-part-one-19to7y9/) to acquire one for free on OpenRouter.
 2. Navigate to `Settings` > `Engines`, add your credentials into the form, and hit "Save engine".
 3. Navigate to `Settings` > `Personas` and add a persona -- a character representing you in roleplay.
 4. Navigate to `Characters` and import or create a scenario.
