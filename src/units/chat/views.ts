@@ -1,7 +1,7 @@
 import { ChatMessage } from "@root/types";
 import { elementVisible, placeholder, renderMD, renderMDAsync } from "@root/utils";
 import { toast } from "@units/toasts";
-import { mudcrack, rampike } from "rampike";
+import { mudcrack, sirocco } from "rampike";
 
 export function makeMessageView(
 	msg: ChatMessage,
@@ -12,16 +12,6 @@ export function makeMessageView(
 	onDelete: () => void,
 	onSwipe: (six: number) => void
 ) {
-	function controlButton(caption: string, hint: string, cb: () => void) {
-		return mudcrack({
-			tagName: "button",
-			className: "strip ghost pointer message-control",
-			contents: caption,
-			attributes: { title: hint },
-			events: { click: cb }
-		});
-	}
-
 	const status = mudcrack({
 		tagName: "div",
 		className: "message-status",
@@ -238,15 +228,75 @@ export function makeMessageView(
 		endStreaming,
 		setIsLast
 	};
-	const wrapped = rampike(
-		element,
-		viewControls,
-		() => {},
-		{ skipInitialRender: true }
-	);
-	// function me() {
-	// 	return wrapped;
-	// }
-	return wrapped;
+	return sirocco(element, viewControls, "controls");
 }
 export type RampikeMessageView = ReturnType<typeof makeMessageView>;
+
+export function remberMessageView(messageId: number, contents: string = "") {
+	const editButton   = controlButton("✎", "edit",   () => {});
+	const removeButton = controlButton("✖", "remove", () => {});
+
+	const textbox = mudcrack({
+		tagName: "div",
+		className: "chat-rember-view",
+		contents
+	});
+
+	const container = mudcrack({
+		tagName: "div",
+		className: "lineout list",
+		contents: [
+			mudcrack({
+				tagName: "div",
+				className: "row",
+				contents: [
+					mudcrack({
+						tagName: "span",
+						className: "hint",
+						contents: `#${messageId}`
+					}),
+					mudcrack({
+						tagName: "div",
+						className: "row-compact float-end",
+						contents: [
+							editButton,
+							removeButton
+						]
+					})
+				]
+			}),
+			textbox
+		],
+		attributes: {
+			title: String(messageId)
+		}
+	});
+	// edit and delete, show mId
+
+	function appendContent(value: string) {
+		textbox.textContent += value;
+	}
+	function enable(value: string) {
+		textbox.textContent = value;
+	}
+
+	return sirocco(
+		container,
+		{
+			appendContent,
+			enable
+		},
+		"controls"
+	);
+}
+export type RemberView = ReturnType<typeof remberMessageView>;
+
+function controlButton(caption: string, hint: string, cb: () => void) {
+	return mudcrack({
+		tagName: "button",
+		className: "strip ghost pointer message-control",
+		contents: caption,
+		attributes: { title: hint },
+		events: { click: cb }
+	});
+}

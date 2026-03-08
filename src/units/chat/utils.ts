@@ -3,7 +3,7 @@ import { getBlobLink, idb, listen } from "@root/persist";
 import { runEngine } from "@root/run";
 import { Chat, ChatContents, ChatMessage } from "@root/types";
 import { readEngines } from "@units/settings/engines";
-import { RampikeMessageView } from "./message-view";
+import { RampikeMessageView } from "./views";
 import { loadMiscSettings } from "@units/settings/misc";
 import { getRoute } from "@root/utils";
 import { toast } from "@units/toasts";
@@ -109,7 +109,7 @@ export async function deleteMessage(chatId: string, messageId: number) {
 	messageViews.forEach(m => {
 		const mid = parseInt(m.dataset.mid!, 10);
 		if (mid >= messageId) m.remove();
-		if (mid === messageId - 1) m.rampike.params.setIsLast(true);
+		if (mid === messageId - 1) m.controls.setIsLast(true);
 	});
 }
 
@@ -176,8 +176,7 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 		window.location.reload();
 		return;
 	}
-	const responseMessageControls = messageView.rampike.params;
-	const responseStreamingUpdater = responseMessageControls.startStreaming();
+	const responseStreamingUpdater = messageView.controls.startStreaming();
 
 	const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
 	if (streamingResult.success) {
@@ -186,12 +185,12 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 			toast("failed to save response message");
 			return;
 		}
-		responseMessageControls.updateMessage(updatedMessage);
+		messageView.controls.updateMessage(updatedMessage);
 	} else {
 		toast(streamingResult.error);
 	}
 
-	responseMessageControls.endStreaming();
+	messageView.controls.endStreaming();
 	inputModes.tab = "main";
 }
 

@@ -1,7 +1,7 @@
 import { getRoute, textareaReconsider } from "@root/utils";
 import { idb } from "@root/persist";
 import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, reroll, setSwipe, updateSwipeIndex } from "./utils";
-import { makeMessageView } from "./message-view";
+import { makeMessageView } from "./views";
 
 export async function sendMessage() {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
@@ -22,7 +22,7 @@ export async function sendMessage() {
 	const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
 
 	const lastMessageId = messages.value.messages.findLast(() => true)?.id;
-	getMessageViewByID(lastMessageId!)?.rampike.params.setIsLast(false);
+	getMessageViewByID(lastMessageId!)?.controls.setIsLast(false);
 
 	const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
 	if (!newUserMessage) {

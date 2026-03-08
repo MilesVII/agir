@@ -221,11 +221,6 @@
   function m(e) {
     return Object.keys(e);
   }
-  var d = { skipInitialRender: false };
-  function c(e, n, o, t) {
-    let { skipInitialRender: i } = { ...d, ...t }, r = e;
-    return r.rampike = { params: n, render: () => o(r.rampike.params, r) }, i || r.rampike.render(), r;
-  }
   function f(e) {
     return p(e)[0] ?? null;
   }
@@ -234,6 +229,10 @@
     return n.childNodes.forEach((t) => {
       t.nodeType === Node.ELEMENT_NODE && o.push(t);
     }), o;
+  }
+  function M(e, n, o) {
+    let t = e, i = o ?? "rampike";
+    return t[i] = n, t;
   }
 
   // src/components/modal.ts
@@ -375,7 +374,7 @@
         if (response.ok) {
           const raw = await response.text();
           const candidates = Array.from(parser.parseFromString(raw, "image/svg+xml").children);
-          const parsed = candidates.find((c2) => c2.tagName.toLowerCase() === "svg");
+          const parsed = candidates.find((c) => c.tagName.toLowerCase() === "svg");
           if (!parsed) return;
           for (const [a, v2] of attributes) {
             parsed.setAttribute(a, v2);
@@ -544,7 +543,7 @@
   var G = { ...W, emStrongRDelimAst: He, emStrongLDelim: ve, url: k(/^((?:protocol):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/).replace("protocol", ne).replace("email", /[A-Za-z0-9._+-]+(@)[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/).getRegex(), _backpedal: /(?:[^?!.,:;*_'"~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_'"~)]+(?!$))+/, del: /^(~~?)(?=[^\s~])((?:\\[\s\S]|[^\\])*?(?:\\[\s\S]|[^\s~\\]))\1(?=[^~]|$)/, text: k(/^([`~]+|[^`~])(?:(?= {2,}\n)|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)|[\s\S]*?(?:(?=[\\<!\[`*~_]|\b_|protocol:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)))/).replace("protocol", ne).getRegex() };
   var We = { ...G, br: k(oe).replace("{2,}", "*").getRegex(), text: k(G.text).replace("\\b_", "\\b_| {2,}\\n").replace(/\{2,\}/g, "*").getRegex() };
   var E = { normal: U, gfm: _e, pedantic: Le };
-  var M = { normal: W, gfm: G, breaks: We, pedantic: Ke };
+  var M2 = { normal: W, gfm: G, breaks: We, pedantic: Ke };
   var Xe = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
   var ke = (u3) => Xe[u3];
   function w(u3, e) {
@@ -666,13 +665,13 @@
           else break;
           n = n.slice(l2);
           let p2 = o.join(`
-`), c2 = p2.replace(this.rules.other.blockquoteSetextReplace, `
+`), c = p2.replace(this.rules.other.blockquoteSetextReplace, `
     $1`).replace(this.rules.other.blockquoteSetextReplace2, "");
           r = r ? `${r}
 ${p2}` : p2, i = i ? `${i}
-${c2}` : c2;
+${c}` : c;
           let g = this.lexer.state.top;
-          if (this.lexer.state.top = true, this.lexer.blockTokens(c2, s, true), this.lexer.state.top = g, n.length === 0) break;
+          if (this.lexer.state.top = true, this.lexer.blockTokens(c, s, true), this.lexer.state.top = g, n.length === 0) break;
           let h = s.at(-1);
           if (h?.type === "code") break;
           if (h?.type === "blockquote") {
@@ -700,31 +699,31 @@ ${c2}` : c2;
         n = r ? `\\d{1,9}\\${n.slice(-1)}` : `\\${n}`, this.options.pedantic && (n = r ? n : "[*+-]");
         let s = this.rules.other.listItemRegex(n), a = false;
         for (; e; ) {
-          let l2 = false, p2 = "", c2 = "";
+          let l2 = false, p2 = "", c = "";
           if (!(t = s.exec(e)) || this.rules.block.hr.test(e)) break;
           p2 = t[0], e = e.substring(p2.length);
           let g = t[2].split(`
 `, 1)[0].replace(this.rules.other.listReplaceTabs, (O) => " ".repeat(3 * O.length)), h = e.split(`
 `, 1)[0], R = !g.trim(), f2 = 0;
-          if (this.options.pedantic ? (f2 = 2, c2 = g.trimStart()) : R ? f2 = t[1].length + 1 : (f2 = t[2].search(this.rules.other.nonSpaceChar), f2 = f2 > 4 ? 1 : f2, c2 = g.slice(f2), f2 += t[1].length), R && this.rules.other.blankLine.test(h) && (p2 += h + `
+          if (this.options.pedantic ? (f2 = 2, c = g.trimStart()) : R ? f2 = t[1].length + 1 : (f2 = t[2].search(this.rules.other.nonSpaceChar), f2 = f2 > 4 ? 1 : f2, c = g.slice(f2), f2 += t[1].length), R && this.rules.other.blankLine.test(h) && (p2 += h + `
 `, e = e.substring(h.length + 1), l2 = true), !l2) {
             let O = this.rules.other.nextBulletRegex(f2), V = this.rules.other.hrRegex(f2), Y = this.rules.other.fencesBeginRegex(f2), ee = this.rules.other.headingBeginRegex(f2), fe = this.rules.other.htmlBeginRegex(f2);
             for (; e; ) {
               let H = e.split(`
 `, 1)[0], A;
               if (h = H, this.options.pedantic ? (h = h.replace(this.rules.other.listReplaceNesting, "  "), A = h) : A = h.replace(this.rules.other.tabCharGlobal, "    "), Y.test(h) || ee.test(h) || fe.test(h) || O.test(h) || V.test(h)) break;
-              if (A.search(this.rules.other.nonSpaceChar) >= f2 || !h.trim()) c2 += `
+              if (A.search(this.rules.other.nonSpaceChar) >= f2 || !h.trim()) c += `
 ` + A.slice(f2);
               else {
                 if (R || g.replace(this.rules.other.tabCharGlobal, "    ").search(this.rules.other.nonSpaceChar) >= 4 || Y.test(g) || ee.test(g) || V.test(g)) break;
-                c2 += `
+                c += `
 ` + h;
               }
               !R && !h.trim() && (R = true), p2 += H + `
 `, e = e.substring(H.length + 1), g = A.slice(f2);
             }
           }
-          i.loose || (a ? i.loose = true : this.rules.other.doubleBlankLine.test(p2) && (a = true)), i.items.push({ type: "list_item", raw: p2, task: !!this.options.gfm && this.rules.other.listIsTask.test(c2), loose: false, text: c2, tokens: [] }), i.raw += p2;
+          i.loose || (a ? i.loose = true : this.rules.other.doubleBlankLine.test(p2) && (a = true)), i.items.push({ type: "list_item", raw: p2, task: !!this.options.gfm && this.rules.other.listIsTask.test(c), loose: false, text: c, tokens: [] }), i.raw += p2;
         }
         let o = i.items.at(-1);
         if (o) o.raw = o.raw.trimEnd(), o.text = o.text.trimEnd();
@@ -734,20 +733,20 @@ ${c2}` : c2;
           if (this.lexer.state.top = false, l2.tokens = this.lexer.blockTokens(l2.text, []), l2.task) {
             if (l2.text = l2.text.replace(this.rules.other.listReplaceTask, ""), l2.tokens[0]?.type === "text" || l2.tokens[0]?.type === "paragraph") {
               l2.tokens[0].raw = l2.tokens[0].raw.replace(this.rules.other.listReplaceTask, ""), l2.tokens[0].text = l2.tokens[0].text.replace(this.rules.other.listReplaceTask, "");
-              for (let c2 = this.lexer.inlineQueue.length - 1; c2 >= 0; c2--) if (this.rules.other.listIsTask.test(this.lexer.inlineQueue[c2].src)) {
-                this.lexer.inlineQueue[c2].src = this.lexer.inlineQueue[c2].src.replace(this.rules.other.listReplaceTask, "");
+              for (let c = this.lexer.inlineQueue.length - 1; c >= 0; c--) if (this.rules.other.listIsTask.test(this.lexer.inlineQueue[c].src)) {
+                this.lexer.inlineQueue[c].src = this.lexer.inlineQueue[c].src.replace(this.rules.other.listReplaceTask, "");
                 break;
               }
             }
             let p2 = this.rules.other.listTaskCheckbox.exec(l2.raw);
             if (p2) {
-              let c2 = { type: "checkbox", raw: p2[0] + " ", checked: p2[0] !== "[ ]" };
-              l2.checked = c2.checked, i.loose ? l2.tokens[0] && ["paragraph", "text"].includes(l2.tokens[0].type) && "tokens" in l2.tokens[0] && l2.tokens[0].tokens ? (l2.tokens[0].raw = c2.raw + l2.tokens[0].raw, l2.tokens[0].text = c2.raw + l2.tokens[0].text, l2.tokens[0].tokens.unshift(c2)) : l2.tokens.unshift({ type: "paragraph", raw: c2.raw, text: c2.raw, tokens: [c2] }) : l2.tokens.unshift(c2);
+              let c = { type: "checkbox", raw: p2[0] + " ", checked: p2[0] !== "[ ]" };
+              l2.checked = c.checked, i.loose ? l2.tokens[0] && ["paragraph", "text"].includes(l2.tokens[0].type) && "tokens" in l2.tokens[0] && l2.tokens[0].tokens ? (l2.tokens[0].raw = c.raw + l2.tokens[0].raw, l2.tokens[0].text = c.raw + l2.tokens[0].text, l2.tokens[0].tokens.unshift(c)) : l2.tokens.unshift({ type: "paragraph", raw: c.raw, text: c.raw, tokens: [c] }) : l2.tokens.unshift(c);
             }
           }
           if (!i.loose) {
-            let p2 = l2.tokens.filter((g) => g.type === "space"), c2 = p2.length > 0 && p2.some((g) => this.rules.other.anyLine.test(g.raw));
-            i.loose = c2;
+            let p2 = l2.tokens.filter((g) => g.type === "space"), c = p2.length > 0 && p2.some((g) => this.rules.other.anyLine.test(g.raw));
+            i.loose = c;
           }
         }
         if (i.loose) for (let l2 of i.items) {
@@ -843,8 +842,8 @@ ${c2}` : c2;
       let r = this.rules.inline.emStrongLDelim.exec(e);
       if (!r || r[3] && n.match(this.rules.other.unicodeAlphaNumeric)) return;
       if (!(r[1] || r[2] || "") || !n || this.rules.inline.punctuation.exec(n)) {
-        let s = [...r[0]].length - 1, a, o, l2 = s, p2 = 0, c2 = r[0][0] === "*" ? this.rules.inline.emStrongRDelimAst : this.rules.inline.emStrongRDelimUnd;
-        for (c2.lastIndex = 0, t = t.slice(-1 * e.length + s); (r = c2.exec(t)) != null; ) {
+        let s = [...r[0]].length - 1, a, o, l2 = s, p2 = 0, c = r[0][0] === "*" ? this.rules.inline.emStrongRDelimAst : this.rules.inline.emStrongRDelimUnd;
+        for (c.lastIndex = 0, t = t.slice(-1 * e.length + s); (r = c.exec(t)) != null; ) {
           if (a = r[1] || r[2] || r[3] || r[4] || r[5] || r[6], !a) continue;
           if (o = [...a].length, r[3] || r[4]) {
             l2 += o;
@@ -918,11 +917,11 @@ ${c2}` : c2;
     tokenizer;
     constructor(e) {
       this.tokens = [], this.tokens.links = /* @__PURE__ */ Object.create(null), this.options = e || T2, this.options.tokenizer = this.options.tokenizer || new y(), this.tokenizer = this.options.tokenizer, this.tokenizer.options = this.options, this.tokenizer.lexer = this, this.inlineQueue = [], this.state = { inLink: false, inRawBlock: false, top: true };
-      let t = { other: m2, block: E.normal, inline: M.normal };
-      this.options.pedantic ? (t.block = E.pedantic, t.inline = M.pedantic) : this.options.gfm && (t.block = E.gfm, this.options.breaks ? t.inline = M.breaks : t.inline = M.gfm), this.tokenizer.rules = t;
+      let t = { other: m2, block: E.normal, inline: M2.normal };
+      this.options.pedantic ? (t.block = E.pedantic, t.inline = M2.pedantic) : this.options.gfm && (t.block = E.gfm, this.options.breaks ? t.inline = M2.breaks : t.inline = M2.gfm), this.tokenizer.rules = t;
     }
     static get rules() {
-      return { block: E, inline: M };
+      return { block: E, inline: M2 };
     }
     static lex(e, t) {
       return new u(t).lex(e);
@@ -1096,9 +1095,9 @@ ${c2}` : c2;
         }
         let l2 = e;
         if (this.options.extensions?.startInline) {
-          let p2 = 1 / 0, c2 = e.slice(1), g;
+          let p2 = 1 / 0, c = e.slice(1), g;
           this.options.extensions.startInline.forEach((h) => {
-            g = h.call({ lexer: this }, c2), typeof g == "number" && g >= 0 && (p2 = Math.min(p2, g));
+            g = h.call({ lexer: this }, c), typeof g == "number" && g >= 0 && (p2 = Math.min(p2, g));
           }), p2 < 1 / 0 && p2 >= 0 && (l2 = e.substring(0, p2 + 1));
         }
         if (o = this.tokenizer.inlineText(l2)) {
@@ -1509,8 +1508,8 @@ ${e}</tr>
             if (["options", "parser"].includes(s)) continue;
             let a = s, o = n.renderer[a], l2 = i[a];
             i[a] = (...p2) => {
-              let c2 = o.apply(i, p2);
-              return c2 === false && (c2 = l2.apply(i, p2)), c2 || "";
+              let c = o.apply(i, p2);
+              return c === false && (c = l2.apply(i, p2)), c || "";
             };
           }
           r.renderer = i;
@@ -1522,8 +1521,8 @@ ${e}</tr>
             if (["options", "rules", "lexer"].includes(s)) continue;
             let a = s, o = n.tokenizer[a], l2 = i[a];
             i[a] = (...p2) => {
-              let c2 = o.apply(i, p2);
-              return c2 === false && (c2 = l2.apply(i, p2)), c2;
+              let c = o.apply(i, p2);
+              return c === false && (c = l2.apply(i, p2)), c;
             };
           }
           r.tokenizer = i;
@@ -1539,15 +1538,15 @@ ${e}</tr>
                 let g = await o.call(i, p2);
                 return l2.call(i, g);
               })();
-              let c2 = o.call(i, p2);
-              return l2.call(i, c2);
+              let c = o.call(i, p2);
+              return l2.call(i, c);
             } : i[a] = (...p2) => {
               if (this.defaults.async) return (async () => {
                 let g = await o.apply(i, p2);
                 return g === false && (g = await l2.apply(i, p2)), g;
               })();
-              let c2 = o.apply(i, p2);
-              return c2 === false && (c2 = l2.apply(i, p2)), c2;
+              let c = o.apply(i, p2);
+              return c === false && (c = l2.apply(i, p2)), c;
             };
           }
           r.hooks = i;
@@ -1578,17 +1577,17 @@ ${e}</tr>
         if (typeof n > "u" || n === null) return a(new Error("marked(): input parameter is undefined or null"));
         if (typeof n != "string") return a(new Error("marked(): input parameter is of type " + Object.prototype.toString.call(n) + ", string expected"));
         if (s.hooks && (s.hooks.options = s, s.hooks.block = e), s.async) return (async () => {
-          let o = s.hooks ? await s.hooks.preprocess(n) : n, p2 = await (s.hooks ? await s.hooks.provideLexer() : e ? x.lex : x.lexInline)(o, s), c2 = s.hooks ? await s.hooks.processAllTokens(p2) : p2;
-          s.walkTokens && await Promise.all(this.walkTokens(c2, s.walkTokens));
-          let h = await (s.hooks ? await s.hooks.provideParser() : e ? b.parse : b.parseInline)(c2, s);
+          let o = s.hooks ? await s.hooks.preprocess(n) : n, p2 = await (s.hooks ? await s.hooks.provideLexer() : e ? x.lex : x.lexInline)(o, s), c = s.hooks ? await s.hooks.processAllTokens(p2) : p2;
+          s.walkTokens && await Promise.all(this.walkTokens(c, s.walkTokens));
+          let h = await (s.hooks ? await s.hooks.provideParser() : e ? b.parse : b.parseInline)(c, s);
           return s.hooks ? await s.hooks.postprocess(h) : h;
         })().catch(a);
         try {
           s.hooks && (n = s.hooks.preprocess(n));
           let l2 = (s.hooks ? s.hooks.provideLexer() : e ? x.lex : x.lexInline)(n, s);
           s.hooks && (l2 = s.hooks.processAllTokens(l2)), s.walkTokens && this.walkTokens(l2, s.walkTokens);
-          let c2 = (s.hooks ? s.hooks.provideParser() : e ? b.parse : b.parseInline)(l2, s);
-          return s.hooks && (c2 = s.hooks.postprocess(c2)), c2;
+          let c = (s.hooks ? s.hooks.provideParser() : e ? b.parse : b.parseInline)(l2, s);
+          return s.hooks && (c = s.hooks.postprocess(c)), c;
         } catch (o) {
           return a(o);
         }
@@ -1607,35 +1606,35 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
   };
   var _ = new B();
-  function d2(u3, e) {
+  function d(u3, e) {
     return _.parse(u3, e);
   }
-  d2.options = d2.setOptions = function(u3) {
-    return _.setOptions(u3), d2.defaults = _.defaults, Z(d2.defaults), d2;
+  d.options = d.setOptions = function(u3) {
+    return _.setOptions(u3), d.defaults = _.defaults, Z(d.defaults), d;
   };
-  d2.getDefaults = L;
-  d2.defaults = T2;
-  d2.use = function(...u3) {
-    return _.use(...u3), d2.defaults = _.defaults, Z(d2.defaults), d2;
+  d.getDefaults = L;
+  d.defaults = T2;
+  d.use = function(...u3) {
+    return _.use(...u3), d.defaults = _.defaults, Z(d.defaults), d;
   };
-  d2.walkTokens = function(u3, e) {
+  d.walkTokens = function(u3, e) {
     return _.walkTokens(u3, e);
   };
-  d2.parseInline = _.parseInline;
-  d2.Parser = b;
-  d2.parser = b.parse;
-  d2.Renderer = P;
-  d2.TextRenderer = $;
-  d2.Lexer = x;
-  d2.lexer = x.lex;
-  d2.Tokenizer = y;
-  d2.Hooks = S;
-  d2.parse = d2;
-  var Dt = d2.options;
-  var Ht = d2.setOptions;
-  var Zt = d2.use;
-  var Gt = d2.walkTokens;
-  var Nt = d2.parseInline;
+  d.parseInline = _.parseInline;
+  d.Parser = b;
+  d.parser = b.parse;
+  d.Renderer = P;
+  d.TextRenderer = $;
+  d.Lexer = x;
+  d.lexer = x.lex;
+  d.Tokenizer = y;
+  d.Hooks = S;
+  d.parse = d;
+  var Dt = d.options;
+  var Ht = d.setOptions;
+  var Zt = d.use;
+  var Gt = d.walkTokens;
+  var Nt = d.parseInline;
   var Ft = b.parse;
   var jt = x.lex;
 
@@ -2694,10 +2693,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     gfm: false
   };
   function renderMD(content) {
-    return purify.sanitize(d2.parse(content, { ...markedOptions, async: false }));
+    return purify.sanitize(d.parse(content, { ...markedOptions, async: false }));
   }
   async function renderMDAsync(content) {
-    return purify.sanitize(await d2.parse(content, markedOptions));
+    return purify.sanitize(await d.parse(content, markedOptions));
   }
   var PLACHEOLDER = "assets/gfx/placeholder.png";
   function placeholder(url) {
@@ -3394,8 +3393,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return button;
   }
   function switchTheme(themeClassName) {
-    document.body.classList.forEach((c2) => {
-      if (c2.startsWith("theme-")) document.body.classList.remove(c2);
+    document.body.classList.forEach((c) => {
+      if (c.startsWith("theme-")) document.body.classList.remove(c);
     });
     document.body.classList.add(themeClassName);
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
@@ -3623,7 +3622,7 @@ Status ${response.status}${metaWrapped}`
   function toast(message, options) {
     const list = document.querySelector("#toast-container");
     const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
-    const totalH = rects.reduce((p2, c2) => p2 + c2.height, 0);
+    const totalH = rects.reduce((p2, c) => p2 + c.height, 0);
     let closed = false;
     const item = T({
       tagName: "div",
@@ -3747,7 +3746,7 @@ Status ${response.status}${metaWrapped}`
     messageViews.forEach((m3) => {
       const mid = parseInt(m3.dataset.mid, 10);
       if (mid >= messageId) m3.remove();
-      if (mid === messageId - 1) m3.rampike.params.setIsLast(true);
+      if (mid === messageId - 1) m3.controls.setIsLast(true);
     });
   }
   async function reroll(chatId, messageId) {
@@ -3801,8 +3800,7 @@ Status ${response.status}${metaWrapped}`
       window.location.reload();
       return;
     }
-    const responseMessageControls = messageView.rampike.params;
-    const responseStreamingUpdater = responseMessageControls.startStreaming();
+    const responseStreamingUpdater = messageView.controls.startStreaming();
     const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
     if (streamingResult.success) {
       const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
@@ -3810,11 +3808,11 @@ Status ${response.status}${metaWrapped}`
         toast("failed to save response message");
         return;
       }
-      responseMessageControls.updateMessage(updatedMessage);
+      messageView.controls.updateMessage(updatedMessage);
     } else {
       toast(streamingResult.error);
     }
-    responseMessageControls.endStreaming();
+    messageView.controls.endStreaming();
     inputModes.tab = "main";
   }
   async function loadPictures(chat) {
@@ -3856,17 +3854,8 @@ Status ${response.status}${metaWrapped}`
     return null;
   }
 
-  // src/units/chat/message-view.ts
+  // src/units/chat/views.ts
   function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete, onSwipe) {
-    function controlButton(caption, hint, cb) {
-      return T({
-        tagName: "button",
-        className: "strip ghost pointer message-control",
-        contents: caption,
-        attributes: { title: hint },
-        events: { click: cb }
-      });
-    }
     const status = T({
       tagName: "div",
       className: "message-status"
@@ -4081,14 +4070,70 @@ Status ${response.status}${metaWrapped}`
       endStreaming,
       setIsLast
     };
-    const wrapped = c(
-      element,
-      viewControls,
-      () => {
+    return M(element, viewControls, "controls");
+  }
+  function remberMessageView(messageId, contents = "") {
+    const editButton = controlButton("\u270E", "edit", () => {
+    });
+    const removeButton = controlButton("\u2716", "remove", () => {
+    });
+    const textbox = T({
+      tagName: "div",
+      className: "chat-rember-view",
+      contents
+    });
+    const container = T({
+      tagName: "div",
+      className: "lineout list",
+      contents: [
+        T({
+          tagName: "div",
+          className: "row",
+          contents: [
+            T({
+              tagName: "span",
+              className: "hint",
+              contents: `#${messageId}`
+            }),
+            T({
+              tagName: "div",
+              className: "row-compact float-end",
+              contents: [
+                editButton,
+                removeButton
+              ]
+            })
+          ]
+        }),
+        textbox
+      ],
+      attributes: {
+        title: String(messageId)
+      }
+    });
+    function appendContent(value) {
+      textbox.textContent += value;
+    }
+    function enable(value) {
+      textbox.textContent = value;
+    }
+    return M(
+      container,
+      {
+        appendContent,
+        enable
       },
-      { skipInitialRender: true }
+      "controls"
     );
-    return wrapped;
+  }
+  function controlButton(caption, hint, cb) {
+    return T({
+      tagName: "button",
+      className: "strip ghost pointer message-control",
+      contents: caption,
+      attributes: { title: hint },
+      events: { click: cb }
+    });
   }
 
   // src/units/chat/load.ts
@@ -4136,7 +4181,7 @@ Status ${response.status}${metaWrapped}`
     if (!messages.success || !meta.success) return;
     const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
     const lastMessageId = messages.value.messages.findLast(() => true)?.id;
-    getMessageViewByID(lastMessageId)?.rampike.params.setIsLast(false);
+    getMessageViewByID(lastMessageId)?.controls.setIsLast(false);
     const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
     if (!newUserMessage) {
       console.error("failed to save user message");
@@ -4349,7 +4394,7 @@ Status ${response.status}${metaWrapped}`
       template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m3) => m3.rember);
-      const items = remberMessages.map((m3) => remberMessageView(m3.id, m3.rember).container).toReversed();
+      const items = remberMessages.map((m3) => remberMessageView(m3.id, m3.rember)).toReversed();
       list.append(...items);
     }
     async function step() {
@@ -4357,13 +4402,13 @@ Status ${response.status}${metaWrapped}`
       function checkView(mid) {
         if (!view) {
           view = remberMessageView(mid);
-          list.prepend(view.container);
+          list.prepend(view);
         }
         return view;
       }
       const result = await runRember(
         (content, mid) => {
-          checkView(mid).appendContent(content);
+          checkView(mid).controls.appendContent(content);
         },
         enginePicker.value,
         getStride(),
@@ -4372,7 +4417,7 @@ Status ${response.status}${metaWrapped}`
       );
       console.log(result);
       if (!result.success) return false;
-      checkView(result.value.mid).enable(result.value.response);
+      checkView(result.value.mid).controls.enable(result.value.response);
       return true;
     }
     async function runOne() {
@@ -4483,27 +4528,6 @@ ${m3.swipes[m3.selectedSwipe]}
       dullMessage("system", prompt),
       dullMessage("user", payload)
     ];
-  }
-  function remberMessageView(messageId, contents = "") {
-    const container = T({
-      tagName: "div",
-      className: "lineout chat-rember-view",
-      contents,
-      attributes: {
-        title: String(messageId)
-      }
-    });
-    function appendContent(value) {
-      container.textContent += value;
-    }
-    function enable(value) {
-      container.textContent = value;
-    }
-    return {
-      container,
-      appendContent,
-      enable
-    };
   }
 
   // src/units/chat.ts
@@ -5003,8 +5027,8 @@ ${m3.swipes[m3.selectedSwipe]}
   async function importSTMessages(file) {
     const raw = await nothrowAsync(file.text());
     if (!raw.success) return [];
-    const pre = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(() => JSON.parse(l2))).filter((c2) => c2.success).map((c2, ix) => stcToInternal(c2.value, ix));
-    const text2 = (c2) => c2.swipes[c2.selectedSwipe];
+    const pre = raw.value.split("\n").filter((l2) => l2.trim()).map((l2) => nothrow(() => JSON.parse(l2))).filter((c) => c.success).map((c, ix) => stcToInternal(c.value, ix));
+    const text2 = (c) => c.swipes[c.selectedSwipe];
     if (pre.length > 2 && text2(pre[0]) === text2(pre[1])) {
       pre.splice(0, 1);
     }

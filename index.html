@@ -375,27 +375,35 @@
 				<div>Engine:</div>
 				<select id="play-rember-engine-picker" class="lineout"></select>
 			</div>
-			<div class="list">
-				<div class="hint">Stride is a number of message pairs (model + user) that will be summarized for each step</div>
-				<ram-labeled
-					legend="Stride"
-					id="play-rember-stride"
-					class="strip wide"
-					placeholder="20"
-				></ram-labeled>
-			</div>
-			<ram-labeled
-				legend="Prompt"
-				id="play-rember-prompt"
-				class="strip wide"
-				multiline
-			></ram-labeled>
-			<ram-labeled
-				legend="State template"
-				id="play-rember-template"
-				class="strip wide"
-				multiline
-			></ram-labeled>
+			
+			<details>
+				<summary class="settings-label">
+					Prompts & Settings
+				</summary>
+				<div class="list">
+					<div class="list">
+						<div class="hint">Stride is a number of message pairs (model + user) that will be summarized for each step</div>
+						<ram-labeled
+							legend="Stride"
+							id="play-rember-stride"
+							class="strip wide"
+							placeholder="20"
+						></ram-labeled>
+					</div>
+					<ram-labeled
+						legend="Prompt"
+						id="play-rember-prompt"
+						class="strip wide"
+						multiline
+					></ram-labeled>
+					<ram-labeled
+						legend="State template"
+						id="play-rember-template"
+						class="strip wide"
+						multiline
+					></ram-labeled>
+				</div>
+			</details>
 			<div class="row">
 				<button id="play-rember-add-one" class="lineout fit">Add one</button>
 				<button id="play-rember-add-all" class="lineout fit">Add all</button>

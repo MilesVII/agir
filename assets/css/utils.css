@@ -26,9 +26,11 @@
 }
 .row {
 	flex-flow: row nowrap;
+	align-items: baseline;
 }
 .row-wrap {
 	flex-flow: row wrap;
+	align-items: baseline;
 	gap: var(--dims-smol);
 }
 .list {

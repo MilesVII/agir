@@ -5,8 +5,8 @@ import { idb, listen, local } from "@root/persist";
 import { readActiveEngines, readEngines } from "@units/settings/engines";
 import { RampikeModal } from "@rampike/modal";
 import { setSelectOptions } from "@root/utils";
-import { mudcrack } from "rampike";
 import { toast } from "@units/toasts";
+import { remberMessageView, RemberView } from "./views";
 
 export const REMBER_DEFAULTS = {
 	stride: 20,
@@ -79,7 +79,7 @@ export function initRember() {
 
 		const remberMessages = state.messages.messages.filter(m => m.rember);
 		const items = remberMessages
-			.map(m => remberMessageView(m.id, m.rember!).container)
+			.map(m => remberMessageView(m.id, m.rember!))
 			.toReversed();
 		list.append(...items);
 	}
@@ -89,13 +89,13 @@ export function initRember() {
 		function checkView(mid: number) {
 			if (!view) {
 				view = remberMessageView(mid);
-				list.prepend(view.container);
+				list.prepend(view);
 			}
 			return view;
 		}
 		const result = await runRember(
 			(content, mid) => {
-				checkView(mid).appendContent(content);
+				checkView(mid).controls.appendContent(content);
 			},
 			enginePicker.value,
 			getStride(),
@@ -104,7 +104,7 @@ export function initRember() {
 		);
 		console.log(result)
 		if (!result.success) return false;
-		checkView(result.value.mid).enable(result.value.response);
+		checkView(result.value.mid).controls.enable(result.value.response);
 		return true;
 	}
 	async function runOne() {
@@ -257,30 +257,3 @@ function prepareMessages(
 		dullMessage("user", payload)
 	];
 }
-
-function remberMessageView(messageId: number, contents: string = "") {
-	const container = mudcrack({
-		tagName: "div",
-		className: "lineout chat-rember-view",
-		contents,
-		attributes: {
-			title: String(messageId)
-		}
-	});
-	// edit and delete, show mId
-
-	function appendContent(value: string) {
-		container.textContent += value;
-	}
-	function enable(value: string) {
-		container.textContent = value;
-	}
-
-	return {
-		container,
-		appendContent,
-		enable
-	};
-}
-
-type RemberView = ReturnType<typeof remberMessageView>;

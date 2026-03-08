@@ -1,6 +1,6 @@
 import { idb } from "@root/persist";
 import { deleteMessage, loadPictures, reroll, setSwipe, updateSwipeIndex } from "./utils";
-import { makeMessageView } from "./message-view";
+import { makeMessageView } from "./views";
 import { updateTitle } from "@root/utils";
 
 export async function loadMessages(chatId: string) {
