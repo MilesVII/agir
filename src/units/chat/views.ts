@@ -19,7 +19,7 @@ export function makeMessageView(
 	const text = msg.swipes[msg.selectedSwipe];
 	const textBox = mudcrack({
 		tagName: "div",
-		className: "message-text md",
+		className: "message-text edible md",
 		contents: text
 	});
 	const swipesCaption = mudcrack({
@@ -67,14 +67,6 @@ export function makeMessageView(
 		status.hidden = false;
 		status.textContent = value;
 	}
-
-	function tab(contents: string | Element[]) {
-		return mudcrack({
-			tagName: "div",
-			className: "virtual",
-			contents
-		});
-	}
 	const editButton = controlButton(
 		"✎", "edit message",
 		() => {
@@ -119,9 +111,10 @@ export function makeMessageView(
 			
 		);
 	}
-	const controls = [
-		tab(mainControls),
-		tab([
+
+	const controlsTab = virtualTabs(
+		["main", mainControls],
+		["editing", [
 			controlButton(
 				"✔", "save",
 				async () => {
@@ -142,17 +135,11 @@ export function makeMessageView(
 					textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
 				}
 			)
-		]),
-		tab([])
-	];
-	function changeControlsState(state: "main" | "editing" | "streaming") {
-		const tix = {
-			main: 0,
-			editing: 1,
-			streaming: 2
-		}[state];
-		controls.forEach((tab, i) => tab.style.display = i === tix ? "contents" : "none");
-	}
+		]],
+		["streaming", []]
+	);
+	const controls = controlsTab.contents;
+	const changeControlsState = controlsTab.pickTab;
 
 	const element = mudcrack({
 		tagName: "div",
@@ -232,15 +219,66 @@ export function makeMessageView(
 }
 export type RampikeMessageView = ReturnType<typeof makeMessageView>;
 
-export function remberMessageView(messageId: number, contents: string = "") {
-	const editButton   = controlButton("✎", "edit",   () => {});
-	const removeButton = controlButton("✖", "remove", () => {});
-
-	const textbox = mudcrack({
+export function remberMessageView(
+	messageId: number,
+	onEdit: (contents: string) => void,
+	onRemove: () => void,
+	contents: string = ""
+) {
+	const textBox = mudcrack({
 		tagName: "div",
-		className: "chat-rember-view",
+		className: "chat-rember-view edible",
 		contents
 	});
+	let editPocket: string = "";
+
+	const buttons = {
+		edit: controlButton(
+			"✎", "edit",
+			() => {
+				textBox.setAttribute("contenteditable", "");
+				textBox.focus();
+				editPocket = textBox.innerText;
+				changeControlsState("edit");
+			}
+		),
+		remove: controlButton(
+			"✖", "remove",
+			() => {
+				if (!confirm(`the rEmber state for message #${messageId} will be removed`)) return;
+				onRemove();
+				suicide();
+			}
+		),
+		editConfirm: controlButton(
+			"✔", "save",
+			async () => {
+				textBox.removeAttribute("contenteditable");
+				changeControlsState("main");
+				onEdit(textBox.innerText);
+			}
+		),
+		editCancel: controlButton(
+			"✘", "cancel",
+			async () => {
+				textBox.removeAttribute("contenteditable");
+				changeControlsState("main");
+				textBox.innerHTML = editPocket;
+			}
+		)
+	};
+	const controlTabs = virtualTabs(
+		["main", [
+			buttons.edit,
+			buttons.remove
+		]],
+		["edit", [
+			buttons.editConfirm,
+			buttons.editCancel
+		]]
+	);
+	const changeControlsState = controlTabs.pickTab;
+	changeControlsState("main");
 
 	const container = mudcrack({
 		tagName: "div",
@@ -258,26 +296,25 @@ export function remberMessageView(messageId: number, contents: string = "") {
 					mudcrack({
 						tagName: "div",
 						className: "row-compact float-end",
-						contents: [
-							editButton,
-							removeButton
-						]
+						contents: controlTabs.contents
 					})
 				]
 			}),
-			textbox
+			textBox
 		],
 		attributes: {
 			title: String(messageId)
 		}
 	});
-	// edit and delete, show mId
 
 	function appendContent(value: string) {
-		textbox.textContent += value;
+		textBox.textContent += value;
 	}
 	function enable(value: string) {
-		textbox.textContent = value;
+		textBox.textContent = value;
+	}
+	function suicide() {
+		container.remove();
 	}
 
 	return sirocco(
@@ -299,4 +336,29 @@ function controlButton(caption: string, hint: string, cb: () => void) {
 		attributes: { title: hint },
 		events: { click: cb }
 	});
+}
+
+type VirtualTabContents = string | Element[];
+type Tab<K extends string = string> = readonly [K, VirtualTabContents];
+
+function virtualTabs<const T extends readonly Tab[]>(...tabs: T) {
+	type TabKeys = T[number][0];
+	const ixes = new Map(tabs.map(([k], i) => [k, i]));
+	const contents = tabs.map(([_, tab]) => 
+		mudcrack({
+			tagName: "div",
+			className: "virtual",
+			contents: tab
+		})
+	);
+
+	function pickTab(state: TabKeys) {
+		const tix = ixes.get(state);
+		contents.forEach((tab, i) => tab.style.display = i === tix ? "contents" : "none");
+	}
+
+	return {
+		contents,
+		pickTab
+	};
 }

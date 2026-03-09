@@ -3723,6 +3723,13 @@ Status ${response.status}${metaWrapped}`
     contents.value.messages[mix].selectedSwipe = six;
     await idb.set("chatContents", contents.value);
   }
+  async function updateRember(value, mid, chatId) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
+    contents.value.messages[mix].rember = value;
+    await idb.set("chatContents", contents.value);
+  }
   async function deleteMessage(chatId, messageId) {
     const inputModes = document.querySelector("#chat-controls");
     if (inputModes.tab !== "main") return;
@@ -3863,7 +3870,7 @@ Status ${response.status}${metaWrapped}`
     const text2 = msg.swipes[msg.selectedSwipe];
     const textBox = T({
       tagName: "div",
-      className: "message-text md",
+      className: "message-text edible md",
       contents: text2
     });
     const swipesCaption = T({
@@ -3913,13 +3920,6 @@ Status ${response.status}${metaWrapped}`
       status.hidden = false;
       status.textContent = value;
     }
-    function tab(contents) {
-      return T({
-        tagName: "div",
-        className: "virtual",
-        contents
-      });
-    }
     const editButton = controlButton(
       "\u270E",
       "edit message",
@@ -3964,9 +3964,9 @@ Status ${response.status}${metaWrapped}`
     if (msg.from === "model" && isLast) {
       mainControls.push();
     }
-    const controls = [
-      tab(mainControls),
-      tab([
+    const controlsTab = virtualTabs(
+      ["main", mainControls],
+      ["editing", [
         controlButton(
           "\u2714",
           "save",
@@ -3988,17 +3988,11 @@ Status ${response.status}${metaWrapped}`
             textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
           }
         )
-      ]),
-      tab([])
-    ];
-    function changeControlsState(state) {
-      const tix = {
-        main: 0,
-        editing: 1,
-        streaming: 2
-      }[state];
-      controls.forEach((tab2, i) => tab2.style.display = i === tix ? "contents" : "none");
-    }
+      ]],
+      ["streaming", []]
+    );
+    const controls = controlsTab.contents;
+    const changeControlsState = controlsTab.pickTab;
     const element = T({
       tagName: "div",
       className: "message",
@@ -4072,16 +4066,64 @@ Status ${response.status}${metaWrapped}`
     };
     return M(element, viewControls, "controls");
   }
-  function remberMessageView(messageId, contents = "") {
-    const editButton = controlButton("\u270E", "edit", () => {
-    });
-    const removeButton = controlButton("\u2716", "remove", () => {
-    });
-    const textbox = T({
+  function remberMessageView(messageId, onEdit, onRemove, contents = "") {
+    const textBox = T({
       tagName: "div",
-      className: "chat-rember-view",
+      className: "chat-rember-view edible",
       contents
     });
+    let editPocket = "";
+    const buttons = {
+      edit: controlButton(
+        "\u270E",
+        "edit",
+        () => {
+          textBox.setAttribute("contenteditable", "");
+          textBox.focus();
+          editPocket = textBox.innerText;
+          changeControlsState("edit");
+        }
+      ),
+      remove: controlButton(
+        "\u2716",
+        "remove",
+        () => {
+          if (!confirm(`the rEmber state for message #${messageId} will be removed`)) return;
+          onRemove();
+          suicide();
+        }
+      ),
+      editConfirm: controlButton(
+        "\u2714",
+        "save",
+        async () => {
+          textBox.removeAttribute("contenteditable");
+          changeControlsState("main");
+          onEdit(textBox.innerText);
+        }
+      ),
+      editCancel: controlButton(
+        "\u2718",
+        "cancel",
+        async () => {
+          textBox.removeAttribute("contenteditable");
+          changeControlsState("main");
+          textBox.innerHTML = editPocket;
+        }
+      )
+    };
+    const controlTabs = virtualTabs(
+      ["main", [
+        buttons.edit,
+        buttons.remove
+      ]],
+      ["edit", [
+        buttons.editConfirm,
+        buttons.editCancel
+      ]]
+    );
+    const changeControlsState = controlTabs.pickTab;
+    changeControlsState("main");
     const container = T({
       tagName: "div",
       className: "lineout list",
@@ -4098,24 +4140,24 @@ Status ${response.status}${metaWrapped}`
             T({
               tagName: "div",
               className: "row-compact float-end",
-              contents: [
-                editButton,
-                removeButton
-              ]
+              contents: controlTabs.contents
             })
           ]
         }),
-        textbox
+        textBox
       ],
       attributes: {
         title: String(messageId)
       }
     });
     function appendContent(value) {
-      textbox.textContent += value;
+      textBox.textContent += value;
     }
     function enable(value) {
-      textbox.textContent = value;
+      textBox.textContent = value;
+    }
+    function suicide() {
+      container.remove();
     }
     return M(
       container,
@@ -4134,6 +4176,24 @@ Status ${response.status}${metaWrapped}`
       attributes: { title: hint },
       events: { click: cb }
     });
+  }
+  function virtualTabs(...tabs) {
+    const ixes = new Map(tabs.map(([k2], i) => [k2, i]));
+    const contents = tabs.map(
+      ([_2, tab]) => T({
+        tagName: "div",
+        className: "virtual",
+        contents: tab
+      })
+    );
+    function pickTab(state) {
+      const tix = ixes.get(state);
+      contents.forEach((tab, i) => tab.style.display = i === tix ? "contents" : "none");
+    }
+    return {
+      contents,
+      pickTab
+    };
   }
 
   // src/units/chat/load.ts
@@ -4394,14 +4454,25 @@ Status ${response.status}${metaWrapped}`
       template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m3) => m3.rember);
-      const items = remberMessages.map((m3) => remberMessageView(m3.id, m3.rember)).toReversed();
+      const items = remberMessages.map((m3) => remberMessageView(
+        m3.id,
+        (v2) => updateRember(v2, m3.id, state.chat.id),
+        () => updateRember(null, m3.id, state.chat.id),
+        m3.rember
+      )).toReversed();
       list.append(...items);
     }
     async function step() {
+      const state = await getCurrentChat(true, false);
+      if (!state) return;
       let view = null;
       function checkView(mid) {
         if (!view) {
-          view = remberMessageView(mid);
+          view = remberMessageView(
+            mid,
+            (v2) => updateRember(v2, mid, state.chat.id),
+            () => updateRember(null, mid, state.chat.id)
+          );
           list.prepend(view);
         }
         return view;

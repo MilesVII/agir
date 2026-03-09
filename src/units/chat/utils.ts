@@ -79,6 +79,13 @@ export async function updateSwipeIndex(six: number, mid: number, chatId: string)
 	contents.value.messages[mix].selectedSwipe = six;
 	await idb.set("chatContents", contents.value);
 }
+export async function updateRember(value: string | null, mid: number, chatId: string) {
+	const contents = await idb.get("chatContents", chatId);
+	if (!contents.success) return;
+	const mix = contents.value.messages.findIndex(m => m.id === mid);
+	contents.value.messages[mix].rember = value;
+	await idb.set("chatContents", contents.value);
+}
 
 export async function deleteMessage(chatId: string, messageId: number) {
 	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;

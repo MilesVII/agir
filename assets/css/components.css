@@ -48,6 +48,16 @@ button.lineout, .pointer {
 	color: var(--color-secondary);
 }
 
+.edible[contenteditable] {
+	white-space: pre-wrap;
+	border: 2px solid var(--color-accent);
+	border-radius: var(--dims-smol);
+}
+.edible:focus {
+	box-shadow: 0 0 var(--dims-smol) var(--color-accent);
+	outline: none;
+}
+
 fieldset {
 	margin: 0;
 	box-shadow: none !important;
@@ -287,16 +297,6 @@ summary.settings-label {
 }
 .message-status {
 	color: var(--color-subtext);
-}
-.message-text[contenteditable] {
-	/* width: 95%; */
-	white-space: pre-wrap;
-	border: 2px solid var(--color-accent);
-	border-radius: var(--dims-smol);
-}
-.message-text:focus {
-	box-shadow: 0 0 var(--dims-smol) var(--color-accent);
-	outline: none;
 }
 .message .row-compact {
 	align-items: center;

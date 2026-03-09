@@ -1,6 +1,6 @@
 import { abortController, runEngine } from "@root/run";
 import { ChatMessage, Result } from "@root/types";
-import { dullMessage, getCurrentChat } from "./utils";
+import { dullMessage, getCurrentChat, updateRember } from "./utils";
 import { idb, listen, local } from "@root/persist";
 import { readActiveEngines, readEngines } from "@units/settings/engines";
 import { RampikeModal } from "@rampike/modal";
@@ -79,16 +79,28 @@ export function initRember() {
 
 		const remberMessages = state.messages.messages.filter(m => m.rember);
 		const items = remberMessages
-			.map(m => remberMessageView(m.id, m.rember!))
+			.map(m => remberMessageView(
+				m.id,
+				v => updateRember(v, m.id, state.chat.id),
+				() => updateRember(null, m.id, state.chat.id),
+				m.rember!
+			))
 			.toReversed();
 		list.append(...items);
 	}
 
 	async function step() {
+		const state = await getCurrentChat(true, false);
+		if (!state) return;
+
 		let view: RemberView | null = null;
 		function checkView(mid: number) {
 			if (!view) {
-				view = remberMessageView(mid);
+				view = remberMessageView(
+					mid,
+					v => updateRember(v, mid, state!.chat.id),
+					() => updateRember(null, mid, state!.chat.id),
+				);
 				list.prepend(view);
 			}
 			return view;
