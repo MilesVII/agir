@@ -1,32 +1,32 @@
 import { listen, local } from "@root/persist";
-import { ActiveEngines, Engine, EngineMap, EngineMapWithActive } from "@root/types";
+import { ActiveProviders, Provider, ProviderMap, ProviderMapWithActive } from "@root/types";
 import { nothrow } from "@root/utils";
 import { mudcrack } from "rampike";
 
-export function enginesUnit() {
+export function providersUnit() {
 	const inputs = {
-		name:  document.querySelector<HTMLInputElement>("#settings-engines-name")!,
-		url:   document.querySelector<HTMLInputElement>("#settings-engines-url")!,
-		key:   document.querySelector<HTMLInputElement>("#settings-engines-key")!,
-		model: document.querySelector<HTMLInputElement>("#settings-engines-model")!,
-		temp:   document.querySelector<HTMLInputElement>("#settings-engines-temp")!,
-		max:    document.querySelector<HTMLInputElement>("#settings-engines-max")!,
-		params: document.querySelector<HTMLInputElement>("#settings-engines-additional")!
+		name:  document.querySelector<HTMLInputElement>("#settings-providers-name")!,
+		url:   document.querySelector<HTMLInputElement>("#settings-providers-url")!,
+		key:   document.querySelector<HTMLInputElement>("#settings-providers-key")!,
+		model: document.querySelector<HTMLInputElement>("#settings-providers-model")!,
+		temp:   document.querySelector<HTMLInputElement>("#settings-providers-temp")!,
+		max:    document.querySelector<HTMLInputElement>("#settings-providers-max")!,
+		params: document.querySelector<HTMLInputElement>("#settings-providers-additional")!
 	};
 	const defaults = {
 		temp:    .9,
 		max:     720
 	};
-	const submitButton = document.querySelector<HTMLButtonElement>("#settings-engines-submit")!;
-	const list = document.querySelector<HTMLElement>("#settings-engines-list")!;
-	const divider = document.querySelector("#settings-engines-divider")!;
+	const submitButton = document.querySelector<HTMLButtonElement>("#settings-providers-submit")!;
+	const list = document.querySelector<HTMLElement>("#settings-providers-list")!;
+	const divider = document.querySelector("#settings-providers-divider")!;
 	let editing: string | null = null;
 
 	submitButton.addEventListener("click", submit);
 
 	listen(update => {
 		if (update.storage !== "local") return;
-		if (update.key !== "engines") return;
+		if (update.key !== "providers") return;
 
 		updateList();
 	});
@@ -45,7 +45,7 @@ export function enginesUnit() {
 			if (typeof value !== "object") return {};
 			return value;
 		}
-		const e: Engine = {
+		const e: Provider = {
 			name:  inputs.name.value,
 			url:   inputs.url.value,
 			key:   inputs.key.value,
@@ -57,10 +57,10 @@ export function enginesUnit() {
 		const missing = (["name", "url", "model"] as const).some(k => !e[k]);
 		if (missing) return;
 
-		const eMap = readEngines();
+		const eMap = readProviders();
 		// @ts-expect-error isActive missing
 		eMap[id] = e;
-		saveEngines(eMap);
+		saveProviders(eMap);
 		editing = null;
 		inputs.name.value =  "";
 		inputs.url.value =   "";
@@ -70,7 +70,7 @@ export function enginesUnit() {
 		inputs.max.value =    String(defaults.max);
 		inputs.params.value = "";
 	}
-	function edit(id: string, e: Engine) {
+	function edit(id: string, e: Provider) {
 		function stringifyParams() {
 			if (!e.params) return "";
 			if (Object.keys(e.params).length === 0) return "";
@@ -91,11 +91,11 @@ export function enginesUnit() {
 
 	function updateList() {
 		list.innerHTML = "";
-		const enginesMap = readEngines();
-		const engines = Object.entries(enginesMap);
-		const items = engines.map(([id, e]) => 
+		const providersMap = readProviders();
+		const providers = Object.entries(providersMap);
+		const items = providers.map(([id, e]) => 
 			mudcrack({
-				className: "lineout row settings-engine-item",
+				className: "lineout row settings-provider-item",
 				contents: [
 					mudcrack({
 						contents: e.name
@@ -109,7 +109,7 @@ export function enginesUnit() {
 								events: {
 									click: ev => {
 										ev.stopPropagation();
-										copyEngine(id);
+										copyProvider(id);
 									}
 								},
 								contents: "copy"
@@ -120,7 +120,7 @@ export function enginesUnit() {
 								events: {
 									click: ev => {
 										ev.stopPropagation();
-										deleteEngine(id);
+										deleteProvider(id);
 									}
 								},
 								contents: "delete"
@@ -138,55 +138,55 @@ export function enginesUnit() {
 		else
 			list.append(mudcrack({
 				className: "placeholder",
-				contents: "No engines found"
+				contents: "No providers found"
 			}));
 	}
 }
 
-export function readEngines(): EngineMapWithActive {
-	const enginesRaw = local.get("engines");
-	if (!enginesRaw) return {};
-	const engines = nothrow<EngineMapWithActive>(() => JSON.parse(enginesRaw));
-	if (!engines.success) return {};
+export function readProviders(): ProviderMapWithActive {
+	const providersRaw = local.get("providers");
+	if (!providersRaw) return {};
+	const providers = nothrow<ProviderMapWithActive>(() => JSON.parse(providersRaw));
+	if (!providers.success) return {};
 
-	const activeEngines = readActiveEngines();
-	for (const e in engines.value) {
-		engines.value[e].isActive     = e === activeEngines.main;
-		engines.value[e].remberActive = e === activeEngines.rember;
+	const ActiveProviders = readActiveProviders();
+	for (const e in providers.value) {
+		providers.value[e].isActive     = e === ActiveProviders.main;
+		providers.value[e].remberActive = e === ActiveProviders.rember;
 	}
 
-	return engines.value;
+	return providers.value;
 }
-function saveEngines(eMap: EngineMap) {
-	local.set("engines", JSON.stringify(eMap));
+function saveProviders(eMap: ProviderMap) {
+	local.set("providers", JSON.stringify(eMap));
 
 }
-function deleteEngine(id: string) {
+function deleteProvider(id: string) {
 	if (!confirm("confirm deletion")) return;
-	const e = readEngines();
+	const e = readProviders();
 	delete e[id];
-	saveEngines(e);
+	saveProviders(e);
 }
-function copyEngine(id: string) {
-	const e = readEngines();
+function copyProvider(id: string) {
+	const e = readProviders();
 	if (!e[id]) return;
 	const nid = crypto.randomUUID();
 	e[nid] = {
 		...e[id],
 		name: e[id].name + " (copy)"
 	};
-	saveEngines(e);
+	saveProviders(e);
 }
 
-export function readActiveEngines(): ActiveEngines {
-	const defaultEngines = {
+export function readActiveProviders(): ActiveProviders {
+	const defaultProviders = {
 		main: null,
 		rember: null
 	}
-	const activeRaw = local.get("activeEngine");
-	if (!activeRaw) return defaultEngines;
-	const parsed = nothrow<ActiveEngines>(() => JSON.parse(activeRaw));
-	if (!parsed.success) return defaultEngines;
+	const activeRaw = local.get("activeProvider");
+	if (!activeRaw) return defaultProviders;
+	const parsed = nothrow<ActiveProviders>(() => JSON.parse(activeRaw));
+	if (!parsed.success) return defaultProviders;
 
 	return parsed.value;
 }

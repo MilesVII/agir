@@ -24,8 +24,8 @@ async function backup() {
 		idb.getAll("media")
 	]));
 	const localData = {
-		engines: local.get("engines"),
-		activeEngine: local.get("activeEngine"),
+		providers: local.get("providers"),
+		activeProvider: local.get("activeProvider"),
 		settings: local.get("settings"),
 		theme: local.get("theme"),
 	};

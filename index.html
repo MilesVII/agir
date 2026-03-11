@@ -64,39 +64,39 @@
 					</details>
 					<details>
 						<summary class="settings-label">
-							Engines
+							LLM Providers
 						</summary>
 						<div class="list">
 							<div class="hint">
-								Click engine entry to edit
+								Click provider entry to edit
 							</div>
-							<div id="settings-engines-list" class="virtual">
+							<div id="settings-providers-list" class="virtual">
 							</div>
-							<hr id="settings-engines-divider" class="topbar-scroll-offset" />
+							<hr id="settings-providers-divider" class="topbar-scroll-offset" />
 							<div class="hint">
 								Any OpenAI-compatible LLM provider is supported, including OpenRouter and AI Horde
 							</div>
 							<ram-labeled
 								legend="Display name"
-								id="settings-engines-name"
+								id="settings-providers-name"
 								class="strip wide"
 								placeholder="Goober"
 							></ram-labeled>
 							<ram-labeled
 								legend="API URL"
-								id="settings-engines-url"
+								id="settings-providers-url"
 								class="strip wide"
 								placeholder="https://openrouter.ai/api/v1/chat/completions"
 							></ram-labeled>
 							<ram-labeled
 								legend="API key"
-								id="settings-engines-key"
+								id="settings-providers-key"
 								class="strip wide"
 								placeholder="sk-or-v1-haha-nope"
 							></ram-labeled>
 							<ram-labeled
 								legend="Model"
-								id="settings-engines-model"
+								id="settings-providers-model"
 								class="strip wide"
 								placeholder="xiaomi/mimo-v2-flash:free"
 							></ram-labeled>
@@ -106,14 +106,14 @@
 							</div>
 							<ram-labeled
 								legend="Temperature (0.0-2.0)"
-								id="settings-engines-temp"
+								id="settings-providers-temp"
 								class="strip wide"
 								placeholder="0.9"
 								value="0.9"
 							></ram-labeled>
 							<ram-labeled
 								legend="Response length limit (in tokens, 0 = unlimited)"
-								id="settings-engines-max"
+								id="settings-providers-max"
 								class="strip wide"
 								placeholder="720"
 								value="720"
@@ -126,13 +126,13 @@
 							</div>
 							<ram-labeled
 								legend="Additional parameters"
-								id="settings-engines-additional"
+								id="settings-providers-additional"
 								class="strip wide"
 								placeholder='{ "top_p": 0.7 }'
 								value=""
 								multiline
 							></ram-labeled>
-							<button id="settings-engines-submit" class="lineout">Save engine</button>
+							<button id="settings-providers-submit" class="lineout">Save provider</button>
 						</div>
 					</details>
 					<details>
@@ -306,9 +306,9 @@
 					<div class="chat-top shadow">
 						<div class="row content-wide float-center">
 							<button class="lineout fit" data-to="chats">back</button>
-							<div class="chat-engine-control row-compact">
-								<div>Engine:</div>
-								<select id="chat-engine-picker" class="lineout"></select>
+							<div class="chat-provider-control row-compact">
+								<div>Provider:</div>
+								<select id="chat-provider-picker" class="lineout"></select>
 							</div>
 							<select id="chat-menu-select" class="lineout"></select>
 						</div>
@@ -327,7 +327,7 @@
 									<button id="chat-stop-button" class="lineout float-center">abort</button>
 								</ram-tab>
 								<ram-tab key="disabled">
-									<div class="placeholder">Add an engine in settings to start chatting</div>
+									<div class="placeholder">Add an LLM provider in settings to start chatting</div>
 								</ram-tab>
 							</ram-tabs>
 						</div>
@@ -371,9 +371,9 @@
 			></ram-labeled>
 		</ram-modal>
 		<ram-modal id="play-rember">
-			<div class="chat-engine-control row-compact">
-				<div>Engine:</div>
-				<select id="play-rember-engine-picker" class="lineout"></select>
+			<div class="chat-provider-control row-compact">
+				<div>Provider:</div>
+				<select id="play-rember-provider-picker" class="lineout"></select>
 			</div>
 			
 			<details>

@@ -1,19 +1,19 @@
-import { ChatMessage, Engine, Result } from "./types";
+import { ChatMessage, Provider, Result } from "./types";
 import { nothrow, nothrowAsync } from "./utils";
 
 
 export let abortController: AbortController;
 
-export async function runEngine(
+export async function runProvider(
 	chat: ChatMessage[],
-	engine: Engine,
+	provider: Provider,
 	onChunk: (v: string) => void
 ): Promise<Result<string, string>> {
 	const chonks: string[] = [];
 
 	try {
 		const params = {
-			model: engine.model,
+			model: provider.model,
 			messages: chat.map(m => ({
 				role: m.from === "model" ? "assistant" : m.from,
 				content: m.swipes[m.selectedSwipe]
@@ -22,18 +22,18 @@ export async function runEngine(
 			reasoning: {
 				effort: "none"
 			},
-			max_completion_tokens: engine.max,
-			temperature: engine.temp,
-			...engine.params
+			max_completion_tokens: provider.max,
+			temperature: provider.temp,
+			...provider.params
 		};
 		// @ts-ignore optional delete
-		if (!engine.max) delete params.max_completion_tokens;
+		if (!provider.max) delete params.max_completion_tokens;
 
 		abortController = new AbortController();
-		const response = await fetch(engine.url, {
+		const response = await fetch(provider.url, {
 			method: "POST",
 			headers: {
-				Authorization: `Bearer ${engine.key}`,
+				Authorization: `Bearer ${provider.key}`,
 				"Content-Type": "application/json",
 			},
 			body: JSON.stringify(params),
@@ -52,14 +52,14 @@ export async function runEngine(
 			if (!parsed.success || !parsed.value?.error?.message) {
 				return {
 					success: false,
-					error: `Engine says "${body}"\nStatus ${response.status}`
+					error: `Provider says "${body}"\nStatus ${response.status}`
 				};
 			}
 			const meta = parsed.value?.error?.metadata;
 			const metaWrapped = meta ? `\nMetadata:\n${JSON.stringify(meta, null, "\t")}` : ""
 			return {
 				success: false,
-				error: `Engine says "${parsed.value.error.message}"\nStatus ${response.status}${metaWrapped}`
+				error: `Provider says "${parsed.value.error.message}"\nStatus ${response.status}${metaWrapped}`
 			};
 		}
 

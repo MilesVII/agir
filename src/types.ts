@@ -29,19 +29,19 @@ export type MediaEntry = {
 	mime: string
 };
 
-export type Engine = {
+export type Provider = {
 	name:  string,
 	url:   string,
 	key:   string,
 	model: string,
-	temp:    number,
-	max:     number,
+	temp:   number,
+	max:    number,
 	params: Record<string, any>
 };
-export type EngineMap = Record<string, Engine>;
-export type EngineMapWithActive = Record<string, Engine & { isActive: boolean, remberActive: boolean }>;
+export type ProviderMap = Record<string, Provider>;
+export type ProviderMapWithActive = Record<string, Provider & { isActive: boolean, remberActive: boolean }>;
 
-export type ActiveEngines = {
+export type ActiveProviders = {
 	main:   string | null,
 	rember: string | null
 };

@@ -147,7 +147,7 @@ summary.settings-label {
 	white-space: pre-wrap;
 }
 
-.settings-engine-item {
+.settings-provider-item {
 	padding-inline-start: var(--dims-reg);
 	align-items: center;
 	justify-content: space-between;
@@ -224,7 +224,7 @@ summary.settings-label {
 .chat-top {
 	padding: var(--dims-smol);
 }
-.chat-engine-control {
+.chat-provider-control {
 	align-items: center;
 	margin-inline-start: auto;
 }

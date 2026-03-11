@@ -1,8 +1,8 @@
-import { abortController, runEngine } from "@root/run";
+import { abortController, runProvider } from "@root/run";
 import { ChatMessage, Result } from "@root/types";
 import { dullMessage, getCurrentChat, updateRember } from "./utils";
 import { idb, listen, local } from "@root/persist";
-import { readActiveEngines, readEngines } from "@units/settings/engines";
+import { readActiveProviders, readProviders } from "@units/settings/providers";
 import { RampikeModal } from "@rampike/modal";
 import { setSelectOptions } from "@root/utils";
 import { toast } from "@units/toasts";
@@ -34,7 +34,7 @@ export const REMBER_DEFAULTS = {
 
 export function initRember() {
 	const modal        = document.querySelector<RampikeModal>       ("#play-rember")!;
-	const enginePicker = document.querySelector<HTMLSelectElement>  ("#play-rember-engine-picker")!;
+	const providerPicker = document.querySelector<HTMLSelectElement>  ("#play-rember-provider-picker")!;
 	const strideInput  = document.querySelector<HTMLInputElement>   ("#play-rember-stride")!;
 	const prompt       = document.querySelector<HTMLTextAreaElement>("#play-rember-prompt")!;
 	const template     = document.querySelector<HTMLTextAreaElement>("#play-rember-template")!;
@@ -50,22 +50,22 @@ export function initRember() {
 	buttons.all.addEventListener("click", runAll);
 	buttons.stop.addEventListener("click", forgor);
 	buttons.save.addEventListener("click", saveSettings);
-	enginePicker.addEventListener("input", enginePickerChanged);
+	providerPicker.addEventListener("input", providerPickerChanged);
 	buttons.stop.hidden = true;
 
 	listen(u => {
 		if (u.storage !== "local") return;
-		if (u.key !== "activeEngine") return;
+		if (u.key !== "activeProvider") return;
 
-		updateEnginePicker();
+		updateProviderPicker();
 	});
-	updateEnginePicker();
+	updateProviderPicker();
 
-	function updateEnginePicker() {
-		const engineMap = readEngines();
-		const engineOptions = Object.entries(engineMap);
-		const activeId = engineOptions.find(([, e]) => e.remberActive)?.[0];
-		setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId);
+	function updateProviderPicker() {
+		const providerMap = readProviders();
+		const providerOptions = Object.entries(providerMap);
+		const activeId = providerOptions.find(([, e]) => e.remberActive)?.[0];
+		setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
 	}
 	async function onOpen() {
 		const state = await getCurrentChat();
@@ -109,7 +109,7 @@ export function initRember() {
 			(content, mid) => {
 				checkView(mid).controls.appendContent(content);
 			},
-			enginePicker.value,
+			providerPicker.value,
 			getStride(),
 			prompt.value.trim(),
 			template.value.trim()
@@ -157,10 +157,10 @@ export function initRember() {
 		state.chat.rember = v;
 		await idb.set("chats", state.chat);
 	}
-	function enginePickerChanged() {
-		const actives = readActiveEngines();
-		actives.rember = enginePicker.value!;
-		local.set("activeEngine", JSON.stringify(actives));
+	function providerPickerChanged() {
+		const actives = readActiveProviders();
+		actives.rember = providerPicker.value!;
+		local.set("activeProvider", JSON.stringify(actives));
 	}
 	function getStride() {
 		const value = parseInt(strideInput.value, 10);
@@ -176,11 +176,11 @@ export function initRember() {
 	}
 }
 
-type RemberError = "noload" | "iscomplete" | "noengines" | "failed";
+type RemberError = "noload" | "iscomplete" | "noproviders" | "failed";
 
 export async function runRember(
 	onChunk: (chunk: string, mid: number) => void,
-	engine: string,
+	provider: string,
 	stride: number,
 	prompt: string,
 	stateTemplate: string
@@ -222,11 +222,11 @@ export async function runRember(
 		prompt, state
 	);
 
-	const engines = readEngines();
+	const providers = readProviders();
 
-	if (!engines[engine]) return { success: false, error: "noengines"};
+	if (!providers[provider]) return { success: false, error: "noproviders"};
 
-	const response = await runEngine(payload, engines[engine], value => onChunk(value, tix));
+	const response = await runProvider(payload, providers[provider], value => onChunk(value, tix));
 
 	if (!response.success) {
 		toast(response.error);

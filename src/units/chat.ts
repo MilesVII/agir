@@ -2,37 +2,37 @@ import { asyncMap, b64Encoder, download, getRoute, makeResizable, setSelectMenu,
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
 import { idb, listen, local } from "@root/persist";
-import { readActiveEngines, readEngines } from "./settings/engines";
+import { readActiveProviders, readProviders } from "./settings/providers";
 import { sendMessage } from "./chat/send";
 import { abortController } from "@root/run";
-import { ActiveEngines } from "@root/types";
+import { ActiveProviders } from "@root/types";
 import { initChatEditor } from "./chat/editor";
 import { initRember } from "./chat/rember";
 import { toast } from "./toasts";
 
 export function chatUnit() {
-	const scroller     = document.querySelector<HTMLElement>("#play-messages")!;
-	const textarea     = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
-	const sendButton   = document.querySelector<HTMLButtonElement>("#chat-send-button")!;
-	const stopButton   = document.querySelector<HTMLButtonElement>("#chat-stop-button")!;
-	const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
-	const menuButton   = document.querySelector<HTMLSelectElement>("#chat-menu-select")!;
-	const inputModes   = document.querySelector<RampikeTabs>("#chat-controls")!;
+	const scroller       = document.querySelector<HTMLElement>        ("#play-messages")!;
+	const textarea       = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
+	const sendButton     = document.querySelector<HTMLButtonElement>  ("#chat-send-button")!;
+	const stopButton     = document.querySelector<HTMLButtonElement>  ("#chat-stop-button")!;
+	const providerPicker = document.querySelector<HTMLSelectElement>  ("#chat-provider-picker")!;
+	const menuButton     = document.querySelector<HTMLSelectElement>  ("#chat-menu-select")!;
+	const inputModes     = document.querySelector<RampikeTabs>        ("#chat-controls")!;
 
 	makeResizable(textarea, scroller);
 	window.addEventListener("hashchange", update);
 	listen(u => {
 		if (u.storage !== "local") return;
-		if (u.key !== "engines" && u.key !== "activeEngine") return;
-		updateEngines();
+		if (u.key !== "providers" && u.key !== "activeProvider") return;
+		updateProviders();
 	});
 
 	sendButton.addEventListener("click", sendMessage);
 	stopButton.addEventListener("click", () => abortController.abort());
-	enginePicker.addEventListener("input", () => { pickMainEngine(enginePicker.value); })
+	providerPicker.addEventListener("input", () => { pickMainProvider(providerPicker.value); })
 
 	update();
-	updateEngines();
+	updateProviders();
 
 	const { open: openChatEditor } = initChatEditor();
 	const { open: openRember } = initRember();
@@ -62,40 +62,40 @@ async function update() {
 	await loadMessages(route[1]);
 }
 
-function updateEngines() {
+function updateProviders() {
 	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;
-	const enginePicker = document.querySelector<HTMLSelectElement>("#chat-engine-picker")!;
-	const engineControl = document.querySelector<HTMLElement>(".chat-engine-control")!;
+	const providerPicker = document.querySelector<HTMLSelectElement>("#chat-provider-picker")!;
+	const providerControl = document.querySelector<HTMLElement>(".chat-provider-control")!;
 
-	const engineMap = readEngines();
+	const providerMap = readProviders();
 
-	const engineOptions = Object.entries(engineMap);
-	const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
-	setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId || engineOptions[0]?.[0]);
+	const providerOptions = Object.entries(providerMap);
+	const activeId = providerOptions.find(([, e]) => e.isActive)?.[0];
+	setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId || providerOptions[0]?.[0]);
 
-	if (engineOptions.length > 0) {
+	if (providerOptions.length > 0) {
 		if (activeId) {
-			enginePicker.value = activeId;
+			providerPicker.value = activeId;
 		} else {
-			const actives: ActiveEngines = {
-				main: engineOptions[0][0],
+			const actives: ActiveProviders = {
+				main: providerOptions[0][0],
 				rember: null
 			};
-			local.set("activeEngine", JSON.stringify(actives));
+			local.set("activeProvider", JSON.stringify(actives));
 		}
 		if (inputModes.tab !== "pending")
 			inputModes.tab = "main";
-		engineControl.hidden = false;
+		providerControl.hidden = false;
 	} else {
 		inputModes.tab = "disabled";
-		engineControl.hidden = true;
+		providerControl.hidden = true;
 	}
 }
 
-function pickMainEngine(id: string) {
-	const old = readActiveEngines();
+function pickMainProvider(id: string) {
+	const old = readActiveProviders();
 	old.main = id;
-	local.set("activeEngine", JSON.stringify(old));
+	local.set("activeProvider", JSON.stringify(old));
 }
 
 async function openScenarioIfExists() {

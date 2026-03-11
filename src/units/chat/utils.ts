@@ -1,8 +1,8 @@
 import { RampikeTabs } from "@rampike/tabs";
 import { getBlobLink, idb, listen } from "@root/persist";
-import { runEngine } from "@root/run";
+import { runProvider } from "@root/run";
 import { Chat, ChatContents, ChatMessage } from "@root/types";
-import { readEngines } from "@units/settings/engines";
+import { readProviders } from "@units/settings/providers";
 import { RampikeMessageView } from "./views";
 import { loadMiscSettings } from "@units/settings/misc";
 import { getRoute } from "@root/utils";
@@ -168,12 +168,12 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 }
 
 export async function loadResponse(payload: ChatMessage[], msgId: number, chatId: string) {
-	const engineOptions = Object.entries(readEngines());
-	if (engineOptions.length <= 0) {
-		console.error("no engines!");
+	const providerOptions = Object.entries(readProviders());
+	if (providerOptions.length <= 0) {
+		console.error("no providers!");
 		return;
 	}
-	const [, engine] = engineOptions.find(([, e]) => e.isActive) ?? engineOptions[0];
+	const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];
 
 	const inputModes = document.querySelector<RampikeTabs>("#chat-controls")!;
 	inputModes.tab = "pending";
@@ -185,7 +185,7 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 	}
 	const responseStreamingUpdater = messageView.controls.startStreaming();
 
-	const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
+	const streamingResult = await runProvider(payload, provider, responseStreamingUpdater);
 	if (streamingResult.success) {
 		const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
 		if (!updatedMessage) {

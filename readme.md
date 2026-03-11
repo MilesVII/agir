@@ -14,13 +14,13 @@ Janitor-inspired local roleplay frontend
 A customizable recap assistant that helps to keep track of roleplay state. Basically a "Chat Memory" from Janitor but not half-assed.
 
 ## Usage
-1. You need an LLM provider to use with Ägir. Janitor AI calls them "proxies", in Ägir they are "engines". Refer to [their guide](https://help.janitorai.com/en/article/the-absolute-beginners-guide-to-using-a-proxy-with-janitor-part-one-19to7y9/) to acquire one for free on OpenRouter.
-2. Navigate to `Settings` > `Engines`, add your credentials into the form, and hit "Save engine".
+1. You need an LLM provider to use with Ägir. Janitor AI calls them "proxies", in Ägir they are "providers". Refer to [their guide](https://help.janitorai.com/en/article/the-absolute-beginners-guide-to-using-a-proxy-with-janitor-part-one-19to7y9/) to acquire one for free on OpenRouter.
+2. Navigate to `Settings` > `Providers`, add your credentials into the form, and hit "Save provider".
 3. Navigate to `Settings` > `Personas` and add a persona -- a character representing you in roleplay.
 4. Navigate to `Characters` and import or create a scenario.
 5. Once ready, pick a scenario from `Characters` library, hit `play`, select a persona and start the roleplay session.
 
-You also can run an LLM locally with [LM Studio](https://lmstudio.ai/) on desktop, just figure out how to host a web server with it and add an engine with localhost connection.
+You also can run an LLM locally with [LM Studio](https://lmstudio.ai/) on desktop, just figure out how to host a web server with it and add a provider with localhost connection.
 
 You can use [Fenrir](https://github.com/MilesVII/fenrir) to add characters from Janitor -- it's a sniffer proxy that helps to extract character definition even if it's hidden.
 

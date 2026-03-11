@@ -3044,29 +3044,29 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
   }
 
-  // src/units/settings/engines.ts
-  function enginesUnit() {
+  // src/units/settings/providers.ts
+  function providersUnit() {
     const inputs = {
-      name: document.querySelector("#settings-engines-name"),
-      url: document.querySelector("#settings-engines-url"),
-      key: document.querySelector("#settings-engines-key"),
-      model: document.querySelector("#settings-engines-model"),
-      temp: document.querySelector("#settings-engines-temp"),
-      max: document.querySelector("#settings-engines-max"),
-      params: document.querySelector("#settings-engines-additional")
+      name: document.querySelector("#settings-providers-name"),
+      url: document.querySelector("#settings-providers-url"),
+      key: document.querySelector("#settings-providers-key"),
+      model: document.querySelector("#settings-providers-model"),
+      temp: document.querySelector("#settings-providers-temp"),
+      max: document.querySelector("#settings-providers-max"),
+      params: document.querySelector("#settings-providers-additional")
     };
     const defaults = {
       temp: 0.9,
       max: 720
     };
-    const submitButton = document.querySelector("#settings-engines-submit");
-    const list = document.querySelector("#settings-engines-list");
-    const divider = document.querySelector("#settings-engines-divider");
+    const submitButton = document.querySelector("#settings-providers-submit");
+    const list = document.querySelector("#settings-providers-list");
+    const divider = document.querySelector("#settings-providers-divider");
     let editing = null;
     submitButton.addEventListener("click", submit);
     listen((update3) => {
       if (update3.storage !== "local") return;
-      if (update3.key !== "engines") return;
+      if (update3.key !== "providers") return;
       updateList();
     });
     updateList();
@@ -3094,9 +3094,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       };
       const missing = ["name", "url", "model"].some((k2) => !e[k2]);
       if (missing) return;
-      const eMap = readEngines();
+      const eMap = readProviders();
       eMap[id] = e;
-      saveEngines(eMap);
+      saveProviders(eMap);
       editing = null;
       inputs.name.value = "";
       inputs.url.value = "";
@@ -3124,11 +3124,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
     function updateList() {
       list.innerHTML = "";
-      const enginesMap = readEngines();
-      const engines = Object.entries(enginesMap);
-      const items = engines.map(
+      const providersMap = readProviders();
+      const providers = Object.entries(providersMap);
+      const items = providers.map(
         ([id, e]) => T({
-          className: "lineout row settings-engine-item",
+          className: "lineout row settings-provider-item",
           contents: [
             T({
               contents: e.name
@@ -3142,7 +3142,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                   events: {
                     click: (ev) => {
                       ev.stopPropagation();
-                      copyEngine(id);
+                      copyProvider(id);
                     }
                   },
                   contents: "copy"
@@ -3153,7 +3153,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
                   events: {
                     click: (ev) => {
                       ev.stopPropagation();
-                      deleteEngine(id);
+                      deleteProvider(id);
                     }
                   },
                   contents: "delete"
@@ -3171,50 +3171,50 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       else
         list.append(T({
           className: "placeholder",
-          contents: "No engines found"
+          contents: "No providers found"
         }));
     }
   }
-  function readEngines() {
-    const enginesRaw = local.get("engines");
-    if (!enginesRaw) return {};
-    const engines = nothrow(() => JSON.parse(enginesRaw));
-    if (!engines.success) return {};
-    const activeEngines = readActiveEngines();
-    for (const e in engines.value) {
-      engines.value[e].isActive = e === activeEngines.main;
-      engines.value[e].remberActive = e === activeEngines.rember;
+  function readProviders() {
+    const providersRaw = local.get("providers");
+    if (!providersRaw) return {};
+    const providers = nothrow(() => JSON.parse(providersRaw));
+    if (!providers.success) return {};
+    const ActiveProviders = readActiveProviders();
+    for (const e in providers.value) {
+      providers.value[e].isActive = e === ActiveProviders.main;
+      providers.value[e].remberActive = e === ActiveProviders.rember;
     }
-    return engines.value;
+    return providers.value;
   }
-  function saveEngines(eMap) {
-    local.set("engines", JSON.stringify(eMap));
+  function saveProviders(eMap) {
+    local.set("providers", JSON.stringify(eMap));
   }
-  function deleteEngine(id) {
+  function deleteProvider(id) {
     if (!confirm("confirm deletion")) return;
-    const e = readEngines();
+    const e = readProviders();
     delete e[id];
-    saveEngines(e);
+    saveProviders(e);
   }
-  function copyEngine(id) {
-    const e = readEngines();
+  function copyProvider(id) {
+    const e = readProviders();
     if (!e[id]) return;
     const nid = crypto.randomUUID();
     e[nid] = {
       ...e[id],
       name: e[id].name + " (copy)"
     };
-    saveEngines(e);
+    saveProviders(e);
   }
-  function readActiveEngines() {
-    const defaultEngines = {
+  function readActiveProviders() {
+    const defaultProviders = {
       main: null,
       rember: null
     };
-    const activeRaw = local.get("activeEngine");
-    if (!activeRaw) return defaultEngines;
+    const activeRaw = local.get("activeProvider");
+    if (!activeRaw) return defaultProviders;
     const parsed = nothrow(() => JSON.parse(activeRaw));
-    if (!parsed.success) return defaultEngines;
+    if (!parsed.success) return defaultProviders;
     return parsed.value;
   }
 
@@ -3422,8 +3422,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       idb.getAll("media")
     ]);
     const localData = {
-      engines: local.get("engines"),
-      activeEngine: local.get("activeEngine"),
+      providers: local.get("providers"),
+      activeProvider: local.get("activeProvider"),
       settings: local.get("settings"),
       theme: local.get("theme")
     };
@@ -3514,18 +3514,18 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function settingsUnit() {
     initTheme();
     personaUnit();
-    enginesUnit();
+    providersUnit();
     initBackup();
     initMisc();
   }
 
   // src/run.ts
   var abortController;
-  async function runEngine(chat, engine, onChunk) {
+  async function runProvider(chat, provider, onChunk) {
     const chonks = [];
     try {
       const params = {
-        model: engine.model,
+        model: provider.model,
         messages: chat.map((m3) => ({
           role: m3.from === "model" ? "assistant" : m3.from,
           content: m3.swipes[m3.selectedSwipe]
@@ -3534,16 +3534,16 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         reasoning: {
           effort: "none"
         },
-        max_completion_tokens: engine.max,
-        temperature: engine.temp,
-        ...engine.params
+        max_completion_tokens: provider.max,
+        temperature: provider.temp,
+        ...provider.params
       };
-      if (!engine.max) delete params.max_completion_tokens;
+      if (!provider.max) delete params.max_completion_tokens;
       abortController = new AbortController();
-      const response = await fetch(engine.url, {
+      const response = await fetch(provider.url, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${engine.key}`,
+          Authorization: `Bearer ${provider.key}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(params),
@@ -3561,7 +3561,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         if (!parsed.success || !parsed.value?.error?.message) {
           return {
             success: false,
-            error: `Engine says "${body}"
+            error: `Provider says "${body}"
 Status ${response.status}`
           };
         }
@@ -3571,7 +3571,7 @@ Metadata:
 ${JSON.stringify(meta, null, "	")}` : "";
         return {
           success: false,
-          error: `Engine says "${parsed.value.error.message}"
+          error: `Provider says "${parsed.value.error.message}"
 Status ${response.status}${metaWrapped}`
         };
       }
@@ -3794,12 +3794,12 @@ Status ${response.status}${metaWrapped}`
     return payload;
   }
   async function loadResponse(payload, msgId, chatId) {
-    const engineOptions = Object.entries(readEngines());
-    if (engineOptions.length <= 0) {
-      console.error("no engines!");
+    const providerOptions = Object.entries(readProviders());
+    if (providerOptions.length <= 0) {
+      console.error("no providers!");
       return;
     }
-    const [, engine] = engineOptions.find(([, e]) => e.isActive) ?? engineOptions[0];
+    const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];
     const inputModes = document.querySelector("#chat-controls");
     inputModes.tab = "pending";
     const messageView = getMessageViewByID(msgId);
@@ -3808,7 +3808,7 @@ Status ${response.status}${metaWrapped}`
       return;
     }
     const responseStreamingUpdater = messageView.controls.startStreaming();
-    const streamingResult = await runEngine(payload, engine, responseStreamingUpdater);
+    const streamingResult = await runProvider(payload, provider, responseStreamingUpdater);
     if (streamingResult.success) {
       const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
       if (!updatedMessage) {
@@ -4418,7 +4418,7 @@ Status ${response.status}${metaWrapped}`
   };
   function initRember() {
     const modal = document.querySelector("#play-rember");
-    const enginePicker = document.querySelector("#play-rember-engine-picker");
+    const providerPicker = document.querySelector("#play-rember-provider-picker");
     const strideInput = document.querySelector("#play-rember-stride");
     const prompt = document.querySelector("#play-rember-prompt");
     const template = document.querySelector("#play-rember-template");
@@ -4433,19 +4433,19 @@ Status ${response.status}${metaWrapped}`
     buttons.all.addEventListener("click", runAll);
     buttons.stop.addEventListener("click", forgor);
     buttons.save.addEventListener("click", saveSettings);
-    enginePicker.addEventListener("input", enginePickerChanged);
+    providerPicker.addEventListener("input", providerPickerChanged);
     buttons.stop.hidden = true;
     listen((u3) => {
       if (u3.storage !== "local") return;
-      if (u3.key !== "activeEngine") return;
-      updateEnginePicker();
+      if (u3.key !== "activeProvider") return;
+      updateProviderPicker();
     });
-    updateEnginePicker();
-    function updateEnginePicker() {
-      const engineMap = readEngines();
-      const engineOptions = Object.entries(engineMap);
-      const activeId = engineOptions.find(([, e]) => e.remberActive)?.[0];
-      setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId);
+    updateProviderPicker();
+    function updateProviderPicker() {
+      const providerMap = readProviders();
+      const providerOptions = Object.entries(providerMap);
+      const activeId = providerOptions.find(([, e]) => e.remberActive)?.[0];
+      setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
     }
     async function onOpen() {
       const state = await getCurrentChat();
@@ -4481,7 +4481,7 @@ Status ${response.status}${metaWrapped}`
         (content, mid) => {
           checkView(mid).controls.appendContent(content);
         },
-        enginePicker.value,
+        providerPicker.value,
         getStride(),
         prompt.value.trim(),
         template.value.trim()
@@ -4529,10 +4529,10 @@ Status ${response.status}${metaWrapped}`
       state.chat.rember = v2;
       await idb.set("chats", state.chat);
     }
-    function enginePickerChanged() {
-      const actives = readActiveEngines();
-      actives.rember = enginePicker.value;
-      local.set("activeEngine", JSON.stringify(actives));
+    function providerPickerChanged() {
+      const actives = readActiveProviders();
+      actives.rember = providerPicker.value;
+      local.set("activeProvider", JSON.stringify(actives));
     }
     function getStride() {
       const value = parseInt(strideInput.value, 10);
@@ -4546,7 +4546,7 @@ Status ${response.status}${metaWrapped}`
       }
     };
   }
-  async function runRember(onChunk, engine, stride, prompt, stateTemplate) {
+  async function runRember(onChunk, provider, stride, prompt, stateTemplate) {
     const eh = await getCurrentChat();
     if (!eh) return { success: false, error: "noload" };
     const { chat, messages } = eh;
@@ -4566,9 +4566,9 @@ Status ${response.status}${metaWrapped}`
       prompt,
       state
     );
-    const engines = readEngines();
-    if (!engines[engine]) return { success: false, error: "noengines" };
-    const response = await runEngine(payload, engines[engine], (value) => onChunk(value, tix));
+    const providers = readProviders();
+    if (!providers[provider]) return { success: false, error: "noproviders" };
+    const response = await runProvider(payload, providers[provider], (value) => onChunk(value, tix));
     if (!response.success) {
       toast(response.error);
       return { success: false, error: "failed" };
@@ -4607,23 +4607,23 @@ ${m3.swipes[m3.selectedSwipe]}
     const textarea = document.querySelector("#chat-textarea");
     const sendButton = document.querySelector("#chat-send-button");
     const stopButton = document.querySelector("#chat-stop-button");
-    const enginePicker = document.querySelector("#chat-engine-picker");
+    const providerPicker = document.querySelector("#chat-provider-picker");
     const menuButton = document.querySelector("#chat-menu-select");
     const inputModes = document.querySelector("#chat-controls");
     makeResizable(textarea, scroller);
     window.addEventListener("hashchange", update);
     listen((u3) => {
       if (u3.storage !== "local") return;
-      if (u3.key !== "engines" && u3.key !== "activeEngine") return;
-      updateEngines();
+      if (u3.key !== "providers" && u3.key !== "activeProvider") return;
+      updateProviders();
     });
     sendButton.addEventListener("click", sendMessage);
     stopButton.addEventListener("click", () => abortController.abort());
-    enginePicker.addEventListener("input", () => {
-      pickMainEngine(enginePicker.value);
+    providerPicker.addEventListener("input", () => {
+      pickMainProvider(providerPicker.value);
     });
     update();
-    updateEngines();
+    updateProviders();
     const { open: openChatEditor } = initChatEditor();
     const { open: openRember } = initRember();
     const openRemberGuarded = () => {
@@ -4649,36 +4649,36 @@ ${m3.swipes[m3.selectedSwipe]}
     if (!route[1]) return;
     await loadMessages(route[1]);
   }
-  function updateEngines() {
+  function updateProviders() {
     const inputModes = document.querySelector("#chat-controls");
-    const enginePicker = document.querySelector("#chat-engine-picker");
-    const engineControl = document.querySelector(".chat-engine-control");
-    const engineMap = readEngines();
-    const engineOptions = Object.entries(engineMap);
-    const activeId = engineOptions.find(([, e]) => e.isActive)?.[0];
-    setSelectOptions(enginePicker, engineOptions.map(([id, e]) => [id, e.name]), activeId || engineOptions[0]?.[0]);
-    if (engineOptions.length > 0) {
+    const providerPicker = document.querySelector("#chat-provider-picker");
+    const providerControl = document.querySelector(".chat-provider-control");
+    const providerMap = readProviders();
+    const providerOptions = Object.entries(providerMap);
+    const activeId = providerOptions.find(([, e]) => e.isActive)?.[0];
+    setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId || providerOptions[0]?.[0]);
+    if (providerOptions.length > 0) {
       if (activeId) {
-        enginePicker.value = activeId;
+        providerPicker.value = activeId;
       } else {
         const actives = {
-          main: engineOptions[0][0],
+          main: providerOptions[0][0],
           rember: null
         };
-        local.set("activeEngine", JSON.stringify(actives));
+        local.set("activeProvider", JSON.stringify(actives));
       }
       if (inputModes.tab !== "pending")
         inputModes.tab = "main";
-      engineControl.hidden = false;
+      providerControl.hidden = false;
     } else {
       inputModes.tab = "disabled";
-      engineControl.hidden = true;
+      providerControl.hidden = true;
     }
   }
-  function pickMainEngine(id) {
-    const old = readActiveEngines();
+  function pickMainProvider(id) {
+    const old = readActiveProviders();
     old.main = id;
-    local.set("activeEngine", JSON.stringify(old));
+    local.set("activeProvider", JSON.stringify(old));
   }
   async function openScenarioIfExists() {
     const [, chatId] = getRoute();
