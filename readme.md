@@ -15,7 +15,7 @@ A customizable recap assistant that helps to keep track of roleplay state. Basic
 
 ## Usage
 1. You need an LLM provider to use with Ägir. Janitor AI calls them "proxies", in Ägir they are "providers". Refer to [their guide](https://help.janitorai.com/en/article/the-absolute-beginners-guide-to-using-a-proxy-with-janitor-part-one-19to7y9/) to acquire one for free on OpenRouter.
-2. Navigate to `Settings` > `Providers`, add your credentials into the form, and hit "Save provider".
+2. Navigate to `Settings` > `LLM providers`, add your credentials into the form, and hit "Save provider".
 3. Navigate to `Settings` > `Personas` and add a persona -- a character representing you in roleplay.
 4. Navigate to `Characters` and import or create a scenario.
 5. Once ready, pick a scenario from `Characters` library, hit `play`, select a persona and start the roleplay session.

@@ -3406,6 +3406,26 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     saveButton.addEventListener("click", backup);
     const importPicker = document.querySelector("#settings-backup-import");
     importPicker.addEventListener("input", () => restore(importPicker));
+    saveButton.parentElement.append(
+      T({
+        tagName: "button",
+        className: "lineout",
+        contents: "migrate engines",
+        events: {
+          click: () => {
+            const keys = [
+              ["engines", "providers"],
+              ["activeEngine", "activeProvider"]
+            ];
+            keys.forEach(([from, to]) => {
+              const v2 = local.get(from);
+              if (!v2) return;
+              local.set(to, v2);
+            });
+          }
+        }
+      })
+    );
   }
   async function backup() {
     const [
