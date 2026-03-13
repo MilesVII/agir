@@ -2,7 +2,7 @@ import { mudcrack } from "rampike";
 
 type ToastOptions = {
 	timeoutMS?: number,
-	actions?: [caption: string, cb: () => void][]
+	actions?: [caption: string, cb: (close: () => void) => void][]
 };
 
 export function toast(message: string, options?: ToastOptions) {
@@ -12,17 +12,43 @@ export function toast(message: string, options?: ToastOptions) {
 	const totalH = rects.reduce((p, c) => p + c.height, 0);
 	let closed = false;
 
+	const actions = options?.actions
+		? options.actions.map(([caption, cb]) => 
+			mudcrack({
+				tagName: "button",
+				className: "lineout",
+				contents: caption,
+				events: {
+					click: () => !closed && cb(close)
+				}
+			})
+		)
+		: [];
+
 	const item = mudcrack({
 		tagName: "div",
-		className: "toast pointer",
-		contents: message,
+		className: "toast list pointer",
+		contents: [
+			mudcrack({
+				tagName: "div",
+				contents: message
+			}),
+			mudcrack({
+				tagName: "div",
+				className: "row-compact jc-end",
+				style: actions.length
+					? {}
+					: { display: "none" },
+				contents: actions
+			})
+		],
 		style: {
 			left: "var(--gap)",
 			bottom: `calc(${totalH}px + var(--gap) * ${rects.length + 1})`,
 			transform: "translateX(calc(-100% - var(--gap) * 2))"
 		},
 		events: {
-			click: close
+			click: () => !options?.actions && close()
 		}
 	});
 
@@ -44,6 +70,8 @@ export function toast(message: string, options?: ToastOptions) {
 	if (options?.timeoutMS) {
 		setTimeout(close, options.timeoutMS);
 	}
+
+	return close;
 }
 
 function squish() {

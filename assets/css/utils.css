@@ -42,6 +42,9 @@
 	gap: var(--dims-smol);
 }
 
+.jc-end {
+	justify-content: end;
+}
 .baseline {
 	align-items: baseline;
 }

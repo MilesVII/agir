@@ -1,40 +1,17 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { idb, local, LocalKey } from "@root/persist";
 import { b64Encoder, download } from "@root/utils";
-import { mudcrack } from "rampike";
+import { toast } from "@units/toasts";
 
 export function initBackup() {
 	const saveButton = document.querySelector("#settings-backup-save")!;
 	saveButton.addEventListener("click", backup);
 	const importPicker = document.querySelector<RampikeFilePicker>("#settings-backup-import")!;
 	importPicker.addEventListener("input", () => restore(importPicker));
-
-	// HACK: remove once migrated
-	saveButton.parentElement!.append(
-		mudcrack({
-			tagName: "button",
-			className: "lineout",
-			contents: "migrate engines",
-			events: {
-				click: () => {
-					const keys = [
-						["engines", "providers"],
-						["activeEngine", "activeProvider"]
-					];
-					keys.forEach(([from, to]) => {
-						// @ts-ignore
-						const v = local.get(from);
-						if (!v) return;
-						// @ts-ignore
-						local.set(to, v);
-					});
-				}
-			}
-		})
-	)
 }
 
 async function backup() {
+	const closeToast = toast("on it, please wait...");
 	const [
 		chatContents,
 		chats,
@@ -77,6 +54,7 @@ async function backup() {
 		local: localData
 	});
 
+	closeToast();
 	download(payload, `${new Date().toLocaleString()}.aegir.backup.json`);
 }
 
@@ -84,6 +62,7 @@ async function restore(picker: RampikeFilePicker) {
 	const file = picker.input.files?.[0];
 	if (!file) return;
 
+	const closeToast = toast("on it, please wait...");
 	const raw = await file.text();
 	const parsed = JSON.parse(raw);
 
@@ -115,4 +94,6 @@ async function restore(picker: RampikeFilePicker) {
 	for (const [key, data] of Object.entries<string>(parsed.local)) {
 		if (data) local.set(key as LocalKey, data);
 	}
+	closeToast();
+	toast("restore complete!");
 }

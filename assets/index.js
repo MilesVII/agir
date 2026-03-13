@@ -3400,34 +3400,83 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
+  // src/units/toasts.ts
+  function toast(message, options) {
+    const list = document.querySelector("#toast-container");
+    const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
+    const totalH = rects.reduce((p2, c) => p2 + c.height, 0);
+    let closed = false;
+    const actions = options?.actions ? options.actions.map(
+      ([caption, cb]) => T({
+        tagName: "button",
+        className: "lineout",
+        contents: caption,
+        events: {
+          click: () => !closed && cb(close)
+        }
+      })
+    ) : [];
+    const item = T({
+      tagName: "div",
+      className: "toast list pointer",
+      contents: [
+        T({
+          tagName: "div",
+          contents: message
+        }),
+        T({
+          tagName: "div",
+          className: "row-compact jc-end",
+          style: actions.length ? {} : { display: "none" },
+          contents: actions
+        })
+      ],
+      style: {
+        left: "var(--gap)",
+        bottom: `calc(${totalH}px + var(--gap) * ${rects.length + 1})`,
+        transform: "translateX(calc(-100% - var(--gap) * 2))"
+      },
+      events: {
+        click: () => !options?.actions && close()
+      }
+    });
+    function close() {
+      if (closed) return;
+      closed = true;
+      const { width } = item.getBoundingClientRect();
+      item.style.left = `calc(${-width}px - var(--gap))`;
+      item.addEventListener("transitionend", () => {
+        item.remove();
+        squish();
+      });
+    }
+    list.append(item);
+    setTimeout(() => item.style.transform = `translateX(0px)`, 100);
+    if (options?.timeoutMS) {
+      setTimeout(close, options.timeoutMS);
+    }
+    return close;
+  }
+  function squish() {
+    const list = document.querySelector("#toast-container");
+    let totalH = 0;
+    const items = Array.from(list.children);
+    items.forEach((item, ix) => {
+      const { height } = item.getBoundingClientRect();
+      item.style.bottom = `calc(${totalH}px + var(--gap) * ${ix + 1})`;
+      totalH += height;
+    });
+  }
+
   // src/units/settings/backup.ts
   function initBackup() {
     const saveButton = document.querySelector("#settings-backup-save");
     saveButton.addEventListener("click", backup);
     const importPicker = document.querySelector("#settings-backup-import");
     importPicker.addEventListener("input", () => restore(importPicker));
-    saveButton.parentElement.append(
-      T({
-        tagName: "button",
-        className: "lineout",
-        contents: "migrate engines",
-        events: {
-          click: () => {
-            const keys = [
-              ["engines", "providers"],
-              ["activeEngine", "activeProvider"]
-            ];
-            keys.forEach(([from, to]) => {
-              const v2 = local.get(from);
-              if (!v2) return;
-              local.set(to, v2);
-            });
-          }
-        }
-      })
-    );
   }
   async function backup() {
+    const closeToast = toast("on it, please wait...");
     const [
       chatContents,
       chats,
@@ -3463,11 +3512,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       idb: validOnly,
       local: localData
     });
+    closeToast();
     download(payload, `${(/* @__PURE__ */ new Date()).toLocaleString()}.aegir.backup.json`);
   }
   async function restore(picker) {
     const file = picker.input.files?.[0];
     if (!file) return;
+    const closeToast = toast("on it, please wait...");
     const raw = await file.text();
     const parsed = JSON.parse(raw);
     if (parsed.idb.media) {
@@ -3493,6 +3544,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     for (const [key, data] of Object.entries(parsed.local)) {
       if (data) local.set(key, data);
     }
+    closeToast();
+    toast("restore complete!");
   }
 
   // src/units/settings/misc.ts
@@ -3636,52 +3689,6 @@ Status ${response.status}${metaWrapped}`
       }
     }
     return { success: true, value };
-  }
-
-  // src/units/toasts.ts
-  function toast(message, options) {
-    const list = document.querySelector("#toast-container");
-    const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
-    const totalH = rects.reduce((p2, c) => p2 + c.height, 0);
-    let closed = false;
-    const item = T({
-      tagName: "div",
-      className: "toast pointer",
-      contents: message,
-      style: {
-        left: "var(--gap)",
-        bottom: `calc(${totalH}px + var(--gap) * ${rects.length + 1})`,
-        transform: "translateX(calc(-100% - var(--gap) * 2))"
-      },
-      events: {
-        click: close
-      }
-    });
-    function close() {
-      if (closed) return;
-      closed = true;
-      const { width } = item.getBoundingClientRect();
-      item.style.left = `calc(${-width}px - var(--gap))`;
-      item.addEventListener("transitionend", () => {
-        item.remove();
-        squish();
-      });
-    }
-    list.append(item);
-    setTimeout(() => item.style.transform = `translateX(0px)`, 100);
-    if (options?.timeoutMS) {
-      setTimeout(close, options.timeoutMS);
-    }
-  }
-  function squish() {
-    const list = document.querySelector("#toast-container");
-    let totalH = 0;
-    const items = Array.from(list.children);
-    items.forEach((item, ix) => {
-      const { height } = item.getBoundingClientRect();
-      item.style.bottom = `calc(${totalH}px + var(--gap) * ${ix + 1})`;
-      totalH += height;
-    });
   }
 
   // src/units/chat/utils.ts
