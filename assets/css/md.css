@@ -1,4 +1,7 @@
 
+.md {
+	word-break: break-word;
+}
 
 .md em {
 	color: var(--color-subtext);

@@ -176,7 +176,9 @@ summary.settings-label {
 .scenario-card {
 	display: flex;
 	gap: var(--dims-reg);
-	/* height: fit-content; */
+}
+.scenario-card * {
+	scrollbar-width: thin;
 }
 .scenario-card-icon-container {
 	flex-shrink: 0;
@@ -188,21 +190,32 @@ summary.settings-label {
 	object-fit: contain;
 	border-radius: var(--dims-smol);
 }
+.scenario-card > .list {
+	flex-grow: 1;
+	min-height: 0;
+}
 .scenario-card h6 {
 	font: var(--font-bold);
 	flex-grow: 1;
+	max-height: 5em;
+	max-height: 5lh;
+	word-break: break-word;
+	overflow-y: auto;
 }
 .scenario-card .row-compact {
 	align-items: center;
 }
 .scenario-card-description {
-	overflow: hidden;
-	max-height: 7em;
+	flex-grow: 1;
+	overflow-y: auto;
 }
 .scenario-card-tags {
 	display: flex;
 	flex-flow: row-reverse wrap;
+	flex-shrink: 0;
 	margin-top: auto;
+	max-height: 4em;
+	overflow-y: auto;
 	gap: var(--dims-smol);
 }
 .scenario-card-tags > span {

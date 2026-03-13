@@ -28,12 +28,12 @@
 		gap: var(--dims-reg);
 	}
 	.scenario-card {
+		height: 64vh;
 		flex-flow: column nowrap;
 	}
 	.scenario-card-icon-container {
 		max-height: 32vh;
 		min-height: 32vh;
-		
 		width: 100%;
 	}
 }
@@ -50,6 +50,7 @@
 		gap: var(--dims-reg);
 	}
 	.scenario-card {
+		max-height: 32vh;
 		flex-flow: row nowrap;
 	}
 	.scenario-card-icon-container {
