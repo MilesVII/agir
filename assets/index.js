@@ -4447,7 +4447,7 @@ Status ${response.status}${metaWrapped}`
     const modal = document.querySelector("#play-rember");
     const providerPicker = document.querySelector("#play-rember-provider-picker");
     const strideInput = document.querySelector("#play-rember-stride");
-    const prompt = document.querySelector("#play-rember-prompt");
+    const prompt2 = document.querySelector("#play-rember-prompt");
     const template = document.querySelector("#play-rember-template");
     const buttons = {
       one: document.querySelector("#play-rember-add-one"),
@@ -4477,7 +4477,7 @@ Status ${response.status}${metaWrapped}`
     async function onOpen() {
       const state = await getCurrentChat();
       if (!state) return;
-      prompt.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
+      prompt2.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
       template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m3) => m3.rember);
@@ -4510,7 +4510,7 @@ Status ${response.status}${metaWrapped}`
         },
         providerPicker.value,
         getStride(),
-        prompt.value.trim(),
+        prompt2.value.trim(),
         template.value.trim()
       );
       console.log(result);
@@ -4549,7 +4549,7 @@ Status ${response.status}${metaWrapped}`
       const state = await getCurrentChat(true, false);
       if (!state) return;
       const v2 = {
-        prompt: prompt.value.trim(),
+        prompt: prompt2.value.trim(),
         template: template.value.trim(),
         stride: getStride()
       };
@@ -4573,7 +4573,7 @@ Status ${response.status}${metaWrapped}`
       }
     };
   }
-  async function runRember(onChunk, provider, stride, prompt, stateTemplate) {
+  async function runRember(onChunk, provider, stride, prompt2, stateTemplate) {
     const eh = await getCurrentChat();
     if (!eh) return { success: false, error: "noload" };
     const { chat, messages } = eh;
@@ -4590,7 +4590,7 @@ Status ${response.status}${metaWrapped}`
         model: chat.scenario.name,
         system: ""
       },
-      prompt,
+      prompt2,
       state
     );
     const providers = readProviders();
@@ -4612,7 +4612,7 @@ Status ${response.status}${metaWrapped}`
       }
     };
   }
-  function prepareMessages(parts, names, prompt, state) {
+  function prepareMessages(parts, names, prompt2, state) {
     const chat = parts.map((m3) => `## ${names[m3.from]}:
 ${m3.swipes[m3.selectedSwipe]}
 
@@ -4623,7 +4623,7 @@ ${m3.swipes[m3.selectedSwipe]}
       chat
     ].join("\n");
     return [
-      dullMessage("system", prompt),
+      dullMessage("system", prompt2),
       dullMessage("user", payload)
     ];
   }
@@ -5143,6 +5143,94 @@ ${m3.swipes[m3.selectedSwipe]}
     };
   }
 
+  // src/units/library/dl.ts
+  var parser2 = new DOMParser();
+  var definitionTemplate2 = {
+    characters: [
+      "# Characters",
+      "## {{char}} "
+    ].join("\n"),
+    userPersona: [
+      "## {{user}}",
+      "{{persona}}"
+    ].join("\n"),
+    instructions: [
+      "# Instructions",
+      "You play as {{char}}, the user is {{user}}"
+    ].join("\n")
+  };
+  async function downloadScenarioCard(url) {
+    url = url.toLowerCase().replace("janitorai.com/", "jannyai.com/");
+    const response = await fetch(`https://fenrir.milesseventh.workers.dev/steel/${encodeURIComponent(url)}`);
+    if (!response.ok) {
+      toast("network error");
+      return null;
+    }
+    const raw = await response.text();
+    const dom = parser2.parseFromString(raw, "text/html");
+    const pivot = dom.querySelector("h1");
+    if (!pivot) {
+      toast("can't find title in downloaded page");
+      return null;
+    }
+    const [title, description, tagsContainer] = Array.from(pivot.parentElement.children);
+    const tags = Array.from(tagsContainer.querySelectorAll("li")).map((e) => e.innerText);
+    let personality = "";
+    let scenario = "";
+    let firstMessage = "";
+    const definitionContainer = dom.querySelector("details ul");
+    definitionContainer.querySelectorAll("li").forEach((e) => {
+      const caption = e.querySelector("span");
+      const captionText = caption.innerText.toLocaleLowerCase().trim();
+      caption.remove();
+      if (captionText.includes("personality")) personality = e.innerText;
+      if (captionText.includes("scenario")) scenario = e.innerText;
+      if (captionText.includes("first")) firstMessage = e.innerText;
+    });
+    let definition = `${definitionTemplate2.characters}
+${personality}
+
+${definitionTemplate2.userPersona}
+
+`;
+    if (scenario) definition = definition.concat(`${scenario}
+
+`);
+    definition = definition.concat(`${definitionTemplate2.instructions}`);
+    const authorName = Array.from(dom.querySelectorAll("a")).find((e) => e.innerText.trim().startsWith("@"))?.innerText.trim().slice(1);
+    let picture = null;
+    const pictureContainer = dom.querySelector("img.w-full");
+    if (pictureContainer) {
+      const response2 = await fetch(pictureContainer.src);
+      if (response2.ok) {
+        const blob = await response2.blob();
+        picture = await upload(blob);
+      }
+    }
+    console.log(description);
+    return {
+      card: {
+        author: authorName ? {
+          name: authorName,
+          url
+        } : null,
+        title: title.innerText,
+        description: description.innerHTML,
+        tags,
+        picture
+      },
+      chat: {
+        definition,
+        initials: [firstMessage],
+        name: "",
+        picture: null,
+        tokenCount: estimateTokenCount(definition)
+      },
+      id: crypto.randomUUID(),
+      lastUpdate: Date.now()
+    };
+  }
+
   // src/units/library.ts
   var openerRelay = null;
   function libraryUnit() {
@@ -5150,6 +5238,7 @@ ${m3.swipes[m3.selectedSwipe]}
     const startPersonaPicker = document.querySelector("#library-start-persona");
     const startImportButton = document.querySelector("#library-start-import");
     const importButton = document.querySelector("#library-import");
+    const downloadButton = document.querySelector("#library-download");
     const modal = document.querySelector("#library-start");
     startButton.addEventListener("click", async () => {
       if (!openerRelay) return;
@@ -5174,6 +5263,26 @@ ${m3.swipes[m3.selectedSwipe]}
       if (!files?.[0]) return;
       for (let i = 0; i < files.length; ++i) {
         importScenario(files.item(i));
+      }
+    });
+    downloadButton.addEventListener("click", async () => {
+      const url = prompt("Enter the link to a character page on janitorai.com")?.trim();
+      if (!url) return;
+      const card = await downloadScenarioCard(url);
+      if (card) {
+        await idb.set("scenarios", card);
+        toast(
+          "scenario downloaded!\ndon't forget to add the character name and check the definition",
+          {
+            actions: [
+              ["ok", (close) => close()],
+              ["open", (close) => {
+                close();
+                window.open(`#scenario-editor.${card.id}`);
+              }]
+            ]
+          }
+        );
       }
     });
     listen(async (u3) => {

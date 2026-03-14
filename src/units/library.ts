@@ -6,16 +6,20 @@ import { start } from "./chat/start";
 import { ScenarioCard } from "@root/types";
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { importSTMessages } from "./library/st";
+import { downloadScenarioCard } from "./library/dl";
+import { toast } from "./toasts";
 
 let openerRelay: {
 	scenarioId: string
 } | null = null;
 
 export function libraryUnit() {
-	const startButton = document.querySelector<HTMLButtonElement>("#library-start-button")!;
+	const startButton        = document.querySelector<HTMLButtonElement>("#library-start-button")!;
 	const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
-	const startImportButton = document.querySelector<RampikeFilePicker>("#library-start-import")!;
-	const importButton = document.querySelector<RampikeFilePicker>("#library-import")!;
+	const startImportButton  = document.querySelector<RampikeFilePicker>("#library-start-import")!;
+	const importButton       = document.querySelector<RampikeFilePicker>("#library-import")!;
+	const downloadButton     = document.querySelector<HTMLButtonElement>("#library-download")!;
+
 	const modal = document.querySelector<RampikeModal>("#library-start")!;
 
 	startButton.addEventListener("click", async () => {
@@ -45,6 +49,27 @@ export function libraryUnit() {
 
 		for (let i = 0; i < files.length; ++i) {
 			importScenario(files.item(i)!);
+		}
+	});
+
+	downloadButton.addEventListener("click", async () => {
+		const url = prompt("Enter the link to a character page on janitorai.com")?.trim();
+		if (!url) return;
+		const card = await downloadScenarioCard(url);
+		if (card) {
+			await idb.set("scenarios", card);
+			toast(
+				"scenario downloaded!\ndon't forget to add the character name and check the definition",
+				{
+					actions: [
+						["ok", close => close()],
+						["open", close => {
+							close();
+							window.open(`#scenario-editor.${card.id}`);
+						}]
+					]
+				}
+			);
 		}
 	});
 

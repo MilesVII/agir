@@ -128,6 +128,10 @@ summary.settings-label {
 	aspect-ratio: 1/1;
 	border-radius: var(--dims-smol);
 }
+
+/* .settings-persona-item {
+	padding: var(--dims-reg) var(--dims-huge);
+} */
 .settings-persona-item img {
 	/* max-width: 30%; */
 	height: 5em;
@@ -184,7 +188,7 @@ summary.settings-label {
 	flex-shrink: 0;
 	overflow: hidden;
 	border-radius: var(--dims-smol);
-	height: fit-content;
+	max-height: 100%;
 }
 .scenario-card-icon-container img {
 	object-fit: contain;
@@ -334,4 +338,8 @@ summary.settings-label {
 	transition-property: left bottom transform;
 	transition-duration: .42s;
 	transition-timing-function: ease;
+}
+
+.toast button {
+	min-width: 6ch;
 }
