@@ -48,14 +48,15 @@ export async function downloadScenarioCard(url: string): Promise<ScenarioCard | 
 		const captionText = caption.innerText.toLocaleLowerCase().trim();
 		caption.remove();
 
-		if (captionText.includes("personality")) personality = e.innerText;
-		if (captionText.includes("scenario"))    scenario = e.innerText;
-		if (captionText.includes("first"))       firstMessage = e.innerText;
+		if (captionText.includes("personality")) personality  = e.innerText.trim();
+		if (captionText.includes("scenario"))    scenario     = e.innerText.trim();
+		if (captionText.includes("first"))       firstMessage = e.innerText.trim();
 	});
 
 	let definition = `${definitionTemplate.characters}\n${personality}\n\n${definitionTemplate.userPersona}\n\n`;
 	if (scenario) definition = definition.concat(`${scenario}\n\n`);
 	definition = definition.concat(`${definitionTemplate.instructions}`);
+	definition = definition.replace(/(?<!\{)\{[^}]*\}(?!\})/g, v => `{${v}}`); // {user} -> {{user}}
 
 	const authorName =
 		Array.from(dom.querySelectorAll("a"))
@@ -75,12 +76,10 @@ export async function downloadScenarioCard(url: string): Promise<ScenarioCard | 
 	console.log(description)
 	return {
 		card: {
-			author: authorName
-				? {
-					name: authorName,
-					url
-				}
-				: null,
+			author: {
+				name: authorName || "unknown",
+				url
+			},
 			title: title!.innerText,
 			description: description!.innerHTML,
 			tags,
