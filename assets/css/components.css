@@ -188,7 +188,6 @@ summary.settings-label {
 	flex-shrink: 0;
 	overflow: hidden;
 	border-radius: var(--dims-smol);
-	max-height: 100%;
 }
 .scenario-card-icon-container img {
 	object-fit: contain;
