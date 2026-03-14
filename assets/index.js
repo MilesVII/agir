@@ -5183,10 +5183,13 @@ ${m3.swipes[m3.selectedSwipe]}
       const caption = e.querySelector("span");
       const captionText = caption.innerText.toLocaleLowerCase().trim();
       caption.remove();
-      if (captionText.includes("personality")) personality = e.innerText.trim();
-      if (captionText.includes("scenario")) scenario = e.innerText.trim();
-      if (captionText.includes("first")) firstMessage = e.innerText.trim();
+      if (captionText.includes("personality")) personality = fix(e.innerText.trim());
+      if (captionText.includes("scenario")) scenario = fix(e.innerText.trim());
+      if (captionText.includes("first")) firstMessage = fix(e.innerText.trim());
     });
+    function fix(raw2) {
+      return raw2.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2}}`).replace(/^#+/gm, (v2) => `##${v2}`);
+    }
     let definition = `${definitionTemplate2.characters}
 ${personality}
 
@@ -5197,7 +5200,6 @@ ${definitionTemplate2.userPersona}
 
 `);
     definition = definition.concat(`${definitionTemplate2.instructions}`);
-    definition = definition.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2}}`);
     const authorName = Array.from(dom.querySelectorAll("a")).find((e) => e.innerText.trim().startsWith("@"))?.innerText.trim().slice(1);
     let picture = null;
     const pictureContainer = dom.querySelector("img.w-full");

@@ -48,15 +48,19 @@ export async function downloadScenarioCard(url: string): Promise<ScenarioCard | 
 		const captionText = caption.innerText.toLocaleLowerCase().trim();
 		caption.remove();
 
-		if (captionText.includes("personality")) personality  = e.innerText.trim();
-		if (captionText.includes("scenario"))    scenario     = e.innerText.trim();
-		if (captionText.includes("first"))       firstMessage = e.innerText.trim();
+		if (captionText.includes("personality")) personality  = fix(e.innerText.trim());
+		if (captionText.includes("scenario"))    scenario     = fix(e.innerText.trim());
+		if (captionText.includes("first"))       firstMessage = fix(e.innerText.trim());
 	});
+	function fix(raw: string) {
+		return raw
+			.replace(/(?<!\{)\{[^}]*\}(?!\})/g, v => `{${v}}`) // {user} -> {{user}}
+			.replace(/^#+/gm,                   v => `##${v}`) // header nesting
+	}
 
 	let definition = `${definitionTemplate.characters}\n${personality}\n\n${definitionTemplate.userPersona}\n\n`;
 	if (scenario) definition = definition.concat(`${scenario}\n\n`);
 	definition = definition.concat(`${definitionTemplate.instructions}`);
-	definition = definition.replace(/(?<!\{)\{[^}]*\}(?!\})/g, v => `{${v}}`); // {user} -> {{user}}
 
 	const authorName =
 		Array.from(dom.querySelectorAll("a"))
