@@ -11,10 +11,8 @@ import { remberMessageView, RemberView } from "./views";
 export const REMBER_DEFAULTS = {
 	stride: 20,
 	prompt: [
-		"you are tasked with providing summary of a text roleplay session.",
-		"update provided state to reflect any changes to the state of the scenario.",
-		"keep track of current location, list other locations and their contents, and any trivia about characters that may be relevant later.",
-		"note plans and intentions of the character.",
+		"provide summary of a text roleplay session described by the user.",
+		"update provided state to reflect any changes to it.",
 		"format trivia as a list of facts.",
 		"stay concise and ignore any info irrelevant to possible future scenarios.",
 		"do not provide any commentary, only describe the new state, do not change the format (the headings)"
