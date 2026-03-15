@@ -5186,7 +5186,7 @@ ${m3.swipes[m3.selectedSwipe]}
       if (captionText.includes("first")) firstMessage = fix(e.innerText.trim());
     });
     function fix(raw2) {
-      return raw2.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2}}`).replace(/^#+/gm, (v2) => `##${v2}`);
+      return raw2.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/^#+/gm, (v2) => `##${v2}`);
     }
     let definition = `${definitionTemplate2.characters}
 ${personality}

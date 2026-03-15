@@ -54,7 +54,7 @@ export async function downloadScenarioCard(url: string): Promise<ScenarioCard | 
 	});
 	function fix(raw: string) {
 		return raw
-			.replace(/(?<!\{)\{[^}]*\}(?!\})/g, v => `{${v}}`) // {user} -> {{user}}
+			.replace(/(?<!\{)\{[^}]*\}(?!\})/g, v => `{${v.toLowerCase()}}`) // {User} -> {{user}}
 			.replace(/^#+/gm,                   v => `##${v}`) // header nesting
 	}
 
