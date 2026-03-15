@@ -59,7 +59,7 @@ export async function downloadScenarioCard(url: string): Promise<ScenarioCard | 
 	}
 
 	let definition = `${definitionTemplate.characters}\n${personality}\n\n${definitionTemplate.userPersona}\n\n`;
-	if (scenario) definition = definition.concat(`${scenario}\n\n`);
+	if (scenario) definition = definition.concat(`# Scenario\n${scenario}\n\n`);
 	definition = definition.concat(`${definitionTemplate.instructions}`);
 
 	const authorName =
