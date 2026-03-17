@@ -4468,13 +4468,15 @@ ${chat[remberAt].rember}`),
       one: document.querySelector("#play-rember-add-one"),
       all: document.querySelector("#play-rember-add-all"),
       stop: document.querySelector("#play-rember-stop"),
-      save: document.querySelector("#play-rember-save")
+      save: document.querySelector("#play-rember-save"),
+      reset: document.querySelector("#play-rember-reset")
     };
     const list = document.querySelector("#play-rember-messages");
     buttons.one.addEventListener("click", runOne);
     buttons.all.addEventListener("click", runAll);
     buttons.stop.addEventListener("click", forgor);
     buttons.save.addEventListener("click", saveSettings);
+    buttons.reset.addEventListener("click", resetPrompt);
     providerPicker.addEventListener("input", providerPickerChanged);
     buttons.stop.hidden = true;
     listen((u3) => {
@@ -4568,6 +4570,10 @@ ${chat[remberAt].rember}`),
       };
       state.chat.rember = v2;
       await idb.set("chats", state.chat);
+    }
+    function resetPrompt() {
+      if (!confirm("the current rember prompt will be lost after saving the settings")) return;
+      prompt2.value = REMBER_DEFAULTS.prompt;
     }
     function providerPickerChanged() {
       const actives = readActiveProviders();

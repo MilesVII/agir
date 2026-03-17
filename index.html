@@ -391,7 +391,6 @@
 							placeholder="10"
 						></ram-labeled>
 					</div>
-					<div class="hint">use {{system}} macro to include character's definition into the prompt (good luck escaping the instructions)</div>
 					<ram-labeled
 						legend="Prompt"
 						id="play-rember-prompt"
@@ -399,13 +398,19 @@
 						rows="7"
 						multiline
 					></ram-labeled>
+					<div class="hint">use {{system}} macro to include character's definition into the prompt (good luck escaping the instructions)</div>
+					
+					<div class="row">
+						<button id="play-rember-reset" class="lineout fit float-end">reset prompt</button>
+						<button id="play-rember-save"  class="lineout fit">save settings</button>
+					</div>
+					</hr>
 				</div>
 			</details>
 			<div class="row">
-				<button id="play-rember-add-one" class="lineout fit">Add one</button>
-				<button id="play-rember-add-all" class="lineout fit">Add all</button>
-				<button id="play-rember-stop" class="lineout fit">Stop</button>
-				<button id="play-rember-save" class="lineout fit">Save settings</button>
+				<button id="play-rember-add-one" class="lineout fit">add one</button>
+				<button id="play-rember-add-all" class="lineout fit">add all</button>
+				<button id="play-rember-stop" class="lineout fit">stop</button>
 			</div>
 			<div id="play-rember-messages" class="list"></div>
 		</ram-modal>

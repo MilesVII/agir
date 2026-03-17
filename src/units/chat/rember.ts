@@ -36,10 +36,11 @@ export function initRember() {
 	const strideInput  = document.querySelector<HTMLInputElement>   ("#play-rember-stride")!;
 	const prompt       = document.querySelector<HTMLTextAreaElement>("#play-rember-prompt")!;
 	const buttons = {
-		one:  document.querySelector<HTMLButtonElement>  ("#play-rember-add-one")!,
-		all:  document.querySelector<HTMLButtonElement>  ("#play-rember-add-all")!,
-		stop: document.querySelector<HTMLButtonElement>  ("#play-rember-stop")!,
-		save: document.querySelector<HTMLButtonElement>  ("#play-rember-save")!
+		one:   document.querySelector<HTMLButtonElement>("#play-rember-add-one")!,
+		all:   document.querySelector<HTMLButtonElement>("#play-rember-add-all")!,
+		stop:  document.querySelector<HTMLButtonElement>("#play-rember-stop")!,
+		save:  document.querySelector<HTMLButtonElement>("#play-rember-save")!,
+		reset: document.querySelector<HTMLButtonElement>("#play-rember-reset")!
 	}
 	const list         = document.querySelector<HTMLButtonElement>  ("#play-rember-messages")!;
 
@@ -47,6 +48,7 @@ export function initRember() {
 	buttons.all.addEventListener("click", runAll);
 	buttons.stop.addEventListener("click", forgor);
 	buttons.save.addEventListener("click", saveSettings);
+	buttons.reset.addEventListener("click", resetPrompt);
 	providerPicker.addEventListener("input", providerPickerChanged);
 	buttons.stop.hidden = true;
 
@@ -152,6 +154,10 @@ export function initRember() {
 		};
 		state.chat.rember = v;
 		await idb.set("chats", state.chat);
+	}
+	function resetPrompt() {
+		if (!confirm("the current rember prompt will be lost after saving the settings")) return;
+		prompt.value = REMBER_DEFAULTS.prompt;
 	}
 	function providerPickerChanged() {
 		const actives = readActiveProviders();
