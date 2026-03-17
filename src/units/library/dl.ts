@@ -77,7 +77,6 @@ export async function downloadScenarioCard(url: string): Promise<ScenarioCard | 
 		}
 	}
 
-	console.log(description)
 	return {
 		card: {
 			author: {

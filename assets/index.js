@@ -3596,22 +3596,22 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   var abortController;
   async function runProvider(chat, provider, onChunk) {
     const chonks = [];
+    const params = {
+      model: provider.model,
+      messages: chat.map((m3) => ({
+        role: m3.from === "model" ? "assistant" : m3.from,
+        content: m3.swipes[m3.selectedSwipe]
+      })),
+      stream: true,
+      reasoning: {
+        effort: "none"
+      },
+      max_completion_tokens: provider.max,
+      temperature: provider.temp,
+      ...provider.params
+    };
+    if (!provider.max) delete params.max_completion_tokens;
     try {
-      const params = {
-        model: provider.model,
-        messages: chat.map((m3) => ({
-          role: m3.from === "model" ? "assistant" : m3.from,
-          content: m3.swipes[m3.selectedSwipe]
-        })),
-        stream: true,
-        reasoning: {
-          effort: "none"
-        },
-        max_completion_tokens: provider.max,
-        temperature: provider.temp,
-        ...provider.params
-      };
-      if (!provider.max) delete params.max_completion_tokens;
       abortController = new AbortController();
       const response = await fetch(provider.url, {
         method: "POST",
@@ -3835,7 +3835,7 @@ Status ${response.status}${metaWrapped}`
       return;
     }
     const responseStreamingUpdater = messageView.controls.startStreaming();
-    const streamingResult = await runProvider(payload, provider, responseStreamingUpdater);
+    const streamingResult = await runProvider(expandRember(payload), provider, responseStreamingUpdater);
     if (streamingResult.success) {
       const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
       if (!updatedMessage) {
@@ -3861,6 +3861,18 @@ Status ${response.status}${metaWrapped}`
   }
   function dullMessage(from, text2) {
     return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
+  }
+  function expandRember(chat) {
+    const remberAt = chat.findLastIndex((m3) => m3.rember);
+    if (remberAt === -1) {
+      return chat;
+    } else {
+      return chat.slice(0, remberAt + 1).concat(
+        dullMessage("system", `# Roleplay state summary:
+${chat[remberAt].rember}`),
+        chat.slice(remberAt + 1)
+      );
+    }
   }
   async function getCurrentChat(chat = true, contents = true) {
     const [page, chatId] = getRoute();
@@ -4147,7 +4159,8 @@ Status ${response.status}${metaWrapped}`
       ["edit", [
         buttons.editConfirm,
         buttons.editCancel
-      ]]
+      ]],
+      ["streaming", []]
     );
     const changeControlsState = controlTabs.pickTab;
     changeControlsState("main");
@@ -4182,15 +4195,20 @@ Status ${response.status}${metaWrapped}`
     }
     function enable(value) {
       textBox.textContent = value;
+      changeControlsState("main");
     }
     function suicide() {
       container.remove();
+    }
+    function hideControls() {
+      changeControlsState("streaming");
     }
     return M(
       container,
       {
         appendContent,
-        enable
+        enable,
+        hideControls
       },
       "controls"
     );
@@ -4421,16 +4439,15 @@ Status ${response.status}${metaWrapped}`
 
   // src/units/chat/rember.ts
   var REMBER_DEFAULTS = {
-    stride: 20,
+    stride: 10,
     prompt: [
       "provide summary of a text roleplay session described by the user.",
       "update provided state to reflect any changes to it.",
       "format trivia as a list of facts.",
       "stay concise and ignore any info irrelevant to possible future scenarios.",
-      "do not provide any commentary, only describe the new state, do not change the format (the headings)"
+      "do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history"
     ].join("\n"),
     template: [
-      "# state",
       "## current location",
       "",
       "## locations and objects",
@@ -4505,13 +4522,14 @@ Status ${response.status}${metaWrapped}`
       const result = await runRember(
         (content, mid) => {
           checkView(mid).controls.appendContent(content);
+          checkView(mid).controls.hideControls();
         },
         providerPicker.value,
         getStride(),
         prompt2.value.trim(),
-        template.value.trim()
+        template.value.trim(),
+        state.chat.scenario.definition
       );
-      console.log(result);
       if (!result.success) return false;
       checkView(result.value.mid).controls.enable(result.value.response);
       return true;
@@ -4571,16 +4589,17 @@ Status ${response.status}${metaWrapped}`
       }
     };
   }
-  async function runRember(onChunk, provider, stride, prompt2, stateTemplate) {
+  async function runRember(onChunk, provider, stride, prompt2, stateTemplate, system) {
     const eh = await getCurrentChat();
     if (!eh) return { success: false, error: "noload" };
     const { chat, messages } = eh;
-    let lix = messages.messages.findLastIndex((m3) => m3.rember);
-    const state = lix === -1 ? stateTemplate : messages.messages[lix].rember;
+    const noLastAction = messages.messages.slice(0, -2);
+    let lix = noLastAction.findLastIndex((m3) => m3.rember);
+    const state = lix === -1 ? stateTemplate : noLastAction[lix].rember;
     if (lix === -1) lix = 0;
-    const tix = Math.min(messages.messages.length - 1, lix + stride * 2);
+    const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
     if (tix === lix) return { success: false, error: "iscomplete" };
-    const scope = messages.messages.slice(lix, tix);
+    const scope = noLastAction.slice(lix, tix);
     const payload = prepareMessages(
       scope,
       {
@@ -4589,7 +4608,8 @@ Status ${response.status}${metaWrapped}`
         system: ""
       },
       prompt2,
-      state
+      state,
+      system
     );
     const providers = readProviders();
     if (!providers[provider]) return { success: false, error: "noproviders" };
@@ -4610,18 +4630,21 @@ Status ${response.status}${metaWrapped}`
       }
     };
   }
-  function prepareMessages(parts, names, prompt2, state) {
+  function prepareMessages(parts, names, prompt2, state, system) {
     const chat = parts.map((m3) => `## ${names[m3.from]}:
 ${m3.swipes[m3.selectedSwipe]}
 
 `).join("\n");
     const payload = [
+      "# saved roleplay state",
       state,
+      "",
       "# chat history",
       chat
     ].join("\n");
+    const systemNested = system.replace(/^#+/gm, (v2) => `#${v2}`);
     return [
-      dullMessage("system", prompt2),
+      dullMessage("system", prompt2.replace("{{system}}", systemNested)),
       dullMessage("user", payload)
     ];
   }
@@ -5209,7 +5232,6 @@ ${scenario}
         picture = await upload(blob);
       }
     }
-    console.log(description);
     return {
       card: {
         author: {

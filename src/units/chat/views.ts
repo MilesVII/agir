@@ -275,7 +275,8 @@ export function remberMessageView(
 		["edit", [
 			buttons.editConfirm,
 			buttons.editCancel
-		]]
+		]],
+		["streaming", []]
 	);
 	const changeControlsState = controlTabs.pickTab;
 	changeControlsState("main");
@@ -312,16 +313,21 @@ export function remberMessageView(
 	}
 	function enable(value: string) {
 		textBox.textContent = value;
+		changeControlsState("main");
 	}
 	function suicide() {
 		container.remove();
+	}
+	function hideControls() {
+		changeControlsState("streaming");
 	}
 
 	return sirocco(
 		container,
 		{
 			appendContent,
-			enable
+			enable,
+			hideControls
 		},
 		"controls"
 	);

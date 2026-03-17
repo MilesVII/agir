@@ -10,24 +10,24 @@ export async function runProvider(
 	onChunk: (v: string) => void
 ): Promise<Result<string, string>> {
 	const chonks: string[] = [];
+	const params = {
+		model: provider.model,
+		messages: chat.map(m => ({
+			role: m.from === "model" ? "assistant" : m.from,
+			content: m.swipes[m.selectedSwipe]
+		})),
+		stream: true,
+		reasoning: {
+			effort: "none"
+		},
+		max_completion_tokens: provider.max,
+		temperature: provider.temp,
+		...provider.params
+	};
+	// @ts-ignore optional delete
+	if (!provider.max) delete params.max_completion_tokens;
 
 	try {
-		const params = {
-			model: provider.model,
-			messages: chat.map(m => ({
-				role: m.from === "model" ? "assistant" : m.from,
-				content: m.swipes[m.selectedSwipe]
-			})),
-			stream: true,
-			reasoning: {
-				effort: "none"
-			},
-			max_completion_tokens: provider.max,
-			temperature: provider.temp,
-			...provider.params
-		};
-		// @ts-ignore optional delete
-		if (!provider.max) delete params.max_completion_tokens;
 
 		abortController = new AbortController();
 		const response = await fetch(provider.url, {

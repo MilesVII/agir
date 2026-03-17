@@ -185,7 +185,7 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 	}
 	const responseStreamingUpdater = messageView.controls.startStreaming();
 
-	const streamingResult = await runProvider(payload, provider, responseStreamingUpdater);
+	const streamingResult = await runProvider(expandRember(payload), provider, responseStreamingUpdater);
 	if (streamingResult.success) {
 		const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
 		if (!updatedMessage) {
@@ -215,6 +215,19 @@ export function getMessageViewByID(messageId: number) {
 
 export function dullMessage(from: ChatMessage["from"], text: string): ChatMessage {
 	return { from, id: -1, name: "", rember: null, swipes: [text], selectedSwipe: 0 };
+}
+
+export function expandRember(chat: ChatMessage[]) {
+	const remberAt = chat.findLastIndex(m => m.rember);
+	if (remberAt === -1) {
+		return chat;
+	} else {
+		return chat.slice(0, remberAt + 1)
+			.concat(
+				dullMessage("system", `# Roleplay state summary:\n${chat[remberAt].rember!}`),
+				chat.slice(remberAt + 1)
+			);
+	}
 }
 
 export async function getCurrentChat(chat?: true, contents?: true): Promise<{ chat: Chat, messages: ChatContents } | null>;

@@ -9,16 +9,15 @@ import { toast } from "@units/toasts";
 import { remberMessageView, RemberView } from "./views";
 
 export const REMBER_DEFAULTS = {
-	stride: 20,
+	stride: 10,
 	prompt: [
 		"provide summary of a text roleplay session described by the user.",
 		"update provided state to reflect any changes to it.",
 		"format trivia as a list of facts.",
 		"stay concise and ignore any info irrelevant to possible future scenarios.",
-		"do not provide any commentary, only describe the new state, do not change the format (the headings)"
+		"do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history"
 	].join("\n"),
 	template: [
-		"# state",
 		"## current location",
 		"",
 		"## locations and objects",
@@ -103,16 +102,18 @@ export function initRember() {
 			}
 			return view;
 		}
+		
 		const result = await runRember(
 			(content, mid) => {
 				checkView(mid).controls.appendContent(content);
+				checkView(mid).controls.hideControls();
 			},
 			providerPicker.value,
 			getStride(),
 			prompt.value.trim(),
-			template.value.trim()
+			template.value.trim(),
+			state.chat.scenario.definition
 		);
-		console.log(result)
 		if (!result.success) return false;
 		checkView(result.value.mid).controls.enable(result.value.response);
 		return true;
@@ -181,7 +182,8 @@ export async function runRember(
 	provider: string,
 	stride: number,
 	prompt: string,
-	stateTemplate: string
+	stateTemplate: string,
+	system: string
 ): Promise<Result<{ response: string, mid: number }, RemberError>> {
 	/*
 	chat example:
@@ -201,14 +203,15 @@ export async function runRember(
 	const eh = await getCurrentChat();
 	if (!eh) return { success: false, error: "noload"};
 	const { chat, messages } = eh;
-	let lix = messages.messages.findLastIndex(m => m.rember);
+	const noLastAction = messages.messages.slice(0, -2);
+	let lix = noLastAction.findLastIndex(m => m.rember);
 	const state = lix === -1
 		? stateTemplate
-		: messages.messages[lix].rember!;
+		: noLastAction[lix].rember!;
 	if (lix === -1) lix = 0;
-	const tix = Math.min(messages.messages.length - 1, lix + stride * 2);
-	if (tix === lix) return { success: false, error: "iscomplete"};
-	const scope = messages.messages.slice(lix, tix);
+	const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
+	if (tix === lix) return { success: false, error: "iscomplete" };
+	const scope = noLastAction.slice(lix, tix);
 
 	const payload = prepareMessages(
 		scope,
@@ -217,11 +220,10 @@ export async function runRember(
 			model: chat.scenario.name,
 			system: ""
 		},
-		prompt, state
+		prompt, state, system
 	);
 
 	const providers = readProviders();
-
 	if (!providers[provider]) return { success: false, error: "noproviders"};
 
 	const response = await runProvider(payload, providers[provider], value => onChunk(value, tix));
@@ -250,20 +252,25 @@ function prepareMessages(
 	parts: ChatMessage[],
 	names: Record<ChatMessage["from"], string>,
 	prompt: string,
-	state: string
+	state: string,
+	system: string
 ): ChatMessage[] {
 	const chat = parts
 		.map(m => `## ${names[m.from]}:\n${m.swipes[m.selectedSwipe]}\n\n`)
 		.join("\n");
 
 	const payload = [
+		"# saved roleplay state",
 		state,
+		"",
 		"# chat history",
 		chat
 	].join("\n");
 
+	const systemNested = system.replace(/^#+/gm, v => `#${v}`);
+
 	return [
-		dullMessage("system", prompt),
+		dullMessage("system", prompt.replace("{{system}}", systemNested)),
 		dullMessage("user", payload)
 	];
 }
