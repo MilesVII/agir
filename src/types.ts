@@ -90,8 +90,7 @@ export type ChatMessage = {
 
 export type RemberSettings = {
 	stride: number,
-	prompt: string,
-	template: string
+	prompt: string
 };
 
 export type ChatContents = {

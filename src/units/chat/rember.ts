@@ -15,9 +15,9 @@ export const REMBER_DEFAULTS = {
 		"update provided state to reflect any changes to it.",
 		"format trivia as a list of facts.",
 		"stay concise and ignore any info irrelevant to possible future scenarios.",
-		"do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history"
-	].join("\n"),
-	template: [
+		"do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history.",
+		"follow this format when describing the roleplay state summary:",
+		"```",
 		"## current location",
 		"",
 		"## locations and objects",
@@ -25,7 +25,8 @@ export const REMBER_DEFAULTS = {
 		"## trivia",
 		"",
 		"## plans and intentions",
-		""
+		"",
+		"```"
 	].join("\n")
 }
 
@@ -34,7 +35,6 @@ export function initRember() {
 	const providerPicker = document.querySelector<HTMLSelectElement>  ("#play-rember-provider-picker")!;
 	const strideInput  = document.querySelector<HTMLInputElement>   ("#play-rember-stride")!;
 	const prompt       = document.querySelector<HTMLTextAreaElement>("#play-rember-prompt")!;
-	const template     = document.querySelector<HTMLTextAreaElement>("#play-rember-template")!;
 	const buttons = {
 		one:  document.querySelector<HTMLButtonElement>  ("#play-rember-add-one")!,
 		all:  document.querySelector<HTMLButtonElement>  ("#play-rember-add-all")!,
@@ -70,7 +70,6 @@ export function initRember() {
 
 		// HACK: Remove optional after migrations
 		prompt.value   = state.chat.rember?.prompt   ?? REMBER_DEFAULTS.prompt;
-		template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
 
 		list.innerHTML = "";
 
@@ -111,7 +110,6 @@ export function initRember() {
 			providerPicker.value,
 			getStride(),
 			prompt.value.trim(),
-			template.value.trim(),
 			state.chat.scenario.definition
 		);
 		if (!result.success) return false;
@@ -150,7 +148,6 @@ export function initRember() {
 		if (!state) return;
 		const v = {
 			prompt: prompt.value.trim(),
-			template: template.value.trim(),
 			stride: getStride()
 		};
 		state.chat.rember = v;
@@ -182,7 +179,6 @@ export async function runRember(
 	provider: string,
 	stride: number,
 	prompt: string,
-	stateTemplate: string,
 	system: string
 ): Promise<Result<{ response: string, mid: number }, RemberError>> {
 	/*
@@ -206,7 +202,7 @@ export async function runRember(
 	const noLastAction = messages.messages.slice(0, -2);
 	let lix = noLastAction.findLastIndex(m => m.rember);
 	const state = lix === -1
-		? stateTemplate
+		? null
 		: noLastAction[lix].rember!;
 	if (lix === -1) lix = 0;
 	const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
@@ -252,7 +248,7 @@ function prepareMessages(
 	parts: ChatMessage[],
 	names: Record<ChatMessage["from"], string>,
 	prompt: string,
-	state: string,
+	state: string | null,
 	system: string
 ): ChatMessage[] {
 	const chat = parts
@@ -260,9 +256,14 @@ function prepareMessages(
 		.join("\n");
 
 	const payload = [
-		"# saved roleplay state",
-		state,
-		"",
+		...(state
+			? [
+				"# saved roleplay state",
+				state,
+				""
+			]
+			: []
+		),
 		"# chat history",
 		chat
 	].join("\n");

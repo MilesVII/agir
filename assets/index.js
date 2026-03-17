@@ -4445,9 +4445,9 @@ ${chat[remberAt].rember}`),
       "update provided state to reflect any changes to it.",
       "format trivia as a list of facts.",
       "stay concise and ignore any info irrelevant to possible future scenarios.",
-      "do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history"
-    ].join("\n"),
-    template: [
+      "do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history.",
+      "follow this format when describing the roleplay state summary:",
+      "```",
       "## current location",
       "",
       "## locations and objects",
@@ -4455,7 +4455,8 @@ ${chat[remberAt].rember}`),
       "## trivia",
       "",
       "## plans and intentions",
-      ""
+      "",
+      "```"
     ].join("\n")
   };
   function initRember() {
@@ -4463,7 +4464,6 @@ ${chat[remberAt].rember}`),
     const providerPicker = document.querySelector("#play-rember-provider-picker");
     const strideInput = document.querySelector("#play-rember-stride");
     const prompt2 = document.querySelector("#play-rember-prompt");
-    const template = document.querySelector("#play-rember-template");
     const buttons = {
       one: document.querySelector("#play-rember-add-one"),
       all: document.querySelector("#play-rember-add-all"),
@@ -4493,7 +4493,6 @@ ${chat[remberAt].rember}`),
       const state = await getCurrentChat();
       if (!state) return;
       prompt2.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
-      template.value = state.chat.rember?.template ?? REMBER_DEFAULTS.template;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m3) => m3.rember);
       const items = remberMessages.map((m3) => remberMessageView(
@@ -4527,7 +4526,6 @@ ${chat[remberAt].rember}`),
         providerPicker.value,
         getStride(),
         prompt2.value.trim(),
-        template.value.trim(),
         state.chat.scenario.definition
       );
       if (!result.success) return false;
@@ -4566,7 +4564,6 @@ ${chat[remberAt].rember}`),
       if (!state) return;
       const v2 = {
         prompt: prompt2.value.trim(),
-        template: template.value.trim(),
         stride: getStride()
       };
       state.chat.rember = v2;
@@ -4589,13 +4586,13 @@ ${chat[remberAt].rember}`),
       }
     };
   }
-  async function runRember(onChunk, provider, stride, prompt2, stateTemplate, system) {
+  async function runRember(onChunk, provider, stride, prompt2, system) {
     const eh = await getCurrentChat();
     if (!eh) return { success: false, error: "noload" };
     const { chat, messages } = eh;
     const noLastAction = messages.messages.slice(0, -2);
     let lix = noLastAction.findLastIndex((m3) => m3.rember);
-    const state = lix === -1 ? stateTemplate : noLastAction[lix].rember;
+    const state = lix === -1 ? null : noLastAction[lix].rember;
     if (lix === -1) lix = 0;
     const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
     if (tix === lix) return { success: false, error: "iscomplete" };
@@ -4636,9 +4633,11 @@ ${m3.swipes[m3.selectedSwipe]}
 
 `).join("\n");
     const payload = [
-      "# saved roleplay state",
-      state,
-      "",
+      ...state ? [
+        "# saved roleplay state",
+        state,
+        ""
+      ] : [],
       "# chat history",
       chat
     ].join("\n");
