@@ -14,7 +14,7 @@ export async function runProvider(
 		model: provider.model,
 		messages: chat.map(m => ({
 			role: m.from === "model" ? "assistant" : m.from,
-			content: m.swipes[m.selectedSwipe]
+			content: m.swipes[m.from === "user" ? 0 : m.selectedSwipe] // HACK: user messages sometimes have nonzero selectedSwipe
 		})),
 		stream: true,
 		reasoning: {

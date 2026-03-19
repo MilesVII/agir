@@ -2,6 +2,7 @@ import { getRoute, textareaReconsider } from "@root/utils";
 import { idb } from "@root/persist";
 import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, reroll, setSwipe, updateSwipeIndex } from "./utils";
 import { makeMessageView } from "./views";
+import { toast } from "@units/toasts";
 
 export async function sendMessage() {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
@@ -30,6 +31,7 @@ export async function sendMessage() {
 		return;
 	}
 
+	const swipesDisabled = (six: number) => toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
 	const userMessage = makeMessageView(
 		newUserMessage,
 		await loadPictures(meta.value),
@@ -41,7 +43,7 @@ export async function sendMessage() {
 		// on reroll
 		() => { throw Error("haha nope"); },
 		() => deleteMessage(chatId, newUserMessage.id),
-		(six) => updateSwipeIndex(six, newUserMessage.id, chatId)
+		swipesDisabled
 	);
 	const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
 	if (!newModelMessage) {

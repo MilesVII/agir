@@ -123,7 +123,6 @@ export function makeMessageView(
 					textBox.removeAttribute("contenteditable");
 					changeControlsState("main");
 					onEdit(msg.selectedSwipe, newContents)
-					// updateSwipe(meta.id, msg.id, msg.selectedSwipe, newContents);
 					textBox.innerHTML = await renderMDAsync(newContents);
 				}
 			),

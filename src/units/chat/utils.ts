@@ -64,6 +64,14 @@ export async function addMessage(chatId: string, value: string, fromUser: boolea
 	chat.value.lastUpdate = Date.now();
 	chat.value.messageCount = messages.length;
 
+	// HACK: heal bugged swipeIndesex
+	contents.value.messages.forEach(m => {
+		if (typeof m.swipes[m.selectedSwipe] !== "string") {
+			toast(`healed malformed message: mid ${m.id}, old six: ${m.selectedSwipe}`);
+			m.selectedSwipe = 0;
+		}
+	});
+
 	await Promise.all([
 		idb.set("chatContents", contents.value),
 		idb.set("chats", chat.value)
@@ -76,6 +84,10 @@ export async function updateSwipeIndex(six: number, mid: number, chatId: string)
 	const contents = await idb.get("chatContents", chatId);
 	if (!contents.success) return;
 	const mix = contents.value.messages.findIndex(m => m.id === mid);
+	if (typeof contents.value.messages[mix].swipes[six] !== "string") {
+		toast(`error: settings six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
+		return;
+	}
 	contents.value.messages[mix].selectedSwipe = six;
 	await idb.set("chatContents", contents.value);
 }

@@ -3600,7 +3600,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       model: provider.model,
       messages: chat.map((m3) => ({
         role: m3.from === "model" ? "assistant" : m3.from,
-        content: m3.swipes[m3.selectedSwipe]
+        content: m3.swipes[m3.from === "user" ? 0 : m3.selectedSwipe]
+        // HACK: user messages sometimes have nonzero selectedSwipe
       })),
       stream: true,
       reasoning: {
@@ -3737,6 +3738,12 @@ Status ${response.status}${metaWrapped}`
     messages.push(newMessage);
     chat.value.lastUpdate = Date.now();
     chat.value.messageCount = messages.length;
+    contents.value.messages.forEach((m3) => {
+      if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
+        toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
+        m3.selectedSwipe = 0;
+      }
+    });
     await Promise.all([
       idb.set("chatContents", contents.value),
       idb.set("chats", chat.value)
@@ -3747,6 +3754,10 @@ Status ${response.status}${metaWrapped}`
     const contents = await idb.get("chatContents", chatId);
     if (!contents.success) return;
     const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
+    if (typeof contents.value.messages[mix].swipes[six] !== "string") {
+      toast(`error: settings six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
+      return;
+    }
     contents.value.messages[mix].selectedSwipe = six;
     await idb.set("chatContents", contents.value);
   }
@@ -4292,6 +4303,7 @@ ${chat[remberAt].rember}`),
       console.error("failed to save user message");
       return;
     }
+    const swipesDisabled = (six) => toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
     const userMessage = makeMessageView(
       newUserMessage,
       await loadPictures(meta.value),
@@ -4305,7 +4317,7 @@ ${chat[remberAt].rember}`),
         throw Error("haha nope");
       },
       () => deleteMessage(chatId, newUserMessage.id),
-      (six) => updateSwipeIndex(six, newUserMessage.id, chatId)
+      swipesDisabled
     );
     const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
     if (!newModelMessage) {
