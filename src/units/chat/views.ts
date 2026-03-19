@@ -150,7 +150,8 @@ export function makeMessageView(
 			mudcrack({
 				tagName: "img",
 				attributes: {
-					src: placeholder(msg.from === "user" ? userPic : modelPic)
+					src: placeholder(msg.from === "user" ? userPic : modelPic),
+					title: `mid #${msg.id}`
 				}
 			}),
 			mudcrack({
