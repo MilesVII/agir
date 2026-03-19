@@ -31,7 +31,10 @@ export async function sendMessage() {
 		return;
 	}
 
-	const swipesDisabled = (six: number) => toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
+	const swipesDisabled = (six: number) => {
+		if (six > 0)
+			toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
+	};
 	const userMessage = makeMessageView(
 		newUserMessage,
 		await loadPictures(meta.value),

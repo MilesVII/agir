@@ -4303,7 +4303,10 @@ ${chat[remberAt].rember}`),
       console.error("failed to save user message");
       return;
     }
-    const swipesDisabled = (six) => toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
+    const swipesDisabled = (six) => {
+      if (six > 0)
+        toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
+    };
     const userMessage = makeMessageView(
       newUserMessage,
       await loadPictures(meta.value),
