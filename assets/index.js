@@ -3594,7 +3594,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
 
   // src/run.ts
   var abortController;
-  async function runProvider(chat, provider, onChunk) {
+  async function runProvider(chat, provider, onChunk, reasoningStatus) {
     const chonks = [];
     const params = {
       model: provider.model,
@@ -3672,10 +3672,20 @@ Status ${response.status}${metaWrapped}`
             if (data === "[DONE]") break;
             const parsed = nothrow(() => JSON.parse(data));
             if (!parsed.success) continue;
-            const content = parsed.value.choices[0].delta.content;
+            if (parsed.value.error) {
+              return {
+                success: false,
+                error: `Provider says "${JSON.stringify(parsed.value.error)}"`
+              };
+            }
+            const delta = parsed.value.choices[0].delta;
+            const content = delta.content;
             if (content) {
+              reasoningStatus?.(false);
               chonks.push(content);
               onChunk(content);
+            } else {
+              if (delta.reasoning_content) reasoningStatus?.(true);
             }
           }
         }
@@ -3846,7 +3856,13 @@ Status ${response.status}${metaWrapped}`
       return;
     }
     const responseStreamingUpdater = messageView.controls.startStreaming();
-    const streamingResult = await runProvider(expandRember(payload), provider, responseStreamingUpdater);
+    const responseReasoningReporter = messageView.controls.reasoningStatus;
+    const streamingResult = await runProvider(
+      expandRember(payload),
+      provider,
+      responseStreamingUpdater,
+      responseReasoningReporter
+    );
     if (streamingResult.success) {
       const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
       if (!updatedMessage) {
@@ -3912,6 +3928,10 @@ ${chat[remberAt].rember}`),
   }
 
   // src/units/chat/views.ts
+  var STATUS = {
+    RESPONDING: "responding...",
+    REASONING: "thinking..."
+  };
   function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete, onSwipe) {
     const status = T({
       tagName: "div",
@@ -4053,7 +4073,8 @@ ${chat[remberAt].rember}`),
         T({
           tagName: "img",
           attributes: {
-            src: placeholder(msg.from === "user" ? userPic : modelPic)
+            src: placeholder(msg.from === "user" ? userPic : modelPic),
+            title: `mid #${msg.id}`
           }
         }),
         T({
@@ -4089,7 +4110,7 @@ ${chat[remberAt].rember}`),
       textBox.removeAttribute("contenteditable");
       textBox.innerHTML = "";
       changeControlsState("streaming");
-      setStatus("responding...");
+      setStatus(STATUS.RESPONDING);
       return (value) => {
         textBox.innerText += value;
         if (elementVisible(element)) scrollIntoView();
@@ -4106,13 +4127,17 @@ ${chat[remberAt].rember}`),
       changeSwipe(0);
       updateRerollButtonStatus();
     }
+    function reasoningStatus(on) {
+      setStatus(on ? STATUS.REASONING : STATUS.RESPONDING);
+    }
     const viewControls = {
       updateSwipe: changeSwipe,
       changeControlsState,
       updateMessage,
       startStreaming,
       endStreaming,
-      setIsLast
+      setIsLast,
+      reasoningStatus
     };
     return M(element, viewControls, "controls");
   }

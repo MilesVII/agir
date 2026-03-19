@@ -7,7 +7,8 @@ export let abortController: AbortController;
 export async function runProvider(
 	chat: ChatMessage[],
 	provider: Provider,
-	onChunk: (v: string) => void
+	onChunk: (v: string) => void,
+	reasoningStatus?: (on: boolean) => void
 ): Promise<Result<string, string>> {
 	const chonks: string[] = [];
 	const params = {
@@ -77,10 +78,10 @@ export async function runProvider(
 		while (true) {
 			const { done, value } = await reader.read();
 			if (done) break;
-		
+
 			// Append new chunk to buffer
 			buffer += decoder.decode(value, { stream: true });
-		
+
 			// Process complete lines from buffer
 			while (true) {
 				const lineEnd = buffer.indexOf("\n");
@@ -95,10 +96,20 @@ export async function runProvider(
 
 					const parsed = nothrow<any>(() => JSON.parse(data));
 					if (!parsed.success) continue;
-					const content = parsed.value.choices[0].delta.content;
+					if (parsed.value.error) {
+						return {
+							success: false,
+							error: `Provider says "${JSON.stringify(parsed.value.error)}"`
+						};
+					}
+					const delta = parsed.value.choices[0].delta;
+					const content = delta.content;
 					if (content) {
+						reasoningStatus?.(false);
 						chonks.push(content);
 						onChunk(content);
+					} else {
+						if (delta.reasoning_content) reasoningStatus?.(true);
 					}
 				}
 			}
@@ -106,7 +117,7 @@ export async function runProvider(
 	} catch(e) {
 		console.error(e);
 	}
-	
+
 	let value = chonks.join("");
 	if (value.includes("</think>")) {
 		if (!value.includes("<think>")) {

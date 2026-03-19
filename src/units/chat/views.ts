@@ -3,6 +3,11 @@ import { elementVisible, placeholder, renderMD, renderMDAsync } from "@root/util
 import { toast } from "@units/toasts";
 import { mudcrack, sirocco } from "rampike";
 
+const STATUS = {
+	RESPONDING: "responding...",
+	REASONING: "thinking..."
+};
+
 export function makeMessageView(
 	msg: ChatMessage,
 	[userPic, modelPic]: (string | null)[],
@@ -188,7 +193,7 @@ export function makeMessageView(
 		textBox.removeAttribute("contenteditable");
 		textBox.innerHTML = "";
 		changeControlsState("streaming");
-		setStatus("responding...");
+		setStatus(STATUS.RESPONDING);
 
 		return (value: string) => {
 			textBox.innerText += value;
@@ -206,6 +211,9 @@ export function makeMessageView(
 		changeSwipe(0);
 		updateRerollButtonStatus();
 	}
+	function reasoningStatus(on: boolean) {
+		setStatus(on ? STATUS.REASONING : STATUS.RESPONDING);
+	}
 
 	const viewControls = {
 		updateSwipe: changeSwipe,
@@ -213,7 +221,8 @@ export function makeMessageView(
 		updateMessage,
 		startStreaming,
 		endStreaming,
-		setIsLast
+		setIsLast,
+		reasoningStatus
 	};
 	return sirocco(element, viewControls, "controls");
 }

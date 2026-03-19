@@ -196,8 +196,14 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 		return;
 	}
 	const responseStreamingUpdater = messageView.controls.startStreaming();
+	const responseReasoningReporter = messageView.controls.reasoningStatus;
 
-	const streamingResult = await runProvider(expandRember(payload), provider, responseStreamingUpdater);
+	const streamingResult = await runProvider(
+		expandRember(payload),
+		provider,
+		responseStreamingUpdater,
+		responseReasoningReporter
+	);
 	if (streamingResult.success) {
 		const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
 		if (!updatedMessage) {
