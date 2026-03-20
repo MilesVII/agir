@@ -3765,7 +3765,7 @@ Status ${response.status}${metaWrapped}`
     if (!contents.success) return;
     const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
     if (typeof contents.value.messages[mix].swipes[six] !== "string") {
-      toast(`error: settings six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
+      toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
       return;
     }
     contents.value.messages[mix].selectedSwipe = six;
@@ -4365,7 +4365,7 @@ ${chat[remberAt].rember}`),
       () => {
         throw Error("haha nope");
       },
-      (six) => updateSwipeIndex(six, newUserMessage.id, chatId)
+      (six) => updateSwipeIndex(six, newModelMessage.id, chatId)
     );
     list.append(userMessage, responseMessage);
     loadResponse(payload, newModelMessage.id, meta.value.id);

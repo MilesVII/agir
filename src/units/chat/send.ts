@@ -65,7 +65,7 @@ export async function sendMessage() {
 		// reroll
 		() => reroll(chatId, newModelMessage.id),
 		() => { throw Error("haha nope"); },
-		(six) => updateSwipeIndex(six, newUserMessage.id, chatId)
+		(six) => updateSwipeIndex(six, newModelMessage.id, chatId)
 	);
 	list.append(userMessage, responseMessage);
 	loadResponse(payload, newModelMessage.id, meta.value.id);

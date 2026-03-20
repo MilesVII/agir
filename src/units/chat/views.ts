@@ -208,7 +208,7 @@ export function makeMessageView(
 	}
 	function setIsLast(value: boolean) {
 		isLast = value;
-		changeSwipe(0);
+		changeSwipe(0); // TODO: likely deprecated and unnecessary, swipes are updated AOT now
 		updateRerollButtonStatus();
 	}
 	function reasoningStatus(on: boolean) {

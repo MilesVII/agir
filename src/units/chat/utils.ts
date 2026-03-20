@@ -85,7 +85,7 @@ export async function updateSwipeIndex(six: number, mid: number, chatId: string)
 	if (!contents.success) return;
 	const mix = contents.value.messages.findIndex(m => m.id === mid);
 	if (typeof contents.value.messages[mix].swipes[six] !== "string") {
-		toast(`error: settings six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
+		toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
 		return;
 	}
 	contents.value.messages[mix].selectedSwipe = six;
