@@ -114,8 +114,11 @@ export async function runProvider(
 				}
 			}
 		}
-	} catch(e) {
-		console.error(e);
+	} catch(e: any) {
+		return {
+			success: false,
+			error: (e?.message as string) ?? "unknown error"
+		};
 	}
 
 	let value = chonks.join("");

@@ -1,3 +1,4 @@
+import { toast } from "@units/toasts";
 import { Chat, ChatContents, MediaEntry, Persona, Result, ScenarioCard } from "./types";
 import { revolvers } from "./utils";
 
@@ -42,7 +43,7 @@ export function listen(listener: StorageListener) {
 export async function init() {
 	const result = await open();
 	if (result.success) dbInitComplete(result.value);
-	else console.error(result.error);
+	else toast(result.error);
 	return result.success;
 }
 

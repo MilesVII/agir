@@ -461,6 +461,74 @@
     window.customElements.define(tagName, RampikeLabeled);
   }
 
+  // src/units/toasts.ts
+  function toast(message, options) {
+    const list = document.querySelector("#toast-container");
+    const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
+    const totalH = rects.reduce((p2, c) => p2 + c.height, 0);
+    let closed = false;
+    const actions = options?.actions ? options.actions.map(
+      ([caption, cb]) => T({
+        tagName: "button",
+        className: "lineout",
+        contents: caption,
+        events: {
+          click: () => !closed && cb(close)
+        }
+      })
+    ) : [];
+    const item = T({
+      tagName: "div",
+      className: "toast list pointer",
+      contents: [
+        T({
+          tagName: "div",
+          contents: message
+        }),
+        T({
+          tagName: "div",
+          className: "row-compact jc-end",
+          style: actions.length ? {} : { display: "none" },
+          contents: actions
+        })
+      ],
+      style: {
+        left: "var(--gap)",
+        bottom: `calc(${totalH}px + var(--gap) * ${rects.length + 1})`,
+        transform: "translateX(calc(-100% - var(--gap) * 2))"
+      },
+      events: {
+        click: () => !options?.actions && close()
+      }
+    });
+    function close() {
+      if (closed) return;
+      closed = true;
+      const { width } = item.getBoundingClientRect();
+      item.style.left = `calc(${-width}px - var(--gap))`;
+      item.addEventListener("transitionend", () => {
+        item.remove();
+        squish();
+      });
+    }
+    list.append(item);
+    setTimeout(() => item.style.transform = `translateX(0px)`, 100);
+    if (options?.timeoutMS) {
+      setTimeout(close, options.timeoutMS);
+    }
+    return close;
+  }
+  function squish() {
+    const list = document.querySelector("#toast-container");
+    let totalH = 0;
+    const items = Array.from(list.children);
+    items.forEach((item, ix) => {
+      const { height } = item.getBoundingClientRect();
+      item.style.bottom = `calc(${totalH}px + var(--gap) * ${ix + 1})`;
+      totalH += height;
+    });
+  }
+
   // node_modules/marked/lib/marked.esm.js
   function L() {
     return { async: false, breaks: false, extensions: null, gfm: true, hooks: null, pedantic: false, renderer: null, silent: false, tokenizer: null, walkTokens: null };
@@ -2801,7 +2869,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   async function init() {
     const result = await open();
     if (result.success) dbInitComplete(result.value);
-    else console.error(result.error);
+    else toast(result.error);
     return result.success;
   }
   var idb = { get, set, getAll, del };
@@ -3400,74 +3468,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
-  // src/units/toasts.ts
-  function toast(message, options) {
-    const list = document.querySelector("#toast-container");
-    const rects = Array.from(list.children).map((t) => t.getBoundingClientRect());
-    const totalH = rects.reduce((p2, c) => p2 + c.height, 0);
-    let closed = false;
-    const actions = options?.actions ? options.actions.map(
-      ([caption, cb]) => T({
-        tagName: "button",
-        className: "lineout",
-        contents: caption,
-        events: {
-          click: () => !closed && cb(close)
-        }
-      })
-    ) : [];
-    const item = T({
-      tagName: "div",
-      className: "toast list pointer",
-      contents: [
-        T({
-          tagName: "div",
-          contents: message
-        }),
-        T({
-          tagName: "div",
-          className: "row-compact jc-end",
-          style: actions.length ? {} : { display: "none" },
-          contents: actions
-        })
-      ],
-      style: {
-        left: "var(--gap)",
-        bottom: `calc(${totalH}px + var(--gap) * ${rects.length + 1})`,
-        transform: "translateX(calc(-100% - var(--gap) * 2))"
-      },
-      events: {
-        click: () => !options?.actions && close()
-      }
-    });
-    function close() {
-      if (closed) return;
-      closed = true;
-      const { width } = item.getBoundingClientRect();
-      item.style.left = `calc(${-width}px - var(--gap))`;
-      item.addEventListener("transitionend", () => {
-        item.remove();
-        squish();
-      });
-    }
-    list.append(item);
-    setTimeout(() => item.style.transform = `translateX(0px)`, 100);
-    if (options?.timeoutMS) {
-      setTimeout(close, options.timeoutMS);
-    }
-    return close;
-  }
-  function squish() {
-    const list = document.querySelector("#toast-container");
-    let totalH = 0;
-    const items = Array.from(list.children);
-    items.forEach((item, ix) => {
-      const { height } = item.getBoundingClientRect();
-      item.style.bottom = `calc(${totalH}px + var(--gap) * ${ix + 1})`;
-      totalH += height;
-    });
-  }
-
   // src/units/settings/backup.ts
   function initBackup() {
     const saveButton = document.querySelector("#settings-backup-save");
@@ -3691,7 +3691,10 @@ Status ${response.status}${metaWrapped}`
         }
       }
     } catch (e) {
-      console.error(e);
+      return {
+        success: false,
+        error: e?.message ?? "unknown error"
+      };
     }
     let value = chonks.join("");
     if (value.includes("</think>")) {
@@ -3844,7 +3847,7 @@ Status ${response.status}${metaWrapped}`
   async function loadResponse(payload, msgId, chatId) {
     const providerOptions = Object.entries(readProviders());
     if (providerOptions.length <= 0) {
-      console.error("no providers!");
+      toast("no providers found");
       return;
     }
     const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];
@@ -4325,7 +4328,7 @@ ${chat[remberAt].rember}`),
     getMessageViewByID(lastMessageId)?.controls.setIsLast(false);
     const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
     if (!newUserMessage) {
-      console.error("failed to save user message");
+      toast("failed to save user message");
       return;
     }
     const swipesDisabled = (six) => {
@@ -4349,7 +4352,7 @@ ${chat[remberAt].rember}`),
     );
     const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
     if (!newModelMessage) {
-      console.error("failed to save user message");
+      toast("failed to save user message");
       return;
     }
     const responseMessage = makeMessageView(

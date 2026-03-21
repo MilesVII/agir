@@ -182,7 +182,7 @@ export async function prepareRerollPayload(chatId: string, messageId: number) {
 export async function loadResponse(payload: ChatMessage[], msgId: number, chatId: string) {
 	const providerOptions = Object.entries(readProviders());
 	if (providerOptions.length <= 0) {
-		console.error("no providers!");
+		toast("no providers found");
 		return;
 	}
 	const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];

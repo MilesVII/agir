@@ -27,7 +27,7 @@ export async function sendMessage() {
 
 	const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
 	if (!newUserMessage) {
-		console.error("failed to save user message");
+		toast("failed to save user message");
 		return;
 	}
 
@@ -50,7 +50,7 @@ export async function sendMessage() {
 	);
 	const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
 	if (!newModelMessage) {
-		console.error("failed to save user message");
+		toast("failed to save user message");
 		return;
 	}
 
