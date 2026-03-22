@@ -13,7 +13,7 @@ Janitor-inspired local roleplay frontend
 
 ### Less cool things
 - **No pagination in chats and scenario library (yet)**. It still seems to work well in chats with 500+ messages though.
-- **No lorebooks (yet)**. I intend to add SillyTavern lorebooks support, but Janitor's ones can not be extracted, are tricky to implement.
+- **No lorebooks (yet)**. I intend to add SillyTavern lorebooks support, but Janitor's ones can not be extracted.
 
 ## Usage
 You can use a [github-hosted version](https://milesvii.github.io/agir/). GitHub basically serves a static html-page, so there's no any other traffic going through it (or anyone else except your LLM provider). Instructions for self-hosted version are below.
