@@ -29,7 +29,6 @@ export async function runProvider(
 	if (!provider.max) delete params.max_completion_tokens;
 
 	try {
-
 		abortController = new AbortController();
 		const response = await fetch(provider.url, {
 			method: "POST",
@@ -115,10 +114,11 @@ export async function runProvider(
 			}
 		}
 	} catch(e: any) {
-		return {
-			success: false,
-			error: (e?.message as string) ?? "unknown error"
-		};
+		if (!abortController.signal.aborted) // or: if (!e instanceof DOMException)
+			return {
+				success: false,
+				error: (e?.message as string) ?? "unknown error"
+			};
 	}
 
 	let value = chonks.join("");

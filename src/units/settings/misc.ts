@@ -1,5 +1,6 @@
 import { listen, local } from "@root/persist";
 import { nothrow } from "@root/utils";
+import { toast } from "@units/toasts";
 
 export function initMisc() {
 	const tailInput = document.querySelector<HTMLInputElement>("#settings-options-tail")!;
@@ -19,6 +20,7 @@ export function initMisc() {
 		settings.tail = isNaN(tail) ? 0 : tail;
 
 		local.set("settings", JSON.stringify(settings));
+		toast("settings updated");
 	});
 
 	function updateSettings() {

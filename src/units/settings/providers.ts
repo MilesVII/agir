@@ -1,6 +1,7 @@
 import { listen, local } from "@root/persist";
 import { ActiveProviders, Provider, ProviderMap, ProviderMapWithActive } from "@root/types";
 import { nothrow } from "@root/utils";
+import { toast } from "@units/toasts";
 import { mudcrack } from "rampike";
 
 export function providersUnit() {
@@ -159,7 +160,7 @@ export function readProviders(): ProviderMapWithActive {
 }
 function saveProviders(eMap: ProviderMap) {
 	local.set("providers", JSON.stringify(eMap));
-
+	toast("providers updated");
 }
 function deleteProvider(id: string) {
 	if (!confirm("confirm deletion")) return;

@@ -3257,6 +3257,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function saveProviders(eMap) {
     local.set("providers", JSON.stringify(eMap));
+    toast("providers updated");
   }
   function deleteProvider(id) {
     if (!confirm("confirm deletion")) return;
@@ -3563,6 +3564,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       const tail = parseInt(tailInput.value, 10);
       settings.tail = isNaN(tail) ? 0 : tail;
       local.set("settings", JSON.stringify(settings));
+      toast("settings updated");
     });
     function updateSettings() {
       const settings = loadMiscSettings();
@@ -3691,10 +3693,11 @@ Status ${response.status}${metaWrapped}`
         }
       }
     } catch (e) {
-      return {
-        success: false,
-        error: e?.message ?? "unknown error"
-      };
+      if (!abortController.signal.aborted)
+        return {
+          success: false,
+          error: e?.message ?? "unknown error"
+        };
     }
     let value = chonks.join("");
     if (value.includes("</think>")) {
