@@ -3472,9 +3472,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   // src/units/settings/backup.ts
   function initBackup() {
     const saveButton = document.querySelector("#settings-backup-save");
-    saveButton.addEventListener("click", backup);
     const importPicker = document.querySelector("#settings-backup-import");
+    const cleanupButton = document.querySelector("#settings-media-clean");
+    saveButton.addEventListener("click", backup);
     importPicker.addEventListener("input", () => restore(importPicker));
+    cleanupButton.addEventListener("click", mediaCleanup);
   }
   async function backup() {
     const closeToast = toast("on it, please wait...");
@@ -3547,6 +3549,50 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     }
     closeToast();
     toast("restore complete!");
+  }
+  async function mediaCleanup() {
+    const media = await idb.getAll("media");
+    if (!media.success) {
+      toast("can't load media");
+      return;
+    }
+    const mids = new Set(media.value.map((m3) => m3.id));
+    const checkout = (id) => {
+      if (id) mids.delete(id);
+    };
+    const [
+      chats,
+      personas,
+      scenarios
+    ] = await Promise.all([
+      idb.getAll("chats"),
+      idb.getAll("personas"),
+      idb.getAll("scenarios")
+    ]);
+    if (chats.success)
+      for (const chat of chats.value) {
+        checkout(chat.scenario.picture);
+        checkout(chat.userPersona.picture);
+      }
+    if (personas.success)
+      for (const persona of personas.value) {
+        checkout(persona.picture);
+      }
+    if (scenarios.success)
+      for (const scenario of scenarios.value) {
+        checkout(scenario.card.picture);
+        checkout(scenario.chat.picture);
+      }
+    if (mids.size > 0) {
+      const close = toast(`media found: ${mids.size}, deleting...`);
+      await Promise.all(
+        mids.values().map((id) => idb.del("media", id))
+      );
+      close();
+      toast(`done; ${mids.size} items deleted`);
+    } else {
+      toast("no unused media found");
+    }
   }
 
   // src/units/settings/misc.ts
