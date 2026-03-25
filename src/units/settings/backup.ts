@@ -123,20 +123,22 @@ async function mediaCleanup() {
 		idb.getAll("scenarios")
 	]));
 
-	if (chats.success)
-		for (const chat of chats.value) {
-			checkout(chat.scenario.picture);
-			checkout(chat.userPersona.picture);
-		}
-	if (personas.success)
-		for (const persona of personas.value) {
-			checkout(persona.picture);
-		}
-	if (scenarios.success)
-		for (const scenario of scenarios.value) {
-			checkout(scenario.card.picture);
-			checkout(scenario.chat.picture);
-		}
+	if (!chats.success || !personas.success || !scenarios.success) {
+		toast("loaded the media but can't load other data, aborting");
+		return;
+	}
+
+	for (const chat of chats.value) {
+		checkout(chat.scenario.picture);
+		checkout(chat.userPersona.picture);
+	}
+	for (const persona of personas.value) {
+		checkout(persona.picture);
+	}
+	for (const scenario of scenarios.value) {
+		checkout(scenario.card.picture);
+		checkout(scenario.chat.picture);
+	}
 	
 	if (mids.size > 0) {
 		const close = toast(`media found: ${mids.size}, deleting...`);

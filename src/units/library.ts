@@ -8,6 +8,7 @@ import { RampikeFilePicker } from "@rampike/filepicker";
 import { importSTMessages } from "./library/st";
 import { downloadScenarioCard } from "./library/dl";
 import { toast } from "./toasts";
+import { startArmory } from "./library/armory";
 
 let openerRelay: {
 	scenarioId: string
@@ -19,6 +20,7 @@ export function libraryUnit() {
 	const startImportButton  = document.querySelector<RampikeFilePicker>("#library-start-import")!;
 	const importButton       = document.querySelector<RampikeFilePicker>("#library-import")!;
 	const downloadButton     = document.querySelector<HTMLButtonElement>("#library-download")!;
+	const armoryButton       = document.querySelector<HTMLButtonElement>("#library-armory-button")!;
 
 	const modal = document.querySelector<RampikeModal>("#library-start")!;
 
@@ -72,6 +74,7 @@ export function libraryUnit() {
 			);
 		}
 	});
+	armoryButton.addEventListener("click", startArmory);
 
 	listen(async u => {
 		if (u.storage !== "idb") return;
@@ -237,7 +240,7 @@ async function downloadScenario(card: ScenarioCard) {
 	download(JSON.stringify(payload), `${filename}.aegir.scenario.json`);
 }
 
-async function importScenario(file: File) {
+export async function importScenario(file: Blob) {
 	const raw = await file.text();
 	const parsed = JSON.parse(raw) as ScenarioCard;
 

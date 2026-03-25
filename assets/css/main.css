@@ -199,3 +199,22 @@ code {
 pre {
 	white-space: break-spaces;
 }
+
+progress {
+	appearance: none;
+	border: 1px solid var(--color-secondary);
+	height: 4px; /* Set a specific height */
+	border-radius: 1000px;
+	background-color: transparent; /* Default track color */
+}
+/* WebKit/Blink browsers */
+progress::-webkit-progress-bar {
+	background-color: transparent;
+}
+progress::-webkit-progress-value {
+	background-color: var(--color-accent);
+}
+/* Firefox */
+progress::-moz-progress-bar {
+	background-color: var(--color-accent);
+}

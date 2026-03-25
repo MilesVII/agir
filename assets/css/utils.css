@@ -58,6 +58,9 @@
 .float-end {
 	margin-inline-start: auto;
 }
+.float-bottom {
+	margin-block-start: auto;
+}
 
 .shadow {
 	box-shadow: 0 0 8px black;

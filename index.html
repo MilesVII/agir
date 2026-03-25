@@ -25,10 +25,12 @@
 		<ram-tabs id="tabs-main" tab="chats">
 			<ram-tab key="chats">
 				<div class="topbar row shadow">
-					<button class="lineout fit" data-to="settings">settings</button>
-					<button class="lineout fit" data-to="library">characters</button>
-					<ram-file-picker id="main-import" accept=".aegir.chat.json" class="float-end">
-						<div class="lineout fit">import chat</div>
+					<div class="row-compact">
+						<button class="lineout fit" data-to="settings">settings</button>
+						<button class="lineout fit" data-to="library">characters</button>
+					</div>
+					<ram-file-picker id="main-import" accept=".aegir.chat.json">
+						<div class="lineout pointer fit">import chat</div>
 					</ram-file-picker>
 				</div>
 				<div class="main col pad float-center">
@@ -142,7 +144,7 @@
 						<div class="row-wrap">
 							<button id="settings-backup-save" class="lineout fit">Save all</button>
 							<ram-file-picker id="settings-backup-import" accept=".aegir.backup.json">
-								<div class="lineout fit">Restore</div>
+								<div class="lineout pointer fit">Restore</div>
 							</ram-file-picker>
 							<button id="settings-media-clean" class="lineout fit">Delete unused media</button>
 						</div>
@@ -167,20 +169,25 @@
 				</div>
 			</ram-tab>
 			<ram-tab key="library">
-				<div class="topbar row shadow">
+				<div class="topbar shadow">
 					<button class="lineout fit" data-to="chats">back</button>
-					<button class="lineout fit float-end" data-to="scenario-editor">new scenario</button>
-					<ram-file-picker id="library-import" accept=".aegir.scenario.json" multiple>
-						<div class="lineout fit">import</div>
-					</ram-file-picker>
-					<button id="library-download" class="lineout fit">download</button>
+					<div class="topbar-actions">
+						<button class="lineout fit" data-to="scenario-editor">new scenario</button>
+						<ram-file-picker id="library-import" accept=".aegir.scenario.json" multiple>
+							<div class="lineout fit pointer">import</div>
+						</ram-file-picker>
+						<button id="library-download" class="lineout fit">download</button>
+						<button id="library-armory-button"   class="lineout fit">armory</button>
+					</div>
 				</div>
 				<div id="library-cards" class="grid-list"></div>
 			</ram-tab>
 			<ram-tab key="scenario-editor">
-				<div class="topbar row shadow">
-					<button class="lineout fit" data-to="library">back</button>
-					<button id="scenario-submit-button" class="lineout">save scenario</button>
+				<div class="topbar shadow">
+					<div class="topbar-actions">
+						<button id="scenario-submit-button" class="lineout">save scenario</button>
+						<button class="lineout fit" data-to="library">back</button>
+					</div>
 				</div>
 				<div class="main col pad float-center low-pad">
 					<div class="list">
@@ -311,8 +318,8 @@
 							<div class="chat-provider-control row-compact">
 								<div>Provider:</div>
 								<select id="chat-provider-picker" class="lineout"></select>
+								<select id="chat-menu-select" class="lineout"></select>
 							</div>
-							<select id="chat-menu-select" class="lineout"></select>
 						</div>
 					</div>
 					<div id="play-messages" class="chat-scroll-container content-wide float-center"></div>
@@ -347,11 +354,38 @@
 				<div class="list">
 					<button id="library-start-button" class="lineout">Start</button>
 					<ram-file-picker id="library-start-import" accept=".jsonl">
-						<div class="lineout center-text">Import a chat in SillyTavern format and use selected persona</div>
+						<div class="lineout pointer center-text">Import a chat in SillyTavern format and use selected persona</div>
 					</ram-file-picker>
 				</div>
 			</div>
 			<div id="library-start-description" class="lineout md"></div>
+		</ram-modal>
+		<ram-modal id="library-armory">
+			<ram-tabs id="library-armory-tabs" tab="list">
+				<ram-tab key="list">
+					<div class="list">
+						<ram-labeled
+							legend="Armory URL"
+							id="library-armory-add-input"
+							class="strip wide"
+							placeholder="https://fenrir.milesseventh.workers.dev/armory-meta"
+						></ram-labeled>
+						<button id="library-armory-add-button" class="lineout">add</button>
+					</div>
+					<hr/>
+					<div id="library-armory-list" class="list">
+
+					</div>
+				</ram-tab>
+				<ram-tab key="view">
+					<div class="row baseline">
+						<button id="library-armory-view-back" class="lineout">back</button>
+						<div id="library-armory-view-title"></div>
+					</div>
+					<div class="placeholder" id="library-armory-view-status">Loading...</div>
+					<div id="library-armory-view-items" class="list"></div>
+				</ram-tab>
+			</ram-tabs>
 		</ram-modal>
 		<ram-modal id="scenario-preview">
 			<button id="scenario-preview-close" class="lineout float-end">close</button>

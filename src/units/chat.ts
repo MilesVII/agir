@@ -43,7 +43,7 @@ export function chatUnit() {
 		}
 		openRember();
 	}
-	setSelectMenu(menuButton, "menu", [
+	setSelectMenu(menuButton, "☰", [
 		["Scenario card",   openScenarioIfExists],
 		["Edit definition", openChatEditor],
 		["rEmber",          openRemberGuarded],

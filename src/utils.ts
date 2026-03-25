@@ -168,3 +168,30 @@ export function neatNumber(v: number): string {
 
 	return (v / 1000).toFixed(1) + "k";
 }
+
+export async function reportingFetch(url: string, onProgress: (v: number) => void) {
+	const response = await fetch(url);
+	const reader = response.body?.getReader();
+	const contentLength = parseInt(response.headers?.get("content-length") || "0", 10);
+
+	if (!reader) {
+		return await response.blob();
+	}
+
+	let received = 0;
+	const chunks = [];
+
+	while (true) {
+		const { done, value } = await reader.read();
+		if (done) break;
+
+		chunks.push(value);
+		received += value.length;
+
+		const f = contentLength ? (received / contentLength) : 0;
+		onProgress(f);
+	}
+
+	onProgress(1);
+	return new Blob(chunks);
+}
