@@ -62,12 +62,12 @@
 :root {
 	color-scheme: only dark;
 
-	--color-base: #222831;
-	--color-base-semi: rgb(34 40 49 / 70%);
+	--color-base: #171717;
+	--color-base-semi: rgb(23 23 23 / 70%);
 	--color-secondary: #777;
-	--color-subtext: #777;
-	--color-accent: #00ADB5;
-	--color-text: #EEEEEE;
+	--color-subtext: #868686;
+	--color-accent: #DA4000;
+	--color-text: #EDEDED;
 
 	--font-smol: normal 400 14px/18px "Ubuntu Sans";
 	--font-main: normal 400 18px/22px "Ubuntu Sans";
@@ -150,7 +150,7 @@ dialog {
 	padding: 0;
 	margin: 0;
 	background: transparent;
-	backdrop-filter: blur(3px);
+	backdrop-filter: blur(16px);
 	outline: none;
 	color: inherit;
 }

@@ -5853,17 +5853,6 @@ ${scenario}
     const dbAvailable = init();
     if (!dbAvailable) toast("indexeddb init failed");
   }
-  window.eee = async () => {
-    const cards = await idb.getAll("scenarios");
-    if (!cards.success) return;
-    return cards.value.map((c) => ({
-      id: c.id,
-      summary: c.card.description,
-      icon: "",
-      url: `https://fenrir.milesseventh.workers.dev/armory/${c.id}`,
-      lastUpdate: c.lastUpdate
-    }));
-  };
 })();
 /*! Bundled license information:
 

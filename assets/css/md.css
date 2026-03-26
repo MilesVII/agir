@@ -16,6 +16,16 @@
 	white-space: pre-wrap;
 }
 
+.md img {
+	max-width: 80%;
+	max-height: 120vh;
+	border-radius: var(--dims-reg);
+	margin-block: 1em;
+}
+.md img:hover {
+	box-shadow: 0 0 var(--dims-reg) var(--color-accent);
+}
+
 .md think {
 	opacity: .6;
 }
