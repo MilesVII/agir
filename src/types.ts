@@ -12,7 +12,7 @@ export type Persona = {
 	name: string,
 	description: string,
 	pronouns: Pronouns,
-	picture: string | null
+	picture: string | null,
 	lastUpdate: number
 };
 export type Pronouns = {

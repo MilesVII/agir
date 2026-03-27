@@ -38,6 +38,6 @@ const units: (() => void)[] = [
 async function main() {
 	units.forEach(u => u());
 
-	const dbAvailable = initPersist();
+	const dbAvailable = await initPersist();
 	if (!dbAvailable) toast("indexeddb init failed");
 }

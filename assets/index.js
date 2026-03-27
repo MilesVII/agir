@@ -5850,7 +5850,7 @@ ${scenario}
   ];
   async function main() {
     units.forEach((u3) => u3());
-    const dbAvailable = init();
+    const dbAvailable = await init();
     if (!dbAvailable) toast("indexeddb init failed");
   }
 })();
