@@ -42,7 +42,7 @@ export function startArmory() {
 		items:  document.querySelector<HTMLElement>("#library-armory-view-items")!
 	};
 
-	// tabs.tab = "list";
+	tabs.tab = "list";
 	const libraryPromise = idb.getAll("scenarios");
 
 	addButton.addEventListener("click", () => {

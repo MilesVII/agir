@@ -1,8 +1,9 @@
 import { RampikeFilePicker } from "@rampike/filepicker";
-import { b64Encoder, nothrow, placeholder } from "@root/utils";
-import { Chat, ChatContents } from "@root/types";
+import { b64Encoder, nothrow, placeholder, setSelectMenu, unique } from "@root/utils";
+import { Chat, ChatContents, Folder } from "@root/types";
 import { getBlobLink, idb, listen } from "@root/persist";
 import { mudcrack } from "rampike";
+
 
 export function mainUnit() {
 	const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
@@ -13,101 +14,159 @@ export function mainUnit() {
 		importChat(file);
 	});
 
-	listen(update => {
-		if (update.storage !== "idb") return;
-		if (update.store !== "chats") return;
+	listen(u => {
+		if (u.storage !== "idb") return;
+		if (u.store !== "chats") return;
 
-		updateChatHandles();
+		update(null);
 	});
-	updateChatHandles();
+	update(null);
 }
 
-async function updateChatHandles() {
-	const list = document.querySelector("#main-chats")!;
+async function update(folder: Folder) {
 	const handles = await idb.getAll("chats");
 	if (!handles.success) return;
+	const folderOptions = unique(handles.value.map(c => c.folder).filter(f => f) as string[]);
+
+	updateChatHandles(handles.value, folder, folderOptions);
+	updateFolders(folder, folderOptions, update);
+}
+
+function updateChatHandles(handles: Chat[], folder: Folder, folderOptions: string[]) {
+	const list = document.querySelector("#main-chats")!;
+
 	list.innerHTML = "";
 
-	const items = handles.value.reverse().map(handle => {
-		const play = () => window.location.hash = `play.${handle.id}`;
-		const icon = mudcrack({
-			tagName: "img",
-			className: "pointer",
-			attributes: {
-				src: placeholder(null)
-			},
-			events: {
-				click: play
-			}
-		});
-		const userIcon = mudcrack({
-			tagName: "img",
-			attributes: {
-				src: placeholder(null)
-			}
-		});
-		if (handle.scenario.picture)
-			getBlobLink(handle.scenario.picture).then(src => src && (icon.src = src));
-		if (handle.userPersona.picture)
-			getBlobLink(handle.userPersona.picture).then(src => src && (userIcon.src = src));
-
-		return mudcrack({
-			className: "lineout row main-chats-item",
-			contents: [
-				icon,
-				mudcrack({
-					className: "list wide",
-					contents: [
-						mudcrack({
-							tagName: "h2",
-							className: "pointer",
-							contents: handle.scenario.name,
-							events: {
-								click: play
-							}
-						}),
-						mudcrack({
-							className: "row-compact main-chats-item-user",
-							contents: [
-								userIcon,
-								mudcrack({
-									contents: handle.userPersona.name
-								})
-							]
-						}),
-						mudcrack({
-							className: "hint",
-							contents: messagesCaption(handle.messageCount),
-						})
-					]
-				}),
-				mudcrack({
-					className: "list",
-					contents: [
-						mudcrack({
-							tagName: "button",
-							className: "lineout",
-							contents: "play",
-							events: {
-								click: play
-							}
-						}),
-						mudcrack({
-							tagName: "button",
-							className: "lineout",
-							contents: "delete",
-							events: {
-								click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
-							}
-						})
-					]
-				})
-			]
-		})
-	});
+	const filtered = folder ? handles.filter(c => c.folder === folder) : handles;
+	const items = filtered.reverse().map(c => handleView(c, folderOptions));
 
 	if (items.length === 0) list.append(mudcrack({ className: "placeholder", contents: "No chats found" }));
 	list.append(...items);
+}
+
+function updateFolders(folder: Folder, options: string[], onChange: (folder: Folder) => void) {
+	const folders = document.querySelector<HTMLElement>("#main-folders")!;
+	folders.innerHTML = "";
+	const folderButton = (f: Folder) => mudcrack({
+		tagName: "button",
+		className: "strip fit pointer",
+		events: {
+			click: () => {
+				updateFolders(f, options, onChange);
+				onChange(f);
+			}
+		},
+		attributes: {
+			"data-selected": folder === f ? "true" : "not true"
+		},
+		contents: f || "all chats"
+	});
+	folders.append(
+		folderButton(null),
+		...options.map(folderButton)
+	);
+	console.log(options.length)
+	// folders.hidden = options.length === 0;
+}
+
+function handleView(handle: Chat, folderOptions: string[]) {
+	const play = () => window.location.hash = `play.${handle.id}`;
+	const icon = mudcrack({
+		tagName: "img",
+		className: "pointer",
+		attributes: {
+			src: placeholder(null)
+		},
+		events: {
+			click: play
+		}
+	});
+	const userIcon = mudcrack({
+		tagName: "img",
+		attributes: {
+			src: placeholder(null)
+		}
+	});
+	const folderSelect = mudcrack({
+		tagName: "select",
+		className: "lineout center-text pointer"
+	});
+	if (handle.scenario.picture)
+		getBlobLink(handle.scenario.picture).then(src => src && (icon.src = src));
+	if (handle.userPersona.picture)
+		getBlobLink(handle.userPersona.picture).then(src => src && (userIcon.src = src));
+
+	const newFolder = () => {
+		const newName = prompt("Enter the name of the new folder")?.trim();
+		if (!newName) return;
+		assignToFolder(handle.id, newName)
+	}
+	setSelectMenu(
+		folderSelect,
+		handle.folder ?? "-folder-",
+		[
+			["unassigned", () => assignToFolder(handle.id, null)],
+			["new folder", newFolder],
+			...folderOptions.map(c =>
+				[c, () => assignToFolder(handle.id, c)] as [string, () => void]
+			)
+		]
+	);
+
+	return mudcrack({
+		className: "lineout row main-chats-item",
+		contents: [
+			icon,
+			mudcrack({
+				className: "list wide",
+				contents: [
+					mudcrack({
+						tagName: "h2",
+						className: "pointer",
+						contents: handle.scenario.name,
+						events: {
+							click: play
+						}
+					}),
+					mudcrack({
+						className: "row-compact main-chats-item-user",
+						contents: [
+							userIcon,
+							mudcrack({
+								contents: handle.userPersona.name
+							})
+						]
+					}),
+					mudcrack({
+						className: "hint",
+						contents: messagesCaption(handle.messageCount),
+					})
+				]
+			}),
+			mudcrack({
+				className: "list main-chats-item-actions",
+				contents: [
+					mudcrack({
+						tagName: "button",
+						className: "lineout",
+						contents: "play",
+						events: {
+							click: play
+						}
+					}),
+					folderSelect,
+					mudcrack({
+						tagName: "button",
+						className: "lineout",
+						contents: "delete",
+						events: {
+							click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
+						}
+					})
+				]
+			})
+		]
+	})
 }
 
 function messagesCaption(count: number) {
@@ -120,6 +179,13 @@ function deleteChat(id: string, name: string, messageCount: number) {
 
 	idb.del("chatContents", id);
 	idb.del("chats", id);
+}
+async function assignToFolder(id: string, folder: string | null) {
+	const chat = await idb.get("chats", id);
+	if (!chat.success) return false;
+	chat.value.folder = folder;
+	await idb.set("chats", chat.value);
+	return true;
 }
 
 async function importChat(file: File) {

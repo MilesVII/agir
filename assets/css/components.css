@@ -126,6 +126,22 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	width: 2em;
 	border-radius: var(--dims-smol);
 }
+.main-chats-item-actions {
+	max-width: 24%;
+}
+#main-folders {
+	flex-wrap: wrap;
+}
+#main-folders > button {
+	background-color: var(--color-base-semi);
+	transition: background-color .2s ease;
+	padding-inline: var(--dims-reg);
+	padding-block: var(--dims-smol);
+	border-radius: var(--dims-smol);
+}
+#main-folders > button[data-selected="true"] {
+	background-color: var(--color-accent);
+}
 
 summary.settings-label {
 	font: var(--font-bold);

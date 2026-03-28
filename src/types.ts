@@ -7,6 +7,7 @@ export type Result<T, E> = {
 	error: E
 };
 
+export type Folder = string | null;
 export type Persona = {
 	id: string,
 	name: string,
@@ -77,7 +78,8 @@ export type Chat = {
 	lastUpdate: number,
 	messageCount: number,
 	messageChunks: string[],
-	rember: RemberSettings
+	rember: RemberSettings,
+	folder: Folder
 };
 export type ChatMessage = {
 	id: number,

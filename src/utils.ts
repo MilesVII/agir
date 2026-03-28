@@ -195,3 +195,8 @@ export async function reportingFetch(url: string, onProgress: (v: number) => voi
 	onProgress(1);
 	return new Blob(chunks);
 }
+
+export function unique<T>(a: T[]): T[] {
+	const set = new Set(a);
+	return Array.from(set.values());
+}

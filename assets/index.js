@@ -2744,9 +2744,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return { promise, resolve: _resolve };
   }
   function makeResizable(textarea, scrollParent = document.body, initialHeight = 52) {
-    const update3 = () => textareaReconsider(textarea, scrollParent, initialHeight);
-    textarea.addEventListener("input", update3);
-    update3();
+    const update4 = () => textareaReconsider(textarea, scrollParent, initialHeight);
+    textarea.addEventListener("input", update4);
+    update4();
   }
   function textareaReconsider(textarea, scrollParent = document.body, initialHeight = 52) {
     const bodyScroll = scrollParent.scrollTop;
@@ -2869,6 +2869,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     onProgress(1);
     return new Blob(chunks);
   }
+  function unique(a) {
+    const set2 = new Set(a);
+    return Array.from(set2.values());
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -2916,9 +2920,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return await new Promise((resolve) => {
       r.onsuccess = () => {
         resolve({ success: true, value: r.result });
-        const update3 = { storage: "idb", store };
-        bc.postMessage(update3);
-        storageListeners.forEach((l2) => l2(update3));
+        const update4 = { storage: "idb", store };
+        bc.postMessage(update4);
+        storageListeners.forEach((l2) => l2(update4));
       };
       r.onerror = () => resolve({ success: false, error: "write error" });
     });
@@ -2929,9 +2933,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     return await new Promise((resolve) => {
       r.onsuccess = () => {
         resolve({ success: true, value: r.result });
-        const update3 = { storage: "idb", store };
-        bc.postMessage(update3);
-        storageListeners.forEach((l2) => l2(update3));
+        const update4 = { storage: "idb", store };
+        bc.postMessage(update4);
+        storageListeners.forEach((l2) => l2(update4));
       };
       r.onerror = () => resolve({ success: false, error: "write error" });
     });
@@ -2959,9 +2963,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function localSet(key, value) {
     window.localStorage.setItem(key, value);
-    const update3 = { storage: "local", key };
-    bc.postMessage(update3);
-    storageListeners.forEach((l2) => l2(update3));
+    const update4 = { storage: "local", key };
+    bc.postMessage(update4);
+    storageListeners.forEach((l2) => l2(update4));
   }
   async function upload(blob) {
     const id = crypto.randomUUID();
@@ -3152,9 +3156,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const divider = document.querySelector("#settings-providers-divider");
     let editing = null;
     submitButton.addEventListener("click", submit);
-    listen((update3) => {
-      if (update3.storage !== "local") return;
-      if (update3.key !== "providers") return;
+    listen((update4) => {
+      if (update4.storage !== "local") return;
+      if (update4.key !== "providers") return;
       updateList();
     });
     updateList();
@@ -3450,9 +3454,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           contents: "No personas found"
         }));
     }
-    listen(async (update3) => {
-      if (update3.storage !== "idb") return;
-      if (update3.store !== "personas") return;
+    listen(async (update4) => {
+      if (update4.storage !== "idb") return;
+      if (update4.store !== "personas") return;
       updatePersonaList();
     });
     updatePersonaList();
@@ -4508,9 +4512,9 @@ ${chat[remberAt].rember}`),
     const definitionInput = document.querySelector("#play-editor-definition");
     const modal = document.querySelector("#play-editor");
     makeResizable(definitionInput);
-    listen((update3) => {
-      if (update3.storage !== "idb") return;
-      if (update3.store !== "chats") return;
+    listen((update4) => {
+      if (update4.storage !== "idb") return;
+      if (update4.store !== "chats") return;
       updateDefinition();
     });
     window.addEventListener("hashchange", updateDefinition);
@@ -4897,96 +4901,147 @@ ${m3.swipes[m3.selectedSwipe]}
       if (!file) return;
       importChat(file);
     });
-    listen((update3) => {
-      if (update3.storage !== "idb") return;
-      if (update3.store !== "chats") return;
-      updateChatHandles();
+    listen((u3) => {
+      if (u3.storage !== "idb") return;
+      if (u3.store !== "chats") return;
+      update2(null);
     });
-    updateChatHandles();
+    update2(null);
   }
-  async function updateChatHandles() {
-    const list = document.querySelector("#main-chats");
+  async function update2(folder) {
     const handles = await idb.getAll("chats");
     if (!handles.success) return;
+    const folderOptions = unique(handles.value.map((c) => c.folder).filter((f2) => f2));
+    updateChatHandles(handles.value, folder, folderOptions);
+    updateFolders(folder, folderOptions, update2);
+  }
+  function updateChatHandles(handles, folder, folderOptions) {
+    const list = document.querySelector("#main-chats");
     list.innerHTML = "";
-    const items = handles.value.reverse().map((handle) => {
-      const play = () => window.location.hash = `play.${handle.id}`;
-      const icon = T({
-        tagName: "img",
-        className: "pointer",
-        attributes: {
-          src: placeholder(null)
-        },
-        events: {
-          click: play
-        }
-      });
-      const userIcon = T({
-        tagName: "img",
-        attributes: {
-          src: placeholder(null)
-        }
-      });
-      if (handle.scenario.picture)
-        getBlobLink(handle.scenario.picture).then((src) => src && (icon.src = src));
-      if (handle.userPersona.picture)
-        getBlobLink(handle.userPersona.picture).then((src) => src && (userIcon.src = src));
-      return T({
-        className: "lineout row main-chats-item",
-        contents: [
-          icon,
-          T({
-            className: "list wide",
-            contents: [
-              T({
-                tagName: "h2",
-                className: "pointer",
-                contents: handle.scenario.name,
-                events: {
-                  click: play
-                }
-              }),
-              T({
-                className: "row-compact main-chats-item-user",
-                contents: [
-                  userIcon,
-                  T({
-                    contents: handle.userPersona.name
-                  })
-                ]
-              }),
-              T({
-                className: "hint",
-                contents: messagesCaption(handle.messageCount)
-              })
-            ]
-          }),
-          T({
-            className: "list",
-            contents: [
-              T({
-                tagName: "button",
-                className: "lineout",
-                contents: "play",
-                events: {
-                  click: play
-                }
-              }),
-              T({
-                tagName: "button",
-                className: "lineout",
-                contents: "delete",
-                events: {
-                  click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
-                }
-              })
-            ]
-          })
-        ]
-      });
-    });
+    const filtered = folder ? handles.filter((c) => c.folder === folder) : handles;
+    const items = filtered.reverse().map((c) => handleView(c, folderOptions));
     if (items.length === 0) list.append(T({ className: "placeholder", contents: "No chats found" }));
     list.append(...items);
+  }
+  function updateFolders(folder, options, onChange) {
+    const folders = document.querySelector("#main-folders");
+    folders.innerHTML = "";
+    const folderButton = (f2) => T({
+      tagName: "button",
+      className: "strip fit pointer",
+      events: {
+        click: () => {
+          updateFolders(f2, options, onChange);
+          onChange(f2);
+        }
+      },
+      attributes: {
+        "data-selected": folder === f2 ? "true" : "not true"
+      },
+      contents: f2 || "all chats"
+    });
+    folders.append(
+      folderButton(null),
+      ...options.map(folderButton)
+    );
+    console.log(options.length);
+  }
+  function handleView(handle, folderOptions) {
+    const play = () => window.location.hash = `play.${handle.id}`;
+    const icon = T({
+      tagName: "img",
+      className: "pointer",
+      attributes: {
+        src: placeholder(null)
+      },
+      events: {
+        click: play
+      }
+    });
+    const userIcon = T({
+      tagName: "img",
+      attributes: {
+        src: placeholder(null)
+      }
+    });
+    const folderSelect = T({
+      tagName: "select",
+      className: "lineout center-text pointer"
+    });
+    if (handle.scenario.picture)
+      getBlobLink(handle.scenario.picture).then((src) => src && (icon.src = src));
+    if (handle.userPersona.picture)
+      getBlobLink(handle.userPersona.picture).then((src) => src && (userIcon.src = src));
+    const newFolder = () => {
+      const newName = prompt("Enter the name of the new folder")?.trim();
+      if (!newName) return;
+      assignToFolder(handle.id, newName);
+    };
+    setSelectMenu(
+      folderSelect,
+      handle.folder ?? "-folder-",
+      [
+        ["unassigned", () => assignToFolder(handle.id, null)],
+        ["new folder", newFolder],
+        ...folderOptions.map(
+          (c) => [c, () => assignToFolder(handle.id, c)]
+        )
+      ]
+    );
+    return T({
+      className: "lineout row main-chats-item",
+      contents: [
+        icon,
+        T({
+          className: "list wide",
+          contents: [
+            T({
+              tagName: "h2",
+              className: "pointer",
+              contents: handle.scenario.name,
+              events: {
+                click: play
+              }
+            }),
+            T({
+              className: "row-compact main-chats-item-user",
+              contents: [
+                userIcon,
+                T({
+                  contents: handle.userPersona.name
+                })
+              ]
+            }),
+            T({
+              className: "hint",
+              contents: messagesCaption(handle.messageCount)
+            })
+          ]
+        }),
+        T({
+          className: "list main-chats-item-actions",
+          contents: [
+            T({
+              tagName: "button",
+              className: "lineout",
+              contents: "play",
+              events: {
+                click: play
+              }
+            }),
+            folderSelect,
+            T({
+              tagName: "button",
+              className: "lineout",
+              contents: "delete",
+              events: {
+                click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
+              }
+            })
+          ]
+        })
+      ]
+    });
   }
   function messagesCaption(count) {
     return count % 10 === 1 ? `${count} message` : `${count} messages`;
@@ -4996,6 +5051,13 @@ ${m3.swipes[m3.selectedSwipe]}
     if (!confirmed) return;
     idb.del("chatContents", id);
     idb.del("chats", id);
+  }
+  async function assignToFolder(id, folder) {
+    const chat = await idb.get("chats", id);
+    if (!chat.success) return false;
+    chat.value.folder = folder;
+    await idb.set("chats", chat.value);
+    return true;
   }
   async function importChat(file) {
     const json = await file.text();
@@ -5398,6 +5460,7 @@ ${scenario}
       status: document.querySelector("#library-armory-view-status"),
       items: document.querySelector("#library-armory-view-items")
     };
+    tabs.tab = "list";
     const libraryPromise = idb.getAll("scenarios");
     addButton.addEventListener("click", () => {
       const url = addInput.value;
@@ -5653,11 +5716,11 @@ ${scenario}
     listen(async (u3) => {
       if (u3.storage !== "idb") return;
       if (u3.store !== "scenarios") return;
-      update2();
+      update3();
     });
-    update2();
+    update3();
   }
-  async function update2() {
+  async function update3() {
     const list = document.querySelector("#library-cards");
     list.innerHTML = "";
     const items = await idb.getAll("scenarios");
