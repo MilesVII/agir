@@ -39,7 +39,8 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 			scenario: preparedScenario,
 			userPersona: persona.value,
 			messageChunks: [],
-			rember: REMBER_DEFAULTS
+			rember: REMBER_DEFAULTS,
+			folder: null
 		}),
 		idb.set("chatContents", {
 			id: chatId,
