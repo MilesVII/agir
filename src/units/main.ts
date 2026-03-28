@@ -65,7 +65,6 @@ function updateFolders(folder: Folder, options: string[], onChange: (folder: Fol
 		folderButton(null),
 		...options.map(folderButton)
 	);
-	console.log(options.length)
 	// folders.hidden = options.length === 0;
 }
 

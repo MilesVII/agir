@@ -4944,7 +4944,6 @@ ${m3.swipes[m3.selectedSwipe]}
       folderButton(null),
       ...options.map(folderButton)
     );
-    console.log(options.length);
   }
   function handleView(handle, folderOptions) {
     const play = () => window.location.hash = `play.${handle.id}`;
@@ -5290,7 +5289,8 @@ ${m3.swipes[m3.selectedSwipe]}
         scenario: preparedScenario,
         userPersona: persona.value,
         messageChunks: [],
-        rember: REMBER_DEFAULTS
+        rember: REMBER_DEFAULTS,
+        folder: null
       }),
       idb.set("chatContents", {
         id: chatId,
