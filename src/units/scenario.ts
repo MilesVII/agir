@@ -155,6 +155,7 @@ function initFirstMessages() {
 	const messagesControlsCaption = messagesControls.querySelector("div")!;
 	const messages                = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
 	const messagesState: string[] = [""];
+	const asterizeButton   = document.querySelector<HTMLButtonElement>  ("#scenario-messages-asterize")!;
 	let messageIndex = 0;
 
 	makeResizable(messages);
@@ -182,6 +183,20 @@ function initFirstMessages() {
 	messagesControlsButtons[0].addEventListener("click", () => clickMessagesPager(-1));
 	messagesControlsButtons[1].addEventListener("click", () => clickMessagesPager(+1));
 	updateMessagesPager();
+
+	asterizeButton.addEventListener("click", () => {
+		const lines = messages.value.trim().split("\n");
+		const asterized = lines.map(line => {
+			if (line.trim().length === 0) return "";
+			return line.replace(
+				/(^|"\s)([^"]+)(\s"|$)/gm,
+				(_, g0, g1, g2) => `${g0}*${g1}*${g2}`
+			);
+		});
+		messagesState[messageIndex] =
+			messages.value =
+				asterized.join("\n");
+	});
 
 	return {
 		set: (values: string[]) => {

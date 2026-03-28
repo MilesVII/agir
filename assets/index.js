@@ -5143,6 +5143,7 @@ ${m3.swipes[m3.selectedSwipe]}
     const messagesControlsCaption = messagesControls.querySelector("div");
     const messages = document.querySelector("#scenario-messages");
     const messagesState = [""];
+    const asterizeButton = document.querySelector("#scenario-messages-asterize");
     let messageIndex = 0;
     makeResizable(messages);
     function clickMessagesPager(delta) {
@@ -5168,6 +5169,17 @@ ${m3.swipes[m3.selectedSwipe]}
     messagesControlsButtons[0].addEventListener("click", () => clickMessagesPager(-1));
     messagesControlsButtons[1].addEventListener("click", () => clickMessagesPager(1));
     updateMessagesPager();
+    asterizeButton.addEventListener("click", () => {
+      const lines = messages.value.trim().split("\n");
+      const asterized = lines.map((line) => {
+        if (line.trim().length === 0) return "";
+        return line.replace(
+          /(^|"\s)([^"]+)(\s"|$)/gm,
+          (_2, g0, g1, g2) => `${g0}*${g1}*${g2}`
+        );
+      });
+      messagesState[messageIndex] = messages.value = asterized.join("\n");
+    });
     return {
       set: (values) => {
         messagesState.splice(0, messagesState.length);
