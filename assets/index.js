@@ -3151,11 +3151,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       temp: 0.9,
       max: 720
     };
+    const modelsDatalist = document.querySelector("#settings-providers-models-datalist");
     const submitButton = document.querySelector("#settings-providers-submit");
+    const fetchModelsButton = document.querySelector("#settings-providers-fetch-models");
     const list = document.querySelector("#settings-providers-list");
     const divider = document.querySelector("#settings-providers-divider");
     let editing = null;
     submitButton.addEventListener("click", submit);
+    fetchModelsButton.addEventListener("click", fetchModels);
     listen((update4) => {
       if (update4.storage !== "local") return;
       if (update4.key !== "providers") return;
@@ -3198,6 +3201,43 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       inputs.max.value = String(defaults.max);
       inputs.params.value = "";
     }
+    async function fetchModels() {
+      const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
+      if (!url) return;
+      const key = inputs.key.value;
+      const closeToast = toast("calling...");
+      const response = await nothrowAsync(fetch(url, {
+        headers: {
+          Authorization: `Bearer ${key}`
+        }
+      }));
+      closeToast();
+      if (!response.success) {
+        toast(`can't reach "${url}"
+${response.error}`);
+        return;
+      }
+      if (!response.value.ok) {
+        const text2 = await response.value.text();
+        toast(`"${url}" returned error
+status ${response.value.status}
+${text2.slice(0, 64)}`);
+        return;
+      }
+      const payload = await response.value.json();
+      if (!payload.data) return;
+      console.log(payload.data);
+      modelsDatalist.innerHTML = "";
+      modelsDatalist.append(
+        ...payload.data.map(
+          (m3) => T({
+            tagName: "option",
+            attributes: { value: m3.id }
+          })
+        )
+      );
+      toast(`success; ${payload.data.length} models are available`);
+    }
     function edit(id, e) {
       function stringifyParams() {
         if (!e.params) return "";
@@ -3215,6 +3255,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       divider.scrollIntoView({ behavior: "smooth" });
     }
     function updateList() {
+      modelsDatalist.innerHTML = "";
       list.innerHTML = "";
       const providersMap = readProviders();
       const providers = Object.entries(providersMap);
@@ -4108,9 +4149,6 @@ ${chat[remberAt].rember}`),
       rerollButton
     ];
     if (msg.from === "user") mainControls.push(deleteButton);
-    if (msg.from === "model" && isLast) {
-      mainControls.push();
-    }
     const controlsTab = virtualTabs(
       ["main", mainControls],
       ["editing", [
@@ -5098,7 +5136,7 @@ ${m3.swipes[m3.selectedSwipe]}
     const preview = document.querySelector("#scenario-preview-container");
     const previewClose = document.querySelector("#scenario-preview-close");
     const characterName = document.querySelector("#scenario-character-name");
-    const defintion = document.querySelector("#scenario-defintion");
+    const defintion = document.querySelector("#scenario-definition");
     const previewButton = document.querySelector("#scenario-preview-button");
     const submitButton = document.querySelector("#scenario-submit-button");
     const firstMessage = document.querySelector("#scenario-messages");

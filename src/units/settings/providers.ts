@@ -1,6 +1,6 @@
 import { listen, local } from "@root/persist";
 import { ActiveProviders, Provider, ProviderMap, ProviderMapWithActive } from "@root/types";
-import { nothrow } from "@root/utils";
+import { nothrow, nothrowAsync } from "@root/utils";
 import { toast } from "@units/toasts";
 import { mudcrack } from "rampike";
 
@@ -18,12 +18,16 @@ export function providersUnit() {
 		temp:    .9,
 		max:     720
 	};
-	const submitButton = document.querySelector<HTMLButtonElement>("#settings-providers-submit")!;
+
+	const modelsDatalist = document.querySelector("#settings-providers-models-datalist")!;
+	const submitButton      = document.querySelector<HTMLButtonElement>("#settings-providers-submit")!;
+	const fetchModelsButton = document.querySelector<HTMLButtonElement>("#settings-providers-fetch-models")!;
 	const list = document.querySelector<HTMLElement>("#settings-providers-list")!;
 	const divider = document.querySelector("#settings-providers-divider")!;
 	let editing: string | null = null;
 
 	submitButton.addEventListener("click", submit);
+	fetchModelsButton.addEventListener("click", fetchModels)
 
 	listen(update => {
 		if (update.storage !== "local") return;
@@ -63,13 +67,48 @@ export function providersUnit() {
 		eMap[id] = e;
 		saveProviders(eMap);
 		editing = null;
-		inputs.name.value =  "";
-		inputs.url.value =   "";
-		inputs.key.value =   "";
-		inputs.model.value = "";
-		inputs.temp.value =   String(defaults.temp);
-		inputs.max.value =    String(defaults.max);
+		inputs.name.value   = "";
+		inputs.url.value    = "";
+		inputs.key.value    = "";
+		inputs.model.value  = "";
+		inputs.temp.value   = String(defaults.temp);
+		inputs.max.value    = String(defaults.max);
 		inputs.params.value = "";
+	}
+	async function fetchModels() {
+		const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
+		if (!url) return;
+		const key = inputs.key.value;
+		const closeToast = toast("calling...");
+		const response = await nothrowAsync(fetch(url, {
+			headers: {
+				Authorization: `Bearer ${key}`,
+			}
+		}));
+		closeToast();
+		if (!response.success) {
+			toast(`can't reach "${url}"\n${response.error}`);
+			return;
+		}
+		if (!response.value.ok) {
+			const text = await response.value.text();
+			toast(`"${url}" returned error\nstatus ${response.value.status}\n${text.slice(0, 64)}`);
+			return;
+		}
+		const payload = await response.value.json();
+		if (!payload.data) return;
+		console.log(payload.data);
+		modelsDatalist.innerHTML = "";
+		modelsDatalist.append(
+			...payload.data.map(
+				(m: any) =>
+					mudcrack({
+						tagName: "option",
+						attributes: { value: m.id }
+					})
+			)
+		);
+		toast(`success; ${payload.data.length} models are available`);
 	}
 	function edit(id: string, e: Provider) {
 		function stringifyParams() {
@@ -91,6 +130,7 @@ export function providersUnit() {
 	}
 
 	function updateList() {
+		modelsDatalist.innerHTML = "";
 		list.innerHTML = "";
 		const providersMap = readProviders();
 		const providers = Object.entries(providersMap);
