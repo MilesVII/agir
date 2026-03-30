@@ -1,7 +1,7 @@
 # Ägir
 Janitor-inspired local roleplay frontend
 
-## Features and and other cool things
+## Features and other cool things
 - Standalone and (optionally) self-hosted
 - Mobile-first
 - No sync between devices (chats and scenarios stay on your device)

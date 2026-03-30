@@ -111,12 +111,6 @@ export function makeMessageView(
 	];
 	if (msg.from === "user") mainControls.push(deleteButton);
 
-	if (msg.from === "model" && isLast) {
-		mainControls.push(
-			
-		);
-	}
-
 	const controlsTab = virtualTabs(
 		["main", mainControls],
 		["editing", [

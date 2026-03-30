@@ -31,7 +31,7 @@ export function scenarioUnit() {
 	const preview          = document.querySelector<HTMLDivElement>     ("#scenario-preview-container")!;
 	const previewClose     = document.querySelector<HTMLDivElement>     ("#scenario-preview-close")!;
 	const characterName    = document.querySelector<HTMLInputElement>   ("#scenario-character-name")!;
-	const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-defintion")!;
+	const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-definition")!;
 	const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
 	const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
 	const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
