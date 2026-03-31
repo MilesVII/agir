@@ -102,7 +102,10 @@
 								id="settings-providers-model"
 								class="strip wide"
 								placeholder="xiaomi/mimo-v2-flash:free"
+								list="settings-providers-models-datalist"
 							></ram-labeled>
+							<datalist id="settings-providers-models-datalist"></datalist>
+							<button id="settings-providers-fetch-models" class="lineout">fetch available models</button>
 							<hr/>
 							<div class="hint">
 								Temperature controls randomness. Lower = focused, higher = creative
@@ -288,7 +291,7 @@
 					></ram-labeled>
 					<ram-labeled
 						legend="Scenario definition"
-						id="scenario-defintion"
+						id="scenario-definition"
 						class="strip wide"
 						placeholder=""
 						multiline

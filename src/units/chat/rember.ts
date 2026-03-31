@@ -42,7 +42,7 @@ export function initRember() {
 		save:  document.querySelector<HTMLButtonElement>("#play-rember-save")!,
 		reset: document.querySelector<HTMLButtonElement>("#play-rember-reset")!
 	}
-	const list         = document.querySelector<HTMLButtonElement>  ("#play-rember-messages")!;
+	const list = document.querySelector<HTMLElement>("#play-rember-messages")!;
 
 	buttons.one.addEventListener("click", runOne);
 	buttons.all.addEventListener("click", runAll);
