@@ -17,7 +17,7 @@ const definitionTemplate = {
 	].join("\n"),
 	instructions: [
 		"# Instructions",
-		"You play as {{char}}, the user is {{user}}"
+		"The user is {{user}}, all other roles are played by you"
 	].join("\n"),
 }
 
