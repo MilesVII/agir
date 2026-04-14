@@ -9,6 +9,7 @@ import { importSTMessages } from "./library/st";
 import { downloadScenarioCard } from "./library/dl";
 import { toast } from "./toasts";
 import { startArmory } from "./library/armory";
+import { DatacatCard, importDatacatJSON } from "./library/datacat";
 
 let openerRelay: {
 	scenarioId: string
@@ -242,21 +243,25 @@ async function downloadScenario(card: ScenarioCard) {
 
 export async function importScenario(file: Blob) {
 	const raw = await file.text();
-	const parsed = JSON.parse(raw) as ScenarioCard;
+	const parsed = JSON.parse(raw) as ScenarioCard | DatacatCard;
 
-	// parsed.id = crypto.randomUUID();
-	
-	async function decode(b64: string | null) {
-		if (!b64) return null;
-		const file = await b64Encoder.decode(b64);
-		const media = await upload(file);
-		return media;
+	if ("spec" in parsed && parsed.spec === "chara_card_v2") {
+		const converted = await importDatacatJSON(parsed);
+		idb.set("scenarios", converted);
 	}
-	parsed.card.picture = await decode(parsed.card.picture);
-	parsed.chat.picture = await decode(parsed.chat.picture);
-	parsed.lastUpdate = Date.now();
-
-	idb.set("scenarios", parsed);
+	if ("id" in parsed){
+		async function decode(b64: string | null) {
+			if (!b64) return null;
+			const file = await b64Encoder.decode(b64);
+			const media = await upload(file);
+			return media;
+		}
+		parsed.card.picture = await decode(parsed.card.picture);
+		parsed.chat.picture = await decode(parsed.chat.picture);
+		parsed.lastUpdate = Date.now();
+	
+		idb.set("scenarios", parsed);
+	}
 }
 
 function deleteScenario(id: string, name: string) {

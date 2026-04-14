@@ -19,7 +19,7 @@ const definitionTemplate = {
 		"# Instructions",
 		"The user is {{user}}, all other roles are played by you"
 	].join("\n"),
-}
+};
 
 export async function downloadScenarioCard(url: string): Promise<ScenarioCard | null>  {
 	url = url.toLowerCase().replace("janitorai.com/", "jannyai.com/");

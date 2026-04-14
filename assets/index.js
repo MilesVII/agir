@@ -5407,7 +5407,7 @@ ${m3.swipes[m3.selectedSwipe]}
     ].join("\n"),
     instructions: [
       "# Instructions",
-      "You play as {{char}}, the user is {{user}}"
+      "The user is {{user}}, all other roles are played by you"
     ].join("\n")
   };
   async function downloadScenarioCard(url) {
@@ -5434,11 +5434,11 @@ ${m3.swipes[m3.selectedSwipe]}
       const caption = e.querySelector("span");
       const captionText = caption.innerText.toLocaleLowerCase().trim();
       caption.remove();
-      if (captionText.includes("personality")) personality = fix(e.innerText.trim());
-      if (captionText.includes("scenario")) scenario = fix(e.innerText.trim());
-      if (captionText.includes("first")) firstMessage = fix(e.innerText.trim());
+      if (captionText.includes("personality")) personality = fix2(e.innerText.trim());
+      if (captionText.includes("scenario")) scenario = fix2(e.innerText.trim());
+      if (captionText.includes("first")) firstMessage = fix2(e.innerText.trim());
     });
-    function fix(raw2) {
+    function fix2(raw2) {
       return raw2.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/^#+/gm, (v2) => `##${v2}`);
     }
     let definition = `${definitionTemplate2.characters}
@@ -5695,6 +5695,69 @@ ${scenario}
     local.set("armories", JSON.stringify(nv));
   }
 
+  // src/units/library/datacat.ts
+  var definitionTemplate3 = {
+    characters: [
+      "# Characters",
+      "## {{char}} "
+    ],
+    userPersona: [
+      "## {{user}}",
+      "{{persona}}"
+    ],
+    instructions: [
+      "# Instructions",
+      "The user is {{user}}, all other roles are played by you"
+    ]
+  };
+  async function importDatacatJSON(parsed) {
+    const definition = [
+      ...definitionTemplate3.characters,
+      fix(parsed.data.description.replace("##DESCRIPTION START##", "").trim()),
+      "",
+      ...definitionTemplate3.userPersona,
+      "",
+      ...definitionTemplate3.instructions,
+      fix(parsed.data.scenario ?? "")
+    ].join("\n").trim();
+    const converted = {
+      id: crypto.randomUUID(),
+      lastUpdate: Date.now(),
+      card: {
+        author: {
+          name: parsed.metadata.janitor_creator_name,
+          url: parsed.data.creator
+        },
+        description: parsed.metadata.raw_description_html,
+        picture: await avatar(parsed.data.avatar),
+        tags: parsed.data.tags,
+        title: parsed.metadata.janitor_character_name
+      },
+      chat: {
+        definition,
+        initials: [
+          parsed.data.first_mes,
+          ...parsed.data.alternate_greetings ?? []
+        ].map(fix),
+        name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name,
+        picture: null,
+        tokenCount: estimateTokenCount(definition)
+      }
+    };
+    return converted;
+  }
+  async function avatar(url) {
+    if (!url) return null;
+    const response = await nothrowAsync(fetch(url));
+    if (!response.success) return null;
+    const blob = await nothrowAsync(response.value.blob());
+    if (!blob.success) return null;
+    return upload(blob.value);
+  }
+  function fix(raw) {
+    return raw.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/^#+/gm, (v2) => `##${v2}`);
+  }
+
   // src/units/library.ts
   var openerRelay = null;
   function libraryUnit() {
@@ -5905,16 +5968,22 @@ ${scenario}
   async function importScenario(file) {
     const raw = await file.text();
     const parsed = JSON.parse(raw);
-    async function decode(b64) {
-      if (!b64) return null;
-      const file2 = await b64Encoder.decode(b64);
-      const media = await upload(file2);
-      return media;
+    if ("spec" in parsed && parsed.spec === "chara_card_v2") {
+      const converted = await importDatacatJSON(parsed);
+      idb.set("scenarios", converted);
     }
-    parsed.card.picture = await decode(parsed.card.picture);
-    parsed.chat.picture = await decode(parsed.chat.picture);
-    parsed.lastUpdate = Date.now();
-    idb.set("scenarios", parsed);
+    if ("id" in parsed) {
+      async function decode(b64) {
+        if (!b64) return null;
+        const file2 = await b64Encoder.decode(b64);
+        const media = await upload(file2);
+        return media;
+      }
+      parsed.card.picture = await decode(parsed.card.picture);
+      parsed.chat.picture = await decode(parsed.chat.picture);
+      parsed.lastUpdate = Date.now();
+      idb.set("scenarios", parsed);
+    }
   }
   function deleteScenario(id, name) {
     const ok = confirm(`scenario "${name}" will be deleted`);
