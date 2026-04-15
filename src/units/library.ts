@@ -10,7 +10,9 @@ import { downloadScenarioCard } from "./library/dl";
 import { toast } from "./toasts";
 import { startArmory } from "./library/armory";
 import { DatacatCard, importDatacatJSON } from "./library/datacat";
+import { RampikePagination } from "@rampike/pagination";
 
+const CARDS_PER_PAGE = 16;
 let openerRelay: {
 	scenarioId: string
 } | null = null;
@@ -22,6 +24,7 @@ export function libraryUnit() {
 	const importButton       = document.querySelector<RampikeFilePicker>("#library-import")!;
 	const downloadButton     = document.querySelector<HTMLButtonElement>("#library-download")!;
 	const armoryButton       = document.querySelector<HTMLButtonElement>("#library-armory-button")!;
+	const pager              = document.querySelector<RampikePagination>("#library-pager")!;
 
 	const modal = document.querySelector<RampikeModal>("#library-start")!;
 
@@ -77,6 +80,7 @@ export function libraryUnit() {
 	});
 	armoryButton.addEventListener("click", startArmory);
 
+	pager.addEventListener("pick", update);
 	listen(async u => {
 		if (u.storage !== "idb") return;
 		if (u.store !== "scenarios") return;
@@ -88,12 +92,19 @@ export function libraryUnit() {
 
 async function update() {
 	const list = document.querySelector<HTMLElement>("#library-cards")!;
+	const pager = document.querySelector<RampikePagination>("#library-pager")!;
 
 	list.innerHTML = "";
 	const items = await idb.getAll("scenarios");
 	if (!items.success) return;
 
-	const contents = items.value.reverse().map(scenarioCardView);
+	pager.pageCount = Math.ceil(items.value.length / CARDS_PER_PAGE);
+	pager.style.display = pager.pageCount <= 1 ? "none" : "flex";
+	if (pager.page >= pager.pageCount) pager.page = pager.pageCount - 1;
+
+	const ix0 = pager.page * CARDS_PER_PAGE;
+	const ix1 = ix0 + CARDS_PER_PAGE;
+	const contents = items.value.reverse().slice(ix0, ix1).map(scenarioCardView);
 
 	list.append(...contents);
 	if (contents.length === 0)

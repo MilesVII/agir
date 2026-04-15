@@ -1,7 +1,5 @@
 import { mudcrack } from "rampike";
 
-const TAG_NAME = "ram-pages";
-
 class RampikePages extends HTMLElement {
 	private readAttribute(key: string, def: number) {
 		const raw = this.getAttribute(key);
@@ -18,9 +16,9 @@ class RampikePages extends HTMLElement {
 		this.setAttribute("distance", `${value}`);
 		this.update();
 	}
-	get pageCount() { return this.readAttribute("pageCount", 0) }
+	get pageCount() { return this.readAttribute("page-count", 0) }
 	set pageCount(value: number) {
-		this.setAttribute("pageCount", `${value}`);
+		this.setAttribute("page-count", `${value}`);
 		this.update();
 	}
 
@@ -72,6 +70,7 @@ class RampikePages extends HTMLElement {
 	}
 
 	private pick(page: number) {
+		this.page = page;
 		this.dispatchEvent(new CustomEvent("pick", {
 			detail: {
 				page
@@ -87,7 +86,7 @@ class RampikePages extends HTMLElement {
 	}
 };
 
-export function define() {
-	window.customElements.define(TAG_NAME, RampikePages);
+export function define(tagName = "ram-page") {
+	window.customElements.define(tagName, RampikePages);
 }
 export type RampikePagination = RampikePages;

@@ -277,7 +277,6 @@
   }
 
   // src/components/pagination.ts
-  var TAG_NAME3 = "ram-pages";
   var RampikePages = class extends HTMLElement {
     readAttribute(key, def) {
       const raw = this.getAttribute(key);
@@ -298,10 +297,10 @@
       this.update();
     }
     get pageCount() {
-      return this.readAttribute("pageCount", 0);
+      return this.readAttribute("page-count", 0);
     }
     set pageCount(value) {
-      this.setAttribute("pageCount", `${value}`);
+      this.setAttribute("page-count", `${value}`);
       this.update();
     }
     links() {
@@ -345,6 +344,7 @@
       }));
     }
     pick(page) {
+      this.page = page;
       this.dispatchEvent(new CustomEvent("pick", {
         detail: {
           page
@@ -358,8 +358,8 @@
       this.update();
     }
   };
-  function define4() {
-    window.customElements.define(TAG_NAME3, RampikePages);
+  function define4(tagName = "ram-page") {
+    window.customElements.define(tagName, RampikePages);
   }
 
   // src/components/import.ts
@@ -5759,6 +5759,7 @@ ${scenario}
   }
 
   // src/units/library.ts
+  var CARDS_PER_PAGE = 16;
   var openerRelay = null;
   function libraryUnit() {
     const startButton = document.querySelector("#library-start-button");
@@ -5767,6 +5768,7 @@ ${scenario}
     const importButton = document.querySelector("#library-import");
     const downloadButton = document.querySelector("#library-download");
     const armoryButton = document.querySelector("#library-armory-button");
+    const pager = document.querySelector("#library-pager");
     const modal = document.querySelector("#library-start");
     startButton.addEventListener("click", async () => {
       if (!openerRelay) return;
@@ -5814,6 +5816,7 @@ ${scenario}
       }
     });
     armoryButton.addEventListener("click", startArmory);
+    pager.addEventListener("pick", update3);
     listen(async (u3) => {
       if (u3.storage !== "idb") return;
       if (u3.store !== "scenarios") return;
@@ -5823,10 +5826,16 @@ ${scenario}
   }
   async function update3() {
     const list = document.querySelector("#library-cards");
+    const pager = document.querySelector("#library-pager");
     list.innerHTML = "";
     const items = await idb.getAll("scenarios");
     if (!items.success) return;
-    const contents = items.value.reverse().map(scenarioCardView);
+    pager.pageCount = Math.ceil(items.value.length / CARDS_PER_PAGE);
+    pager.style.display = pager.pageCount <= 1 ? "none" : "flex";
+    if (pager.page >= pager.pageCount) pager.page = pager.pageCount - 1;
+    const ix0 = pager.page * CARDS_PER_PAGE;
+    const ix1 = ix0 + CARDS_PER_PAGE;
+    const contents = items.value.reverse().slice(ix0, ix1).map(scenarioCardView);
     list.append(...contents);
     if (contents.length === 0)
       list.append(T({ className: "placeholder", contents: "No scenario cards found" }));

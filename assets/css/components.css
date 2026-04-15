@@ -9,7 +9,7 @@
 	padding: var(--dims-smol);
 	border-radius: var(--dims-smol);
 }
-.lineout:hover, .lineout:focus, fieldset:has(*:focus), fieldset:hover {
+.lineout:hover, .lineout:focus, fieldset:has(*:focus), fieldset:hover, [data-current] {
 	border-color: var(--color-accent);
 	box-shadow: 0 0 var(--dims-smol) var(--color-accent);
 	outline: none;
@@ -43,7 +43,7 @@ button.lineout, .pointer {
 .placeholder {
 	border: 2px solid var(--color-accent);
 	color: var(--color-accent);
-	padding: var(--dims-smol);
+	padding: var(--dims-smol) var(--dims-reg);
 	border-radius: var(--dims-smol);
 }
 
