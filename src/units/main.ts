@@ -203,4 +203,4 @@ async function importChat(file: File) {
 
 	await idb.set("chats", chat);
 	await idb.set("chatContents", contents);
-};
+}

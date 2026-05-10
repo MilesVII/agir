@@ -5136,12 +5136,12 @@ ${m3.swipes[m3.selectedSwipe]}
     const preview = document.querySelector("#scenario-preview-container");
     const previewClose = document.querySelector("#scenario-preview-close");
     const characterName = document.querySelector("#scenario-character-name");
-    const defintion = document.querySelector("#scenario-definition");
+    const definition = document.querySelector("#scenario-definition");
     const previewButton = document.querySelector("#scenario-preview-button");
     const submitButton = document.querySelector("#scenario-submit-button");
     const firstMessage = document.querySelector("#scenario-messages");
     makeResizable(cardDescription);
-    makeResizable(defintion);
+    makeResizable(definition);
     const messagesControl = initFirstMessages();
     window.addEventListener("hashchange", load);
     load();
@@ -5162,7 +5162,7 @@ ${m3.swipes[m3.selectedSwipe]}
         cardTags.value = scenario.value.card.tags.join(", ");
         chatIcon.value = scenario.value.chat.picture ?? "";
         characterName.value = scenario.value.chat.name;
-        defintion.value = scenario.value.chat.definition;
+        definition.value = scenario.value.chat.definition;
         messagesControl.set(scenario.value.chat.initials);
       } else {
         cardIcon.usePlaceholder();
@@ -5173,21 +5173,28 @@ ${m3.swipes[m3.selectedSwipe]}
         cardTags.value = "";
         chatIcon.usePlaceholder();
         characterName.value = "";
-        defintion.value = definitionTemplate;
+        definition.value = definitionTemplate;
         messagesControl.set([""]);
       }
       textareaReconsider(cardDescription);
-      textareaReconsider(defintion);
+      textareaReconsider(definition);
       textareaReconsider(cardTags);
       textareaReconsider(firstMessage);
     }
     submitButton.addEventListener("click", async () => {
       const firstMessages = messagesControl.get();
-      const required = [
-        cardTitle.value,
-        defintion.value
+      const checks = [
+        [() => cardTitle.value, "Card name is required", cardTitle],
+        [() => definition.value, "Character definiton is required", definition],
+        [() => firstMessages.length > 0, "At least one non-empty opening message is required", firstMessage]
       ];
-      if (required.some((v2) => !v2) || firstMessages.length <= 0) return;
+      for (const [cb, msg, target] of checks) {
+        if (cb()) continue;
+        toast(msg);
+        target?.focus({ preventScroll: true });
+        target?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
       const cardPicture = await cardIcon.valueHandle();
       const chatPicture = await chatIcon.valueHandle();
       const tags = cardTags.value.split(",").map((t) => t.trim()).filter((t) => t);
@@ -5213,9 +5220,9 @@ ${m3.swipes[m3.selectedSwipe]}
         chat: {
           picture: chatPicture,
           name: characterName.value,
-          definition: defintion.value,
+          definition: definition.value,
           initials: firstMessages,
-          tokenCount: estimateTokenCount(defintion.value)
+          tokenCount: estimateTokenCount(definition.value)
         }
       };
       if (!payload.chat.definition.includes("{{persona}}")) {

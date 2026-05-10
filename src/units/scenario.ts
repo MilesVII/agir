@@ -31,12 +31,12 @@ export function scenarioUnit() {
 	const preview          = document.querySelector<HTMLDivElement>     ("#scenario-preview-container")!;
 	const previewClose     = document.querySelector<HTMLDivElement>     ("#scenario-preview-close")!;
 	const characterName    = document.querySelector<HTMLInputElement>   ("#scenario-character-name")!;
-	const defintion        = document.querySelector<HTMLTextAreaElement>("#scenario-definition")!;
+	const definition       = document.querySelector<HTMLTextAreaElement>("#scenario-definition")!;
 	const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
 	const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
 	const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
 	makeResizable(cardDescription);
-	makeResizable(defintion);
+	makeResizable(definition);
 	const messagesControl = initFirstMessages();
 
 	window.addEventListener("hashchange", load);
@@ -61,7 +61,7 @@ export function scenarioUnit() {
 
 			chatIcon.value        = scenario.value.chat.picture ?? "";
 			characterName.value   = scenario.value.chat.name;
-			defintion.value       = scenario.value.chat.definition;
+			definition.value       = scenario.value.chat.definition;
 
 			messagesControl.set(scenario.value.chat.initials);
 		} else {
@@ -74,23 +74,33 @@ export function scenarioUnit() {
 
 			chatIcon.usePlaceholder();
 			characterName.value = "";
-			defintion.value = definitionTemplate;
+			definition.value = definitionTemplate;
 
 			messagesControl.set([""]);
 		}
 		textareaReconsider(cardDescription);
-		textareaReconsider(defintion);
+		textareaReconsider(definition);
 		textareaReconsider(cardTags);
 		textareaReconsider(firstMessage);
 	}
 
 	submitButton.addEventListener("click", async () => {
 		const firstMessages = messagesControl.get();
-		const required = [
-			cardTitle.value,
-			defintion.value,
-		];
-		if (required.some(v => !v) || firstMessages.length <= 0) return;
+
+		type Check = [cb: () => any, msg: string, target?: HTMLElement];
+		const checks: Check[] = [
+			[() => cardTitle.value, "Card name is required", cardTitle],
+			[() => definition.value, "Character definiton is required", definition],
+			[() => firstMessages.length > 0, "At least one non-empty opening message is required", firstMessage]
+		]
+		for (const [cb, msg, target] of checks) {
+			if (cb()) continue;
+
+			toast(msg);
+			target?.focus({ preventScroll: true });
+			target?.scrollIntoView({ behavior: "smooth", block: "center" });
+			return;
+		}
 
 		const cardPicture = await cardIcon.valueHandle();
 		const chatPicture = await chatIcon.valueHandle();
@@ -122,9 +132,9 @@ export function scenarioUnit() {
 			chat: {
 				picture: chatPicture,
 				name: characterName.value,
-				definition: defintion.value,
+				definition: definition.value,
 				initials: firstMessages,
-				tokenCount: estimateTokenCount(defintion.value)
+				tokenCount: estimateTokenCount(definition.value)
 			}
 		};
 
