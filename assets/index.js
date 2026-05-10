@@ -3156,6 +3156,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const fetchModelsButton = document.querySelector("#settings-providers-fetch-models");
     const list = document.querySelector("#settings-providers-list");
     const divider = document.querySelector("#settings-providers-divider");
+    const editingIndicator = document.querySelector("#settings-providers-editing-indicator");
     let editing = null;
     submitButton.addEventListener("click", submit);
     fetchModelsButton.addEventListener("click", fetchModels);
@@ -3200,6 +3201,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       inputs.temp.value = String(defaults.temp);
       inputs.max.value = String(defaults.max);
       inputs.params.value = "";
+      editingIndicator.hidden = true;
     }
     async function fetchModels() {
       const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
@@ -3252,6 +3254,8 @@ ${text2.slice(0, 64)}`);
       inputs.temp.value = String(e.temp);
       inputs.max.value = String(e.max);
       inputs.params.value = stringifyParams();
+      editingIndicator.textContent = `editing provider: ${e.name}`;
+      editingIndicator.hidden = false;
       divider.scrollIntoView({ behavior: "smooth" });
     }
     function updateList() {
@@ -3273,10 +3277,15 @@ ${text2.slice(0, 64)}`);
                   tagName: "button",
                   className: "lineout",
                   events: {
-                    click: (ev) => {
-                      ev.stopPropagation();
-                      copyProvider(id);
-                    }
+                    click: () => edit(id, e)
+                  },
+                  contents: "edit"
+                }),
+                T({
+                  tagName: "button",
+                  className: "lineout",
+                  events: {
+                    click: () => copyProvider(id)
                   },
                   contents: "copy"
                 }),
@@ -3284,19 +3293,13 @@ ${text2.slice(0, 64)}`);
                   tagName: "button",
                   className: "lineout",
                   events: {
-                    click: (ev) => {
-                      ev.stopPropagation();
-                      deleteProvider(id);
-                    }
+                    click: () => deleteProvider(id)
                   },
                   contents: "delete"
                 })
               ]
             })
-          ],
-          events: {
-            click: () => edit(id, e)
-          }
+          ]
         })
       );
       if (items.length > 0)
@@ -3388,6 +3391,7 @@ ${text2.slice(0, 64)}`);
     const submitButton = document.querySelector("#settings-add-persona");
     const form = document.querySelector("#settings-persona-form");
     const divider = document.querySelector("#settings-persona-divider");
+    const editingIndicator = document.querySelector("#settings-persona-editing-indicator");
     let editingPersona = null;
     submitButton.addEventListener("click", async () => {
       const name = nameInput.value;
@@ -3408,6 +3412,7 @@ ${text2.slice(0, 64)}`);
       descInput.value = "";
       pronInput.value = "they";
       editingPersona = null;
+      editingIndicator.hidden = true;
     });
     form.addEventListener("paste", (e) => {
       const file = e.clipboardData?.files[0];
@@ -3427,6 +3432,8 @@ ${text2.slice(0, 64)}`);
       if (persona.picture) {
         filePicker.value = persona.picture;
       }
+      editingIndicator.hidden = false;
+      editingIndicator.textContent = `editing: ${persona.name}`;
       divider.scrollIntoView({ behavior: "smooth" });
     }
     async function updatePersonaList() {

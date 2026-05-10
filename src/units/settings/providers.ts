@@ -19,11 +19,12 @@ export function providersUnit() {
 		max:     720
 	};
 
-	const modelsDatalist = document.querySelector("#settings-providers-models-datalist")!;
+	const modelsDatalist    = document.querySelector("#settings-providers-models-datalist")!;
 	const submitButton      = document.querySelector<HTMLButtonElement>("#settings-providers-submit")!;
 	const fetchModelsButton = document.querySelector<HTMLButtonElement>("#settings-providers-fetch-models")!;
-	const list = document.querySelector<HTMLElement>("#settings-providers-list")!;
-	const divider = document.querySelector("#settings-providers-divider")!;
+	const list              = document.querySelector<HTMLElement>("#settings-providers-list")!;
+	const divider           = document.querySelector("#settings-providers-divider")!;
+	const editingIndicator  = document.querySelector<HTMLElement>("#settings-providers-editing-indicator")!;
 	let editing: string | null = null;
 
 	submitButton.addEventListener("click", submit);
@@ -74,6 +75,8 @@ export function providersUnit() {
 		inputs.temp.value   = String(defaults.temp);
 		inputs.max.value    = String(defaults.max);
 		inputs.params.value = "";
+
+		editingIndicator.hidden = true;
 	}
 	async function fetchModels() {
 		const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
@@ -126,6 +129,9 @@ export function providersUnit() {
 		inputs.max.value =    String(e.max);
 		inputs.params.value = stringifyParams();
 
+		editingIndicator.textContent = `editing provider: ${e.name}`;
+		editingIndicator.hidden = false;
+
 		divider.scrollIntoView({ behavior: "smooth", });
 	}
 
@@ -148,10 +154,15 @@ export function providersUnit() {
 								tagName: "button",
 								className: "lineout",
 								events: {
-									click: ev => {
-										ev.stopPropagation();
-										copyProvider(id);
-									}
+									click: () => edit(id, e)
+								},
+								contents: "edit"
+							}),
+							mudcrack({
+								tagName: "button",
+								className: "lineout",
+								events: {
+									click: () => copyProvider(id)
 								},
 								contents: "copy"
 							}),
@@ -159,19 +170,13 @@ export function providersUnit() {
 								tagName: "button",
 								className: "lineout",
 								events: {
-									click: ev => {
-										ev.stopPropagation();
-										deleteProvider(id);
-									}
+									click: () => deleteProvider(id)
 								},
 								contents: "delete"
 							})
 						]
 					})
-				],
-				events: {
-					click: () => edit(id, e)
-				}
+				]
 			})
 		);
 		if (items.length > 0)

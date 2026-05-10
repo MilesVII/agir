@@ -32,14 +32,15 @@ const pronMap = {
 };
 
 export function personaUnit() {
-	const filePicker = document.querySelector<RampikeImagePicker>("#settings-persona-picture")!;
-	const nameInput = document.querySelector<HTMLInputElement>("#settings-persona-name")!;
-	const descInput = document.querySelector<HTMLTextAreaElement>("#settings-persona-desc")!;
-	const pronInput = document.querySelector<HTMLSelectElement>("#settings-persona-pronouns")!;
-	const personaList = document.querySelector<HTMLElement>("#settings-persona-list")!;
-	const submitButton = document.querySelector<HTMLButtonElement>("#settings-add-persona")!;
-	const form = document.querySelector<HTMLElement>("#settings-persona-form")!;
-	const divider = document.querySelector("#settings-persona-divider")!;
+	const filePicker       = document.querySelector<RampikeImagePicker>("#settings-persona-picture")!;
+	const nameInput        = document.querySelector<HTMLInputElement>("#settings-persona-name")!;
+	const descInput        = document.querySelector<HTMLTextAreaElement>("#settings-persona-desc")!;
+	const pronInput        = document.querySelector<HTMLSelectElement>("#settings-persona-pronouns")!;
+	const personaList      = document.querySelector<HTMLElement>("#settings-persona-list")!;
+	const submitButton     = document.querySelector<HTMLButtonElement>("#settings-add-persona")!;
+	const form             = document.querySelector<HTMLElement>("#settings-persona-form")!;
+	const divider          = document.querySelector("#settings-persona-divider")!;
+	const editingIndicator = document.querySelector<HTMLElement>("#settings-persona-editing-indicator")!;
 	let editingPersona: Persona | null = null;
 
 	submitButton.addEventListener("click", async () => {
@@ -67,6 +68,7 @@ export function personaUnit() {
 		descInput.value = "";
 		pronInput.value = "they";
 		editingPersona = null;
+		editingIndicator.hidden = true;
 	});
 
 	form.addEventListener("paste", e => {
@@ -89,6 +91,8 @@ export function personaUnit() {
 		if (persona.picture) {
 			filePicker.value = persona.picture;
 		}
+		editingIndicator.hidden = false;
+		editingIndicator.textContent = `editing: ${persona.name}`;
 		divider.scrollIntoView({ behavior: "smooth" });
 	}
 	async function updatePersonaList() {
