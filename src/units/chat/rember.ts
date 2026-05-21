@@ -116,6 +116,7 @@ export function initRember() {
 		);
 		if (!result.success) return false;
 		checkView(result.value.mid).controls.enable(result.value.response);
+		updateRemberCounter();
 		return true;
 	}
 	async function runOne() {
@@ -280,4 +281,22 @@ function prepareMessages(
 		dullMessage("system", prompt.replace("{{system}}", systemNested)),
 		dullMessage("user", payload)
 	];
+}
+
+export async function updateRemberCounter() {
+	const remberCounter = document.querySelector<HTMLButtonElement>("#chat-rember-counter")!;
+	remberCounter.hidden = true;
+
+	const state = await getCurrentChat();
+	if (!state) return;
+	const lastRembered = state.messages.messages.findLastIndex(m => m.rember);
+	const lid = state.messages.messages.length - 1;
+	if (lastRembered === -1) { // forgor
+		remberCounter.hidden = true;
+		return;
+	}
+	const delta = lid - lastRembered;
+	remberCounter.textContent = `⧖${delta}`;
+	remberCounter.dataset.run = (delta > state.chat.rember.stride * 2) ? "true" : "false";
+	remberCounter.hidden = false;
 }

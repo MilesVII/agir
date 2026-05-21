@@ -7,7 +7,7 @@ import { sendMessage } from "./chat/send";
 import { abortController } from "@root/run";
 import { ActiveProviders } from "@root/types";
 import { initChatEditor } from "./chat/editor";
-import { initRember } from "./chat/rember";
+import { initRember, updateRemberCounter } from "./chat/rember";
 import { toast } from "./toasts";
 
 export function chatUnit() {
@@ -15,6 +15,7 @@ export function chatUnit() {
 	const textarea       = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
 	const sendButton     = document.querySelector<HTMLButtonElement>  ("#chat-send-button")!;
 	const stopButton     = document.querySelector<HTMLButtonElement>  ("#chat-stop-button")!;
+	const remberCounter  = document.querySelector<HTMLButtonElement>  ("#chat-rember-counter")!;
 	const providerPicker = document.querySelector<HTMLSelectElement>  ("#chat-provider-picker")!;
 	const menuButton     = document.querySelector<HTMLSelectElement>  ("#chat-menu-select")!;
 	const inputModes     = document.querySelector<RampikeTabs>        ("#chat-controls")!;
@@ -29,6 +30,7 @@ export function chatUnit() {
 
 	sendButton.addEventListener("click", sendMessage);
 	stopButton.addEventListener("click", () => abortController.abort());
+	remberCounter.addEventListener("click", openRemberGuarded);
 	providerPicker.addEventListener("input", () => { pickMainProvider(providerPicker.value); })
 
 	update();
@@ -36,7 +38,7 @@ export function chatUnit() {
 
 	const { open: openChatEditor } = initChatEditor();
 	const { open: openRember } = initRember();
-	const openRemberGuarded = () => {
+	function openRemberGuarded() {
 		if (inputModes.tab !== "main") {
 			toast("please wait until message generation is over");
 			return;
@@ -46,7 +48,7 @@ export function chatUnit() {
 	setSelectMenu(menuButton, "☰", [
 		["Scenario card",   openScenarioIfExists],
 		["Edit definition", openChatEditor],
-		["rEmber",          openRemberGuarded],
+		["⧖ rEmber",        openRemberGuarded],
 		["Export",          exportChat]
 	]);
 }
@@ -60,6 +62,7 @@ async function update() {
 	if (!route[1]) return;
 
 	await loadMessages(route[1]);
+	updateRemberCounter();
 }
 
 function updateProviders() {

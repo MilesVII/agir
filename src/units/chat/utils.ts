@@ -7,6 +7,7 @@ import { RampikeMessageView } from "./views";
 import { loadMiscSettings } from "@units/settings/misc";
 import { getRoute } from "@root/utils";
 import { toast } from "@units/toasts";
+import { updateRemberCounter } from "./rember";
 
 export async function setSwipe(chatId: string, messageId: number, swipeIx: number, value: string) {
 	const contents = await idb.get("chatContents", chatId);
@@ -130,6 +131,7 @@ export async function deleteMessage(chatId: string, messageId: number) {
 		if (mid >= messageId) m.remove();
 		if (mid === messageId - 1) m.controls.setIsLast(true);
 	});
+	updateRemberCounter();
 }
 
 export async function reroll(chatId: string, messageId: number) {

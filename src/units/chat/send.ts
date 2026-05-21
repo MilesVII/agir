@@ -3,6 +3,7 @@ import { idb } from "@root/persist";
 import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, reroll, setSwipe, updateSwipeIndex } from "./utils";
 import { makeMessageView } from "./views";
 import { toast } from "@units/toasts";
+import { updateRemberCounter } from "./rember";
 
 export async function sendMessage() {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
@@ -72,6 +73,7 @@ export async function sendMessage() {
 
 	textarea.value = "";
 	textareaReconsider(textarea);
-	
+
+	updateRemberCounter();
 	list.scrollTop = list.scrollHeight;
 }

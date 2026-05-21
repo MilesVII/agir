@@ -3827,231 +3827,6 @@ Status ${response.status}${metaWrapped}`
     return { success: true, value };
   }
 
-  // src/units/chat/utils.ts
-  async function setSwipe(chatId, messageId, swipeIx, value) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const tix = contents.value.messages.findIndex((m3) => m3.id === messageId);
-    if (tix < 0) return;
-    contents.value.messages[tix].swipes[swipeIx] = value;
-    await idb.set("chatContents", contents.value);
-  }
-  async function pushSwipe(chatId, messageId, value) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return;
-    messages[mix].swipes = messages[mix].swipes.filter((m3) => m3.trim());
-    messages[mix].swipes.push(value);
-    messages[mix].selectedSwipe = messages[mix].swipes.length - 1;
-    chat.value.lastUpdate = Date.now();
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    return messages[mix];
-  }
-  async function addMessage(chatId, value, fromUser, name) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const newMessage = {
-      from: fromUser ? "user" : "model",
-      id: messages.length,
-      name,
-      rember: null,
-      selectedSwipe: 0,
-      swipes: [value]
-    };
-    messages.push(newMessage);
-    chat.value.lastUpdate = Date.now();
-    chat.value.messageCount = messages.length;
-    contents.value.messages.forEach((m3) => {
-      if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
-        toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
-        m3.selectedSwipe = 0;
-      }
-    });
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    return newMessage;
-  }
-  async function updateSwipeIndex(six, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
-    if (typeof contents.value.messages[mix].swipes[six] !== "string") {
-      toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
-      return;
-    }
-    contents.value.messages[mix].selectedSwipe = six;
-    await idb.set("chatContents", contents.value);
-  }
-  async function updateRember(value, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
-    contents.value.messages[mix].rember = value;
-    await idb.set("chatContents", contents.value);
-  }
-  async function deleteMessage(chatId, messageId) {
-    const inputModes = document.querySelector("#chat-controls");
-    if (inputModes.tab !== "main") return;
-    if (!confirm("all the following messages will be deleted too")) return;
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return;
-    contents.value.messages.splice(mix);
-    chat.value.lastUpdate = Date.now();
-    chat.value.messageCount = messages.length;
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    const messageViews = document.querySelectorAll(".message[data-mid]");
-    messageViews.forEach((m3) => {
-      const mid = parseInt(m3.dataset.mid, 10);
-      if (mid >= messageId) m3.remove();
-      if (mid === messageId - 1) m3.controls.setIsLast(true);
-    });
-  }
-  async function reroll(chatId, messageId) {
-    const payload = await prepareRerollPayload(chatId, messageId);
-    if (!payload) return;
-    loadResponse(payload, messageId, chatId);
-  }
-  async function preparePayload(contents, systemPrompt, userMessage) {
-    const settings = loadMiscSettings();
-    const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
-    const system = dullMessage("system", systemPrompt);
-    const payload = [
-      system,
-      ...sliced
-    ];
-    if (!userMessage) return payload;
-    const user = dullMessage("user", userMessage);
-    payload.push(user);
-    return payload;
-  }
-  async function prepareRerollPayload(chatId, messageId) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return null;
-    const history = messages.slice(0, mix);
-    const settings = loadMiscSettings();
-    const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
-    const system = dullMessage("system", chat.value.scenario.definition);
-    const payload = [
-      system,
-      ...sliced
-    ];
-    return payload;
-  }
-  async function loadResponse(payload, msgId, chatId) {
-    const providerOptions = Object.entries(readProviders());
-    if (providerOptions.length <= 0) {
-      toast("no providers found");
-      return;
-    }
-    const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];
-    const inputModes = document.querySelector("#chat-controls");
-    inputModes.tab = "pending";
-    const messageView = getMessageViewByID(msgId);
-    if (!messageView) {
-      window.location.reload();
-      return;
-    }
-    const responseStreamingUpdater = messageView.controls.startStreaming();
-    const responseReasoningReporter = messageView.controls.reasoningStatus;
-    const streamingResult = await runProvider(
-      expandRember(payload),
-      provider,
-      responseStreamingUpdater,
-      responseReasoningReporter
-    );
-    if (streamingResult.success) {
-      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
-      if (!updatedMessage) {
-        toast("failed to save response message");
-        return;
-      }
-      messageView.controls.updateMessage(updatedMessage);
-    } else {
-      toast(streamingResult.error);
-    }
-    messageView.controls.endStreaming();
-    inputModes.tab = "main";
-  }
-  async function loadPictures(chat) {
-    return await Promise.all([
-      chat.userPersona.picture && getBlobLink(chat.userPersona.picture),
-      chat.scenario.picture && getBlobLink(chat.scenario.picture)
-    ]);
-  }
-  function getMessageViewByID(messageId) {
-    const list = document.querySelector("#play-messages");
-    return list.querySelector(`.message[data-mid="${messageId}"]`);
-  }
-  function dullMessage(from, text2) {
-    return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
-  }
-  function expandRember(chat) {
-    const remberAt = chat.findLastIndex((m3) => m3.rember);
-    if (remberAt === -1) {
-      return chat;
-    } else {
-      return chat.slice(0, remberAt + 1).concat(
-        dullMessage("system", `# Roleplay state summary:
-${chat[remberAt].rember}`),
-        chat.slice(remberAt + 1)
-      );
-    }
-  }
-  async function getCurrentChat(chat = true, contents = true) {
-    const [page, chatId] = getRoute();
-    if (page !== "play") return null;
-    if (chat && contents) {
-      const [messages, chat2] = await Promise.all([
-        idb.get("chatContents", chatId),
-        idb.get("chats", chatId)
-      ]);
-      if (!messages.success || !chat2.success) return null;
-      return { messages: messages.value, chat: chat2.value };
-    } else if (chat) {
-      const chat2 = await idb.get("chats", chatId);
-      if (chat2.success)
-        return { chat: chat2.value };
-      else
-        return null;
-    } else if (contents) {
-      const messages = await idb.get("chatContents", chatId);
-      if (messages.success)
-        return { messages: messages.value };
-      else
-        return null;
-    }
-    return null;
-  }
-
   // src/units/chat/views.ts
   var STATUS = {
     RESPONDING: "responding...",
@@ -4399,206 +4174,6 @@ ${chat[remberAt].rember}`),
     };
   }
 
-  // src/units/chat/load.ts
-  async function loadMessages(chatId) {
-    const list = document.querySelector("#play-messages");
-    list.innerHTML = "";
-    const [contents, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !meta.success) return;
-    updateTitle(meta.value.scenario.name);
-    const [userPic, modelPic] = await loadPictures(meta.value);
-    const messages = contents.value.messages;
-    const items = messages.map((item, ix) => {
-      return makeMessageView(
-        item,
-        // meta.value,
-        [userPic, modelPic],
-        ix === messages.length - 1,
-        (swipeIx, value) => {
-          setSwipe(chatId, item.id, swipeIx, value);
-        },
-        () => reroll(chatId, item.id),
-        () => deleteMessage(chatId, item.id),
-        (six) => updateSwipeIndex(six, item.id, chatId)
-      );
-    });
-    list.append(...items);
-    list.scrollTop = list.scrollHeight;
-  }
-
-  // src/units/chat/send.ts
-  async function sendMessage() {
-    const list = document.querySelector("#play-messages");
-    const textarea = document.querySelector("#chat-textarea");
-    const message = textarea.value?.trim();
-    if (!message) return;
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const [messages, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!messages.success || !meta.success) return;
-    const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
-    const lastMessageId = messages.value.messages.findLast(() => true)?.id;
-    getMessageViewByID(lastMessageId)?.controls.setIsLast(false);
-    const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
-    if (!newUserMessage) {
-      toast("failed to save user message");
-      return;
-    }
-    const swipesDisabled = (six) => {
-      if (six > 0)
-        toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
-    };
-    const userMessage = makeMessageView(
-      newUserMessage,
-      await loadPictures(meta.value),
-      false,
-      // on edit
-      (swipeIx, value) => {
-        setSwipe(chatId, newUserMessage.id, swipeIx, value);
-      },
-      // on reroll
-      () => {
-        throw Error("haha nope");
-      },
-      () => deleteMessage(chatId, newUserMessage.id),
-      swipesDisabled
-    );
-    const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
-    if (!newModelMessage) {
-      toast("failed to save user message");
-      return;
-    }
-    const responseMessage = makeMessageView(
-      newModelMessage,
-      await loadPictures(meta.value),
-      true,
-      // on edit
-      (swipeIx, value) => {
-        setSwipe(chatId, newModelMessage.id, swipeIx, value);
-      },
-      // reroll
-      () => reroll(chatId, newModelMessage.id),
-      () => {
-        throw Error("haha nope");
-      },
-      (six) => updateSwipeIndex(six, newModelMessage.id, chatId)
-    );
-    list.append(userMessage, responseMessage);
-    loadResponse(payload, newModelMessage.id, meta.value.id);
-    textarea.value = "";
-    textareaReconsider(textarea);
-    list.scrollTop = list.scrollHeight;
-  }
-
-  // node_modules/tokenx/dist/index.mjs
-  var PATTERNS = {
-    whitespace: /^\s+$/,
-    cjk: /[\u4E00-\u9FFF\u3400-\u4DBF\u3000-\u303F\uFF00-\uFFEF\u30A0-\u30FF\u2E80-\u2EFF\u31C0-\u31EF\u3200-\u32FF\u3300-\u33FF\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF]/,
-    numeric: /^\d+(?:[.,]\d+)*$/,
-    punctuation: /[.,!?;(){}[\]<>:/\\|@#$%^&*+=`~_-]/,
-    alphanumeric: /^[a-zA-Z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+$/
-  };
-  var TOKEN_SPLIT_PATTERN = /* @__PURE__ */ new RegExp(`(\\s+|${PATTERNS.punctuation.source}+)`);
-  var DEFAULT_CHARS_PER_TOKEN = 6;
-  var SHORT_TOKEN_THRESHOLD = 3;
-  var DEFAULT_LANGUAGE_CONFIGS = [
-    {
-      pattern: /[äöüßẞ]/i,
-      averageCharsPerToken: 3
-    },
-    {
-      pattern: /[éèêëàâîïôûùüÿçœæáíóúñ]/i,
-      averageCharsPerToken: 3
-    },
-    {
-      pattern: /[ąćęłńóśźżěščřžýůúďťň]/i,
-      averageCharsPerToken: 3.5
-    }
-  ];
-  function estimateTokenCount(text2, options = {}) {
-    if (!text2) return 0;
-    const { defaultCharsPerToken = DEFAULT_CHARS_PER_TOKEN, languageConfigs = DEFAULT_LANGUAGE_CONFIGS } = options;
-    const segments = text2.split(TOKEN_SPLIT_PATTERN).filter(Boolean);
-    let tokenCount = 0;
-    for (const segment of segments) tokenCount += estimateSegmentTokens(segment, languageConfigs, defaultCharsPerToken);
-    return tokenCount;
-  }
-  function estimateSegmentTokens(segment, languageConfigs, defaultCharsPerToken) {
-    if (PATTERNS.whitespace.test(segment)) return 0;
-    if (PATTERNS.cjk.test(segment)) return getCharacterCount(segment);
-    if (PATTERNS.numeric.test(segment)) return 1;
-    if (segment.length <= SHORT_TOKEN_THRESHOLD) return 1;
-    if (PATTERNS.punctuation.test(segment)) return segment.length > 1 ? Math.ceil(segment.length / 2) : 1;
-    if (PATTERNS.alphanumeric.test(segment)) {
-      const charsPerToken$1 = getLanguageSpecificCharsPerToken(segment, languageConfigs) ?? defaultCharsPerToken;
-      return Math.ceil(segment.length / charsPerToken$1);
-    }
-    const charsPerToken = getLanguageSpecificCharsPerToken(segment, languageConfigs) ?? defaultCharsPerToken;
-    return Math.ceil(segment.length / charsPerToken);
-  }
-  function getLanguageSpecificCharsPerToken(segment, languageConfigs) {
-    for (const config of languageConfigs) if (config.pattern.test(segment)) return config.averageCharsPerToken;
-  }
-  function getCharacterCount(text2) {
-    return Array.from(text2).length;
-  }
-
-  // src/units/chat/editor.ts
-  function initChatEditor() {
-    const saveButton = document.querySelector("#play-editor-save");
-    const resetButton = document.querySelector("#play-editor-reset");
-    const closeButton = document.querySelector("#play-editor-close");
-    const definitionInput = document.querySelector("#play-editor-definition");
-    const modal = document.querySelector("#play-editor");
-    makeResizable(definitionInput);
-    listen((update4) => {
-      if (update4.storage !== "idb") return;
-      if (update4.store !== "chats") return;
-      updateDefinition();
-    });
-    window.addEventListener("hashchange", updateDefinition);
-    resetButton.addEventListener("click", updateDefinition);
-    updateDefinition();
-    async function getChat() {
-      const [page, chatId] = getRoute();
-      if (page !== "play" || !chatId) return null;
-      const chat = await idb.get("chats", chatId);
-      if (!chat.success) return null;
-      return chat.value;
-    }
-    async function updateDefinition() {
-      const chat = await getChat();
-      if (!chat) return;
-      definitionInput.value = chat.scenario.definition;
-      textareaReconsider(definitionInput);
-    }
-    saveButton.addEventListener("click", async () => {
-      const value = definitionInput.value.trim();
-      if (!value) return;
-      const chat = await getChat();
-      if (!chat) return;
-      chat.scenario.definition = value;
-      chat.scenario.tokenCount = estimateTokenCount(value);
-      await idb.set("chats", chat);
-      modal.close();
-    });
-    closeButton.addEventListener("click", () => {
-      modal.close();
-    });
-    return {
-      open: () => {
-        modal.open();
-        textareaReconsider(definitionInput);
-      }
-    };
-  }
-
   // src/units/chat/rember.ts
   var REMBER_DEFAULTS = {
     stride: 10,
@@ -4694,6 +4269,7 @@ ${chat[remberAt].rember}`),
       );
       if (!result.success) return false;
       checkView(result.value.mid).controls.enable(result.value.response);
+      updateRemberCounter();
       return true;
     }
     async function runOne() {
@@ -4815,6 +4391,449 @@ ${m3.swipes[m3.selectedSwipe]}
       dullMessage("user", payload)
     ];
   }
+  async function updateRemberCounter() {
+    const remberCounter = document.querySelector("#chat-rember-counter");
+    remberCounter.hidden = true;
+    const state = await getCurrentChat();
+    if (!state) return;
+    const lastRembered = state.messages.messages.findLastIndex((m3) => m3.rember);
+    const lid = state.messages.messages.length - 1;
+    if (lastRembered === -1) {
+      remberCounter.hidden = true;
+      return;
+    }
+    const delta = lid - lastRembered;
+    remberCounter.textContent = `\u29D6${delta}`;
+    remberCounter.dataset.run = delta > state.chat.rember.stride * 2 ? "true" : "false";
+    remberCounter.hidden = false;
+  }
+
+  // src/units/chat/utils.ts
+  async function setSwipe(chatId, messageId, swipeIx, value) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const tix = contents.value.messages.findIndex((m3) => m3.id === messageId);
+    if (tix < 0) return;
+    contents.value.messages[tix].swipes[swipeIx] = value;
+    await idb.set("chatContents", contents.value);
+  }
+  async function pushSwipe(chatId, messageId, value) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return null;
+    const messages = contents.value.messages;
+    const mix = messages.findIndex((m3) => m3.id === messageId);
+    if (mix < 0) return;
+    messages[mix].swipes = messages[mix].swipes.filter((m3) => m3.trim());
+    messages[mix].swipes.push(value);
+    messages[mix].selectedSwipe = messages[mix].swipes.length - 1;
+    chat.value.lastUpdate = Date.now();
+    await Promise.all([
+      idb.set("chatContents", contents.value),
+      idb.set("chats", chat.value)
+    ]);
+    return messages[mix];
+  }
+  async function addMessage(chatId, value, fromUser, name) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return null;
+    const messages = contents.value.messages;
+    const newMessage = {
+      from: fromUser ? "user" : "model",
+      id: messages.length,
+      name,
+      rember: null,
+      selectedSwipe: 0,
+      swipes: [value]
+    };
+    messages.push(newMessage);
+    chat.value.lastUpdate = Date.now();
+    chat.value.messageCount = messages.length;
+    contents.value.messages.forEach((m3) => {
+      if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
+        toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
+        m3.selectedSwipe = 0;
+      }
+    });
+    await Promise.all([
+      idb.set("chatContents", contents.value),
+      idb.set("chats", chat.value)
+    ]);
+    return newMessage;
+  }
+  async function updateSwipeIndex(six, mid, chatId) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
+    if (typeof contents.value.messages[mix].swipes[six] !== "string") {
+      toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
+      return;
+    }
+    contents.value.messages[mix].selectedSwipe = six;
+    await idb.set("chatContents", contents.value);
+  }
+  async function updateRember(value, mid, chatId) {
+    const contents = await idb.get("chatContents", chatId);
+    if (!contents.success) return;
+    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
+    contents.value.messages[mix].rember = value;
+    await idb.set("chatContents", contents.value);
+  }
+  async function deleteMessage(chatId, messageId) {
+    const inputModes = document.querySelector("#chat-controls");
+    if (inputModes.tab !== "main") return;
+    if (!confirm("all the following messages will be deleted too")) return;
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return;
+    const messages = contents.value.messages;
+    const mix = messages.findIndex((m3) => m3.id === messageId);
+    if (mix < 0) return;
+    contents.value.messages.splice(mix);
+    chat.value.lastUpdate = Date.now();
+    chat.value.messageCount = messages.length;
+    await Promise.all([
+      idb.set("chatContents", contents.value),
+      idb.set("chats", chat.value)
+    ]);
+    const messageViews = document.querySelectorAll(".message[data-mid]");
+    messageViews.forEach((m3) => {
+      const mid = parseInt(m3.dataset.mid, 10);
+      if (mid >= messageId) m3.remove();
+      if (mid === messageId - 1) m3.controls.setIsLast(true);
+    });
+    updateRemberCounter();
+  }
+  async function reroll(chatId, messageId) {
+    const payload = await prepareRerollPayload(chatId, messageId);
+    if (!payload) return;
+    loadResponse(payload, messageId, chatId);
+  }
+  async function preparePayload(contents, systemPrompt, userMessage) {
+    const settings = loadMiscSettings();
+    const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
+    const system = dullMessage("system", systemPrompt);
+    const payload = [
+      system,
+      ...sliced
+    ];
+    if (!userMessage) return payload;
+    const user = dullMessage("user", userMessage);
+    payload.push(user);
+    return payload;
+  }
+  async function prepareRerollPayload(chatId, messageId) {
+    const [contents, chat] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !chat.success) return null;
+    const messages = contents.value.messages;
+    const mix = messages.findIndex((m3) => m3.id === messageId);
+    if (mix < 0) return null;
+    const history = messages.slice(0, mix);
+    const settings = loadMiscSettings();
+    const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
+    const system = dullMessage("system", chat.value.scenario.definition);
+    const payload = [
+      system,
+      ...sliced
+    ];
+    return payload;
+  }
+  async function loadResponse(payload, msgId, chatId) {
+    const providerOptions = Object.entries(readProviders());
+    if (providerOptions.length <= 0) {
+      toast("no providers found");
+      return;
+    }
+    const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];
+    const inputModes = document.querySelector("#chat-controls");
+    inputModes.tab = "pending";
+    const messageView = getMessageViewByID(msgId);
+    if (!messageView) {
+      window.location.reload();
+      return;
+    }
+    const responseStreamingUpdater = messageView.controls.startStreaming();
+    const responseReasoningReporter = messageView.controls.reasoningStatus;
+    const streamingResult = await runProvider(
+      expandRember(payload),
+      provider,
+      responseStreamingUpdater,
+      responseReasoningReporter
+    );
+    if (streamingResult.success) {
+      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
+      if (!updatedMessage) {
+        toast("failed to save response message");
+        return;
+      }
+      messageView.controls.updateMessage(updatedMessage);
+    } else {
+      toast(streamingResult.error);
+    }
+    messageView.controls.endStreaming();
+    inputModes.tab = "main";
+  }
+  async function loadPictures(chat) {
+    return await Promise.all([
+      chat.userPersona.picture && getBlobLink(chat.userPersona.picture),
+      chat.scenario.picture && getBlobLink(chat.scenario.picture)
+    ]);
+  }
+  function getMessageViewByID(messageId) {
+    const list = document.querySelector("#play-messages");
+    return list.querySelector(`.message[data-mid="${messageId}"]`);
+  }
+  function dullMessage(from, text2) {
+    return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
+  }
+  function expandRember(chat) {
+    const remberAt = chat.findLastIndex((m3) => m3.rember);
+    if (remberAt === -1) {
+      return chat;
+    } else {
+      return chat.slice(0, remberAt + 1).concat(
+        dullMessage("system", `# Roleplay state summary:
+${chat[remberAt].rember}`),
+        chat.slice(remberAt + 1)
+      );
+    }
+  }
+  async function getCurrentChat(chat = true, contents = true) {
+    const [page, chatId] = getRoute();
+    if (page !== "play") return null;
+    if (chat && contents) {
+      const [messages, chat2] = await Promise.all([
+        idb.get("chatContents", chatId),
+        idb.get("chats", chatId)
+      ]);
+      if (!messages.success || !chat2.success) return null;
+      return { messages: messages.value, chat: chat2.value };
+    } else if (chat) {
+      const chat2 = await idb.get("chats", chatId);
+      if (chat2.success)
+        return { chat: chat2.value };
+      else
+        return null;
+    } else if (contents) {
+      const messages = await idb.get("chatContents", chatId);
+      if (messages.success)
+        return { messages: messages.value };
+      else
+        return null;
+    }
+    return null;
+  }
+
+  // src/units/chat/load.ts
+  async function loadMessages(chatId) {
+    const list = document.querySelector("#play-messages");
+    list.innerHTML = "";
+    const [contents, meta] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!contents.success || !meta.success) return;
+    updateTitle(meta.value.scenario.name);
+    const [userPic, modelPic] = await loadPictures(meta.value);
+    const messages = contents.value.messages;
+    const items = messages.map((item, ix) => {
+      return makeMessageView(
+        item,
+        // meta.value,
+        [userPic, modelPic],
+        ix === messages.length - 1,
+        (swipeIx, value) => {
+          setSwipe(chatId, item.id, swipeIx, value);
+        },
+        () => reroll(chatId, item.id),
+        () => deleteMessage(chatId, item.id),
+        (six) => updateSwipeIndex(six, item.id, chatId)
+      );
+    });
+    list.append(...items);
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // src/units/chat/send.ts
+  async function sendMessage() {
+    const list = document.querySelector("#play-messages");
+    const textarea = document.querySelector("#chat-textarea");
+    const message = textarea.value?.trim();
+    if (!message) return;
+    const [, chatId] = getRoute();
+    if (!chatId) return;
+    const [messages, meta] = await Promise.all([
+      idb.get("chatContents", chatId),
+      idb.get("chats", chatId)
+    ]);
+    if (!messages.success || !meta.success) return;
+    const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
+    const lastMessageId = messages.value.messages.findLast(() => true)?.id;
+    getMessageViewByID(lastMessageId)?.controls.setIsLast(false);
+    const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
+    if (!newUserMessage) {
+      toast("failed to save user message");
+      return;
+    }
+    const swipesDisabled = (six) => {
+      if (six > 0)
+        toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
+    };
+    const userMessage = makeMessageView(
+      newUserMessage,
+      await loadPictures(meta.value),
+      false,
+      // on edit
+      (swipeIx, value) => {
+        setSwipe(chatId, newUserMessage.id, swipeIx, value);
+      },
+      // on reroll
+      () => {
+        throw Error("haha nope");
+      },
+      () => deleteMessage(chatId, newUserMessage.id),
+      swipesDisabled
+    );
+    const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
+    if (!newModelMessage) {
+      toast("failed to save user message");
+      return;
+    }
+    const responseMessage = makeMessageView(
+      newModelMessage,
+      await loadPictures(meta.value),
+      true,
+      // on edit
+      (swipeIx, value) => {
+        setSwipe(chatId, newModelMessage.id, swipeIx, value);
+      },
+      // reroll
+      () => reroll(chatId, newModelMessage.id),
+      () => {
+        throw Error("haha nope");
+      },
+      (six) => updateSwipeIndex(six, newModelMessage.id, chatId)
+    );
+    list.append(userMessage, responseMessage);
+    loadResponse(payload, newModelMessage.id, meta.value.id);
+    textarea.value = "";
+    textareaReconsider(textarea);
+    updateRemberCounter();
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // node_modules/tokenx/dist/index.mjs
+  var PATTERNS = {
+    whitespace: /^\s+$/,
+    cjk: /[\u4E00-\u9FFF\u3400-\u4DBF\u3000-\u303F\uFF00-\uFFEF\u30A0-\u30FF\u2E80-\u2EFF\u31C0-\u31EF\u3200-\u32FF\u3300-\u33FF\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF]/,
+    numeric: /^\d+(?:[.,]\d+)*$/,
+    punctuation: /[.,!?;(){}[\]<>:/\\|@#$%^&*+=`~_-]/,
+    alphanumeric: /^[a-zA-Z0-9\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF]+$/
+  };
+  var TOKEN_SPLIT_PATTERN = /* @__PURE__ */ new RegExp(`(\\s+|${PATTERNS.punctuation.source}+)`);
+  var DEFAULT_CHARS_PER_TOKEN = 6;
+  var SHORT_TOKEN_THRESHOLD = 3;
+  var DEFAULT_LANGUAGE_CONFIGS = [
+    {
+      pattern: /[äöüßẞ]/i,
+      averageCharsPerToken: 3
+    },
+    {
+      pattern: /[éèêëàâîïôûùüÿçœæáíóúñ]/i,
+      averageCharsPerToken: 3
+    },
+    {
+      pattern: /[ąćęłńóśźżěščřžýůúďťň]/i,
+      averageCharsPerToken: 3.5
+    }
+  ];
+  function estimateTokenCount(text2, options = {}) {
+    if (!text2) return 0;
+    const { defaultCharsPerToken = DEFAULT_CHARS_PER_TOKEN, languageConfigs = DEFAULT_LANGUAGE_CONFIGS } = options;
+    const segments = text2.split(TOKEN_SPLIT_PATTERN).filter(Boolean);
+    let tokenCount = 0;
+    for (const segment of segments) tokenCount += estimateSegmentTokens(segment, languageConfigs, defaultCharsPerToken);
+    return tokenCount;
+  }
+  function estimateSegmentTokens(segment, languageConfigs, defaultCharsPerToken) {
+    if (PATTERNS.whitespace.test(segment)) return 0;
+    if (PATTERNS.cjk.test(segment)) return getCharacterCount(segment);
+    if (PATTERNS.numeric.test(segment)) return 1;
+    if (segment.length <= SHORT_TOKEN_THRESHOLD) return 1;
+    if (PATTERNS.punctuation.test(segment)) return segment.length > 1 ? Math.ceil(segment.length / 2) : 1;
+    if (PATTERNS.alphanumeric.test(segment)) {
+      const charsPerToken$1 = getLanguageSpecificCharsPerToken(segment, languageConfigs) ?? defaultCharsPerToken;
+      return Math.ceil(segment.length / charsPerToken$1);
+    }
+    const charsPerToken = getLanguageSpecificCharsPerToken(segment, languageConfigs) ?? defaultCharsPerToken;
+    return Math.ceil(segment.length / charsPerToken);
+  }
+  function getLanguageSpecificCharsPerToken(segment, languageConfigs) {
+    for (const config of languageConfigs) if (config.pattern.test(segment)) return config.averageCharsPerToken;
+  }
+  function getCharacterCount(text2) {
+    return Array.from(text2).length;
+  }
+
+  // src/units/chat/editor.ts
+  function initChatEditor() {
+    const saveButton = document.querySelector("#play-editor-save");
+    const resetButton = document.querySelector("#play-editor-reset");
+    const closeButton = document.querySelector("#play-editor-close");
+    const definitionInput = document.querySelector("#play-editor-definition");
+    const modal = document.querySelector("#play-editor");
+    makeResizable(definitionInput);
+    listen((update4) => {
+      if (update4.storage !== "idb") return;
+      if (update4.store !== "chats") return;
+      updateDefinition();
+    });
+    window.addEventListener("hashchange", updateDefinition);
+    resetButton.addEventListener("click", updateDefinition);
+    updateDefinition();
+    async function getChat() {
+      const [page, chatId] = getRoute();
+      if (page !== "play" || !chatId) return null;
+      const chat = await idb.get("chats", chatId);
+      if (!chat.success) return null;
+      return chat.value;
+    }
+    async function updateDefinition() {
+      const chat = await getChat();
+      if (!chat) return;
+      definitionInput.value = chat.scenario.definition;
+      textareaReconsider(definitionInput);
+    }
+    saveButton.addEventListener("click", async () => {
+      const value = definitionInput.value.trim();
+      if (!value) return;
+      const chat = await getChat();
+      if (!chat) return;
+      chat.scenario.definition = value;
+      chat.scenario.tokenCount = estimateTokenCount(value);
+      await idb.set("chats", chat);
+      modal.close();
+    });
+    closeButton.addEventListener("click", () => {
+      modal.close();
+    });
+    return {
+      open: () => {
+        modal.open();
+        textareaReconsider(definitionInput);
+      }
+    };
+  }
 
   // src/units/chat.ts
   function chatUnit() {
@@ -4822,6 +4841,7 @@ ${m3.swipes[m3.selectedSwipe]}
     const textarea = document.querySelector("#chat-textarea");
     const sendButton = document.querySelector("#chat-send-button");
     const stopButton = document.querySelector("#chat-stop-button");
+    const remberCounter = document.querySelector("#chat-rember-counter");
     const providerPicker = document.querySelector("#chat-provider-picker");
     const menuButton = document.querySelector("#chat-menu-select");
     const inputModes = document.querySelector("#chat-controls");
@@ -4834,6 +4854,7 @@ ${m3.swipes[m3.selectedSwipe]}
     });
     sendButton.addEventListener("click", sendMessage);
     stopButton.addEventListener("click", () => abortController.abort());
+    remberCounter.addEventListener("click", openRemberGuarded);
     providerPicker.addEventListener("input", () => {
       pickMainProvider(providerPicker.value);
     });
@@ -4841,17 +4862,17 @@ ${m3.swipes[m3.selectedSwipe]}
     updateProviders();
     const { open: openChatEditor } = initChatEditor();
     const { open: openRember } = initRember();
-    const openRemberGuarded = () => {
+    function openRemberGuarded() {
       if (inputModes.tab !== "main") {
         toast("please wait until message generation is over");
         return;
       }
       openRember();
-    };
+    }
     setSelectMenu(menuButton, "\u2630", [
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", openChatEditor],
-      ["rEmber", openRemberGuarded],
+      ["\u29D6 rEmber", openRemberGuarded],
       ["Export", exportChat]
     ]);
   }
@@ -4863,6 +4884,7 @@ ${m3.swipes[m3.selectedSwipe]}
     }
     if (!route[1]) return;
     await loadMessages(route[1]);
+    updateRemberCounter();
   }
   function updateProviders() {
     const inputModes = document.querySelector("#chat-controls");

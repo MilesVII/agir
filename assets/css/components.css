@@ -318,6 +318,9 @@ summary.settings-label {
 	box-shadow: 0 0 var(--dims-smol) var(--color-base);
 }
 
+.rember-counter[data-run="true"] {
+	text-shadow: 0 0 var(--dims-reg) var(--color-accent);
+}
 .chat-rember-view {
 	white-space: pre-wrap;
 }
