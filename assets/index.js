@@ -5791,7 +5791,7 @@ ${scenario}
     return upload(blob.value);
   }
   function fix(raw) {
-    return raw.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/^#+/gm, (v2) => `##${v2}`);
+    return raw.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/\{\{.*?\}\}/g, (v2) => v2.toLowerCase()).replace(/^#+/gm, (v2) => `##${v2}`);
   }
 
   // src/units/library.ts
