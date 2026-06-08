@@ -5151,7 +5151,7 @@ ${chat[remberAt].rember}`),
     "# Scenario",
     "",
     "# Instructions",
-    "You play as {{char}}, the user is {{user}}"
+    "The user is {{user}}, all other characters are played by you"
   ].join("\n");
   function scenarioUnit() {
     const chatIcon = document.querySelector("#scenario-chat-picture");
@@ -5371,7 +5371,7 @@ ${chat[remberAt].rember}`),
         messages: messages ?? [{
           id: 0,
           from: "model",
-          name: scenario.value.chat.name,
+          name: scenario.value.chat.name || scenario.value.card.title,
           rember: null,
           selectedSwipe: 0,
           swipes: preparedScenario.initials

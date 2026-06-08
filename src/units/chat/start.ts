@@ -47,7 +47,7 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 			messages: messages ?? [{
 				id: 0,
 				from: "model",
-				name: scenario.value.chat.name,
+				name: scenario.value.chat.name || scenario.value.card.title,
 				rember: null,
 				selectedSwipe: 0,
 				swipes: preparedScenario.initials

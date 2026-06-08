@@ -16,7 +16,7 @@ const definitionTemplate = [
 	"# Scenario",
 	"",
 	"# Instructions",
-	"You play as {{char}}, the user is {{user}}"
+	"The user is {{user}}, all other characters are played by you"
 ].join("\n");
 
 export function scenarioUnit() {
