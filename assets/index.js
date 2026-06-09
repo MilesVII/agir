@@ -5450,7 +5450,10 @@ ${chat[remberAt].rember}`),
     url = url.toLowerCase().replace("janitorai.com/", "jannyai.com/");
     const response = await fetch(`https://fenrir.milesseventh.workers.dev/steel/${encodeURIComponent(url)}`);
     if (!response.ok) {
-      toast("network error");
+      if (response.status === 404)
+        toast("the character is not found on jannyai.com.\ntry downloading the JSON via https://datacat.run and importing the file");
+      else
+        toast("network error");
       return null;
     }
     const raw = await response.text();
