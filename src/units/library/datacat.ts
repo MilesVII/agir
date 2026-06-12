@@ -39,7 +39,7 @@ const definitionTemplate = {
 		"{{persona}}"
 	],
 	instructions: [
-		"# Instructions",
+		"# Instructions and scenario",
 		"The user is {{user}}, all other roles are played by you"
 	],
 };

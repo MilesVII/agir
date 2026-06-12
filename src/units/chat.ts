@@ -1,4 +1,4 @@
-import { asyncMap, b64Encoder, download, getRoute, makeResizable, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
+import { asyncMap, b64Encoder, download, getRoute, makeResizable, renderMD, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
 import { loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
 import { idb, listen, local } from "@root/persist";
@@ -9,6 +9,7 @@ import { ActiveProviders } from "@root/types";
 import { initChatEditor } from "./chat/editor";
 import { initRember, updateRemberCounter } from "./chat/rember";
 import { toast } from "./toasts";
+import { RampikeModal } from "@rampike/modal";
 
 export function chatUnit() {
 	const scroller       = document.querySelector<HTMLElement>        ("#play-messages")!;
@@ -19,6 +20,9 @@ export function chatUnit() {
 	const providerPicker = document.querySelector<HTMLSelectElement>  ("#chat-provider-picker")!;
 	const menuButton     = document.querySelector<HTMLSelectElement>  ("#chat-menu-select")!;
 	const inputModes     = document.querySelector<RampikeTabs>        ("#chat-controls")!;
+	const previewContainer   = document.querySelector<RampikeModal>("#play-card")!;
+	const previewEditButton  = document.querySelector<HTMLElement> ("#play-card-edit")!;
+	const previewCloseButton = document.querySelector<HTMLElement> ("#play-card-close")!;
 
 	makeResizable(textarea, scroller);
 	window.addEventListener("hashchange", update);
@@ -32,6 +36,8 @@ export function chatUnit() {
 	stopButton.addEventListener("click", () => abortController.abort());
 	remberCounter.addEventListener("click", openRemberGuarded);
 	providerPicker.addEventListener("input", () => { pickMainProvider(providerPicker.value); })
+	previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
+	previewCloseButton.addEventListener("click", () => previewContainer.close());
 
 	update();
 	updateProviders();
@@ -101,7 +107,13 @@ function pickMainProvider(id: string) {
 	local.set("activeProvider", JSON.stringify(old));
 }
 
+const cardPreviewRelay = {
+	url: ""
+};
 async function openScenarioIfExists() {
+	const previewContainer = document.querySelector<RampikeModal>("#play-card")!;
+	const preview = document.querySelector<HTMLElement>("#play-card-preview")!;
+
 	const [, chatId] = getRoute();
 	if (!chatId) return;
 	const chat = await idb.get("chats", chatId);
@@ -109,9 +121,12 @@ async function openScenarioIfExists() {
 
 	const cardId = chat.value.scenario.id;
 	const card = await idb.get("scenarios", cardId)
-	if (card.success && card.value) // ehhh
-		window.open(`#scenario-editor.${cardId}`);
-	else
+	if (card.success && card.value) {
+		cardPreviewRelay.url = `#scenario-editor.${cardId}`;
+		const contents = `# ${card.value.card.title}\n${card.value.card.description}`
+		preview.innerHTML = renderMD(contents);
+		previewContainer.open();
+	} else
 		toast("Scenario card not found");
 }
 

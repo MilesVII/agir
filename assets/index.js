@@ -4845,6 +4845,9 @@ ${chat[remberAt].rember}`),
     const providerPicker = document.querySelector("#chat-provider-picker");
     const menuButton = document.querySelector("#chat-menu-select");
     const inputModes = document.querySelector("#chat-controls");
+    const previewContainer = document.querySelector("#play-card");
+    const previewEditButton = document.querySelector("#play-card-edit");
+    const previewCloseButton = document.querySelector("#play-card-close");
     makeResizable(textarea, scroller);
     window.addEventListener("hashchange", update);
     listen((u3) => {
@@ -4858,6 +4861,8 @@ ${chat[remberAt].rember}`),
     providerPicker.addEventListener("input", () => {
       pickMainProvider(providerPicker.value);
     });
+    previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
+    previewCloseButton.addEventListener("click", () => previewContainer.close());
     update();
     updateProviders();
     const { open: openChatEditor } = initChatEditor();
@@ -4917,16 +4922,25 @@ ${chat[remberAt].rember}`),
     old.main = id;
     local.set("activeProvider", JSON.stringify(old));
   }
+  var cardPreviewRelay = {
+    url: ""
+  };
   async function openScenarioIfExists() {
+    const previewContainer = document.querySelector("#play-card");
+    const preview = document.querySelector("#play-card-preview");
     const [, chatId] = getRoute();
     if (!chatId) return;
     const chat = await idb.get("chats", chatId);
     if (!chat.success) return;
     const cardId = chat.value.scenario.id;
     const card = await idb.get("scenarios", cardId);
-    if (card.success && card.value)
-      window.open(`#scenario-editor.${cardId}`);
-    else
+    if (card.success && card.value) {
+      cardPreviewRelay.url = `#scenario-editor.${cardId}`;
+      const contents = `# ${card.value.card.title}
+${card.value.card.description}`;
+      preview.innerHTML = renderMD(contents);
+      previewContainer.open();
+    } else
       toast("Scenario card not found");
   }
   async function exportChat() {
@@ -5442,7 +5456,7 @@ ${chat[remberAt].rember}`),
       "{{persona}}"
     ].join("\n"),
     instructions: [
-      "# Instructions",
+      "# Instructions and scenario",
       "The user is {{user}}, all other roles are played by you"
     ].join("\n")
   };

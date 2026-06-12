@@ -41,6 +41,11 @@
 	flex-flow: row nowrap;
 	gap: var(--dims-smol);
 }
+.split-col {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--dims-smol);
+}
 
 .jc-end {
 	justify-content: end;
