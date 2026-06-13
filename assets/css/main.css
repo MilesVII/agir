@@ -107,6 +107,10 @@ body {
 	color: var(--color-text);
 }
 
+:not(:defined) {
+	display: none;
+}
+
 a, a:visited {
 	color: var(--color-accent);
 }
