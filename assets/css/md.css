@@ -29,3 +29,8 @@
 .md think {
 	opacity: .6;
 }
+
+.md-intro h2 {
+	margin-top: 1em;
+	margin-bottom: .4em;
+}

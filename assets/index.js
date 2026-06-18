@@ -5456,7 +5456,7 @@ ${card.value.card.description}`;
       "{{persona}}"
     ].join("\n"),
     instructions: [
-      "# Instructions and scenario",
+      "# Instructions",
       "The user is {{user}}, all other roles are played by you"
     ].join("\n")
   };
@@ -5759,7 +5759,7 @@ ${scenario}
       "{{persona}}"
     ],
     instructions: [
-      "# Instructions",
+      "# Instructions and scenario",
       "The user is {{user}}, all other roles are played by you"
     ]
   };
@@ -6074,6 +6074,22 @@ ${scenario}
     modal.open();
   }
 
+  // src/units/docs.ts
+  function docsUnit() {
+    const introMessage = document.querySelector("#help-message");
+    const introModal = document.querySelector("#help-modal");
+    const introClose = document.querySelector("#help-close");
+    introClose.addEventListener("click", () => introModal.close());
+    const fl = local.get("firstLaunch");
+    if (fl) return;
+    fetch("assets/docs/intro.md").then(async (r) => {
+      if (!r.ok) return;
+      local.set("firstLaunch", `{ "intro": true }`);
+      introMessage.innerHTML = renderMD(await r.text());
+      introModal.open();
+    });
+  }
+
   // src/index.ts
   define2();
   define();
@@ -6090,7 +6106,8 @@ ${scenario}
     chatUnit,
     mainUnit,
     libraryUnit,
-    scenarioUnit
+    scenarioUnit,
+    docsUnit
   ];
   async function main() {
     units.forEach((u3) => u3());
