@@ -4203,14 +4203,12 @@ Status ${response.status}${metaWrapped}`
     const prompt2 = document.querySelector("#play-rember-prompt");
     const buttons = {
       one: document.querySelector("#play-rember-add-one"),
-      all: document.querySelector("#play-rember-add-all"),
       stop: document.querySelector("#play-rember-stop"),
       save: document.querySelector("#play-rember-save"),
       reset: document.querySelector("#play-rember-reset")
     };
     const list = document.querySelector("#play-rember-messages");
     buttons.one.addEventListener("click", runOne);
-    buttons.all.addEventListener("click", runAll);
     buttons.stop.addEventListener("click", forgor);
     buttons.save.addEventListener("click", saveSettings);
     buttons.reset.addEventListener("click", resetPrompt);
@@ -4231,6 +4229,7 @@ Status ${response.status}${metaWrapped}`
     async function onOpen() {
       const state = await getCurrentChat();
       if (!state) return;
+      strideInput.value = state.chat.rember?.stride ?? "";
       prompt2.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
       list.innerHTML = "";
       const remberMessages = state.messages.messages.filter((m3) => m3.rember);
@@ -4274,29 +4273,12 @@ Status ${response.status}${metaWrapped}`
     }
     async function runOne() {
       buttons.one.hidden = true;
-      buttons.all.hidden = true;
       buttons.stop.hidden = false;
       await step();
       buttons.one.hidden = false;
-      buttons.all.hidden = false;
-      buttons.stop.hidden = true;
-    }
-    let interruptFlag = false;
-    async function runAll() {
-      buttons.one.hidden = true;
-      buttons.all.hidden = true;
-      buttons.stop.hidden = false;
-      while (!interruptFlag) {
-        const proceed = await step();
-        if (!proceed) break;
-      }
-      interruptFlag = false;
-      buttons.one.hidden = false;
-      buttons.all.hidden = false;
       buttons.stop.hidden = true;
     }
     function forgor() {
-      interruptFlag = true;
       abortController.abort();
     }
     async function saveSettings() {
@@ -4308,6 +4290,8 @@ Status ${response.status}${metaWrapped}`
       };
       state.chat.rember = v2;
       await idb.set("chats", state.chat);
+      const detailsElement = strideInput.parentElement?.parentElement?.parentElement?.parentElement;
+      if (detailsElement) detailsElement.open = false;
     }
     function resetPrompt() {
       if (!confirm("the current rember prompt will be lost after saving the settings")) return;
