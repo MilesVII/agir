@@ -5,6 +5,7 @@ import { RampikeImagePicker } from "@rampike/imagepicker";
 import { toast } from "./toasts";
 import { estimateTokenCount } from "tokenx";
 import { RampikeModal } from "@rampike/modal";
+import { optimizeToWEBP } from "@root/optimizer";
 
 const definitionTemplate = [
 	"# Characters",
@@ -104,6 +105,9 @@ export function scenarioUnit() {
 
 		const cardPicture = await cardIcon.valueHandle();
 		const chatPicture = await chatIcon.valueHandle();
+		if (cardPicture) optimize(cardPicture);
+		if (chatPicture) optimize(chatPicture);
+
 		const tags = cardTags.value
 			.split(",")
 			.map(t => t.trim())
@@ -220,4 +224,17 @@ function initFirstMessages() {
 			return messagesState.map(v => v.trim()).filter(v => v);
 		}
 	};
+}
+
+async function optimize(ref: string) {
+	const loaded = await idb.get("media", ref);
+	if (!loaded.success) return;
+	const [nb, changed] = await optimizeToWEBP(loaded.value.media);
+	if (!changed) return;
+	console.log(`optimized delta: ${nb.size - loaded.value.media.size} (negative means win)`);
+	await idb.set("media", {
+		id: loaded.value.id,
+		media: nb,
+		mime: nb.type
+	});
 }
