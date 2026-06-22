@@ -285,7 +285,7 @@ function deleteScenario(id: string, name: string) {
 async function openStartModal(scenario: string, descriptionMD: string) {
 	const modal = document.querySelector<RampikeModal>("#library-start")!;
 	const picker = modal.querySelector<HTMLSelectElement>("#library-start-persona")!;
-	const description = document.querySelector("#library-start-description")!;
+	const description = document.querySelector<HTMLElement>("#library-start-description")!;
 	const placeholder = modal.querySelector<HTMLElement>("#library-start-placeholder")!;
 	const noPlaceholder = modal.querySelector<HTMLElement>("#library-start-no-placeholder")!;
 
@@ -305,6 +305,7 @@ async function openStartModal(scenario: string, descriptionMD: string) {
 		scenarioId: scenario
 	};
 
+	description.hidden = descriptionMD.trim() ? false : true;
 	description.innerHTML = renderMD(descriptionMD);
 
 	modal.open();

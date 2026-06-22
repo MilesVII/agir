@@ -6147,6 +6147,7 @@ ${scenario}
     openerRelay = {
       scenarioId: scenario
     };
+    description.hidden = descriptionMD.trim() ? false : true;
     description.innerHTML = renderMD(descriptionMD);
     modal.open();
   }
