@@ -4862,7 +4862,8 @@ ${chat[remberAt].rember}`),
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", openChatEditor],
       ["\u29D6 rEmber", openRemberGuarded],
-      ["Export", exportChat]
+      ["Export", exportChat],
+      ["Clone", cloneChat]
     ]);
   }
   async function update() {
@@ -4956,6 +4957,20 @@ ${card.value.card.description}`;
       media: encodedMedia.filter((m3) => m3)
     };
     download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
+  }
+  async function cloneChat() {
+    const state = await getCurrentChat();
+    if (!state) return;
+    const { chat, messages } = state;
+    const nid = crypto.randomUUID();
+    chat.id = nid;
+    messages.id = nid;
+    chat.lastUpdate = Date.now();
+    await Promise.all([
+      idb.set("chats", chat),
+      idb.set("chatContents", messages)
+    ]);
+    toast("new chat created");
   }
 
   // src/units/main.ts
