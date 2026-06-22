@@ -4,11 +4,22 @@ import { REMBER_DEFAULTS } from "./rember";
 import { estimateTokenCount } from "tokenx";
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {
-	"{{sub}}":    "subjective",
-	"{{obj}}":    "objective",
-	"{{poss}}":   "possessiveAdj",
-	"{{poss_p}}": "possessivePro",
-	"{{ref}}":    "reflexive"
+	"{{sub}}":     "subjective",
+	"{{he}}":      "subjective",
+	"{{she}}":     "subjective",
+	"{{they}}":    "subjective",
+
+	"{{obj}}":     "objective",
+	"{{them}}":    "objective",
+
+	"{{poss}}":    "possessiveAdj",
+	"{{their}}":   "possessiveAdj",
+
+	"{{poss_p}}":  "possessivePro",
+	"{{theirs}}":  "possessivePro",
+
+	"{{ref}}":     "reflexive",
+	"{{themselves}}":"reflexive"
 };
 const CHAR_NAME_MACRO = "{{char}}";
 const USER_NAME_MACRO = "{{user}}";

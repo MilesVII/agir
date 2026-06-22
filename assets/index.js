@@ -5416,10 +5416,17 @@ ${card.value.card.description}`;
   // src/units/chat/start.ts
   var PRON_MACROS = {
     "{{sub}}": "subjective",
+    "{{he}}": "subjective",
+    "{{she}}": "subjective",
+    "{{they}}": "subjective",
     "{{obj}}": "objective",
+    "{{them}}": "objective",
     "{{poss}}": "possessiveAdj",
+    "{{their}}": "possessiveAdj",
     "{{poss_p}}": "possessivePro",
-    "{{ref}}": "reflexive"
+    "{{theirs}}": "possessivePro",
+    "{{ref}}": "reflexive",
+    "{{themselves}}": "reflexive"
   };
   var CHAR_NAME_MACRO = "{{char}}";
   var USER_NAME_MACRO = "{{user}}";
