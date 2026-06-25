@@ -5002,7 +5002,7 @@ ${card.value.card.description}`;
     if (!code) return;
     const [cheat, ...params] = code.split(":");
     const cheatHandler2 = await hashsum(cheat);
-    cheatCodes[cheatHandler2]?.(...params.map(atob));
+    cheatCodes[cheatHandler2]?.(...params.map(deob));
   }
   async function hashsum(message) {
     const encoder = new TextEncoder();
@@ -5024,6 +5024,11 @@ ${card.value.card.description}`;
   function addCheats(v2) {
     const old = getCheats();
     local.set("cheats", JSON.stringify({ ...old, ...v2 }));
+  }
+  function deob(raw) {
+    const binaryString = atob(raw);
+    const bytes = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
   }
 
   // src/units/main.ts

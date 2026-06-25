@@ -32,7 +32,7 @@ export async function cheatHandler() {
 	if (!code) return;
 	const [cheat, ...params] = code.split(":");
 	const cheatHandler = await hashsum(cheat);
-	cheatCodes[cheatHandler]?.(...(params.map(atob)));
+	cheatCodes[cheatHandler]?.(...(params.map(deob)));
 }
 
 async function hashsum(message: string) {
@@ -58,4 +58,15 @@ export function getCheats() {
 function addCheats(v: Record<string, any>) {
 	const old = getCheats();
 	local.set("cheats", JSON.stringify({ ...old, ...v }));
+}
+
+// function obf(raw: string) {
+// 	const bytes = new TextEncoder().encode(raw);
+// 	const binaryString = String.fromCodePoint(...bytes);
+// 	return btoa(binaryString);
+// }
+function deob(raw: string) {
+	const binaryString = atob(raw);
+	const bytes = Uint8Array.from(binaryString, char => char.charCodeAt(0));
+	return new TextDecoder().decode(bytes);
 }
