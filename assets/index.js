@@ -4973,14 +4973,69 @@ ${card.value.card.description}`;
     toast("new chat created");
   }
 
+  // src/units/cheats.ts
+  var cheatLockCounter = 7;
+  var cheatCodes = {
+    "ee7668710593603e1bf765b32d532ac6b3c5b6f9": gibbadge
+  };
+  function cheatsUnit() {
+    const cheats = getCheats();
+    if (cheats["badge"]) {
+      const [caption, type] = cheats["badge"];
+      const badge = document.querySelector("#settings-badge");
+      if (badge && caption && type) {
+        badge.classList.add(`badge-${type}`);
+        badge.textContent = caption;
+        badge.hidden = false;
+      }
+    }
+  }
+  async function cheatHandler() {
+    if (cheatLockCounter > 0) {
+      --cheatLockCounter;
+      if (cheatLockCounter < 3) {
+        toast(`you are ${cheatLockCounter + 1} taps away from becoming a VIP`, { timeoutMS: 2e3 });
+      }
+      return;
+    }
+    const code = prompt("enter your code");
+    if (!code) return;
+    const [cheat, ...params] = code.split(":");
+    const cheatHandler2 = await hashsum(cheat);
+    cheatCodes[cheatHandler2]?.(...params.map(atob));
+  }
+  async function hashsum(message) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(message);
+    const hash = await window.crypto.subtle.digest("SHA-1", data);
+    const hashHex = new Uint8Array(hash)?.toHex();
+    return hashHex;
+  }
+  function gibbadge(text2, type = "aurora") {
+    addCheats({
+      "badge": [text2, type]
+    });
+  }
+  function getCheats() {
+    const raw = local.get("cheats");
+    if (!raw) return {};
+    return JSON.parse(raw);
+  }
+  function addCheats(v2) {
+    const old = getCheats();
+    local.set("cheats", JSON.stringify({ ...old, ...v2 }));
+  }
+
   // src/units/main.ts
   function mainUnit() {
     const importButton = document.querySelector("#main-import");
+    const chatCounter = document.querySelector("#main-counter");
     importButton.addEventListener("input", () => {
       const file = importButton.input.files?.[0];
       if (!file) return;
       importChat(file);
     });
+    chatCounter.addEventListener("click", cheatHandler);
     listen((u3) => {
       if (u3.storage !== "idb") return;
       if (u3.store !== "chats") return;
@@ -4989,8 +5044,12 @@ ${card.value.card.description}`;
     update2(null);
   }
   async function update2(folder) {
+    const chatCounter = document.querySelector("#main-counter");
     const handles = await idb.getAll("chats");
     if (!handles.success) return;
+    const cc = handles.value.length;
+    const singular = cc === 1 || cc % 10 === 1 && cc % 100 !== 11;
+    chatCounter.textContent = `${handles.value.length} ${singular ? "chat" : "chats"}`;
     const folderOptions = unique(handles.value.map((c) => c.folder).filter((f2) => f2));
     updateChatHandles(handles.value, folder, folderOptions);
     updateFolders(folder, folderOptions, update2);
@@ -6185,7 +6244,8 @@ ${scenario}
     mainUnit,
     libraryUnit,
     scenarioUnit,
-    docsUnit
+    docsUnit,
+    cheatsUnit
   ];
   async function main() {
     units.forEach((u3) => u3());

@@ -92,3 +92,7 @@
 .no-shrink {
 	flex-shrink: 0;
 }
+
+.no-select {
+	user-select: none;
+}

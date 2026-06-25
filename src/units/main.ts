@@ -3,16 +3,21 @@ import { b64Encoder, nothrow, placeholder, setSelectMenu, unique } from "@root/u
 import { Chat, ChatContents, Folder } from "@root/types";
 import { getBlobLink, idb, listen } from "@root/persist";
 import { mudcrack } from "rampike";
+import { toast } from "./toasts";
+import { cheatHandler } from "./cheats";
 
 
 export function mainUnit() {
 	const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
+	const chatCounter = document.querySelector<HTMLElement>("#main-counter")!;
+
 	importButton.addEventListener("input", () => {
 		const file = importButton.input.files?.[0];
 		if (!file) return;
 
 		importChat(file);
 	});
+	chatCounter.addEventListener("click", cheatHandler)
 
 	listen(u => {
 		if (u.storage !== "idb") return;
@@ -24,8 +29,15 @@ export function mainUnit() {
 }
 
 async function update(folder: Folder) {
+	const chatCounter = document.querySelector<HTMLElement>("#main-counter")!;
+
 	const handles = await idb.getAll("chats");
 	if (!handles.success) return;
+
+	const cc = handles.value.length;
+	const singular = cc === 1 || ((cc % 10 === 1) && (cc % 100 !== 11));
+	chatCounter.textContent = `${handles.value.length} ${singular ? "chat" : "chats"}`;
+
 	const folderOptions = unique(handles.value.map(c => c.folder).filter(f => f) as string[]);
 
 	updateChatHandles(handles.value, folder, folderOptions);

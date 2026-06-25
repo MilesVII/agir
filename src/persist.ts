@@ -18,7 +18,7 @@ const IDB_INDESEX = {
 };
 const INDEX_SORTED = "sorted";
 export type IDBStore = keyof IDBStorageSchema;
-export type LocalKey = "theme" | "providers" | "settings" | "activeProvider" | "armories" | "firstLaunch";
+export type LocalKey = "theme" | "providers" | "settings" | "activeProvider" | "armories" | "firstLaunch" | "cheats";
 
 type StorageUpdate = {
 	storage: "idb",

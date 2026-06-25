@@ -1,0 +1,342 @@
+
+/* Base badge */
+.badge {
+	position: relative;
+	padding: var(--dims-smol) var(--dims-reg);
+	border-radius: var(--dims-smol);
+	font-weight: 600;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+	cursor: default;
+	user-select: none;
+	overflow: hidden;
+	transition: box-shadow 0.3s ease;
+	margin: 2px;
+	border: none;
+}
+
+/* === AURORA BADGE === */
+.badge-aurora {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%);
+	background-size: 300% 300%;
+	color: white;
+	animation: aurora 4s ease infinite;
+	box-shadow: 
+		0 4px 15px rgba(102, 126, 234, 0.4),
+		0 0 30px rgba(245, 87, 108, 0.2),
+		inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+.badge-aurora::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		105deg,
+		transparent 40%,
+		rgba(255,255,255,0.4) 45%,
+		rgba(255,255,255,0.7) 50%,
+		rgba(255,255,255,0.4) 55%,
+		transparent 60%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 3s linear infinite;
+	pointer-events: none;
+}
+
+@keyframes aurora {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+@keyframes shimmer {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+
+/* === GOLD BADGE === */
+.badge-gold {
+	background: linear-gradient(145deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+	background-size: 200% 200%;
+	color: #5a3d00;
+	animation: goldShift 3s ease infinite;
+	box-shadow: 
+		0 4px 15px rgba(191, 149, 63, 0.5),
+		0 0 20px rgba(252, 246, 186, 0.3),
+		inset 0 1px 0 rgba(255,255,255,0.6);
+	text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.badge-gold::after {
+	content: '';
+	position: absolute;
+	inset: 2px;
+	border-radius: var(--dims-smol);
+	background: linear-gradient(145deg, rgba(255,255,255,0.3), transparent 60%);
+	pointer-events: none;
+}
+
+@keyframes goldShift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+/* === NEON BADGE === */
+.badge-neon {
+	background: rgba(0, 0, 0, 0.6);
+	color: #00f5d4;
+	text-shadow: 0 0 10px rgba(0, 245, 212, 0.7), 0 0 20px rgba(0, 245, 212, 0.4);
+	box-shadow: 
+		0 0 10px rgba(0, 245, 212, 0.3),
+		0 0 40px rgba(0, 245, 212, 0.1),
+		inset 0 0 10px rgba(0, 245, 212, 0.1);
+}
+
+.badge-neon::before {
+	content: '';
+	position: absolute;
+	inset: -2px;
+	padding: 2px;
+	background: linear-gradient(45deg, #00f5d4, #00bbf9, #fee440, #00f5d4);
+	background-size: 300% 300%;
+	animation: borderRotate 3s linear infinite;
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	pointer-events: none;
+}
+
+.badge-neon::after {
+	content: '';
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 200%;
+	height: 200%;
+	background: radial-gradient(circle, rgba(0,245,212,0.1) 0%, transparent 60%);
+	animation: pulse 2s ease-in-out infinite;
+	pointer-events: none;
+}
+
+@keyframes borderRotate {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+@keyframes pulse {
+	0%, 100% { transform: scale(1); opacity: 0.5; }
+	50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* === CRYSTAL BADGE === */
+.badge-crystal {
+	background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	color: #e0e0ff;
+	box-shadow: 
+	0 8px 32px rgba(31, 38, 135, 0.37),
+	inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.badge-crystal::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: 999px;
+	background: linear-gradient(
+		120deg,
+		transparent 30%,
+		rgba(255,255,255,0.15) 50%,
+		transparent 70%
+	);
+	animation: crystalShine 4s ease-in-out infinite;
+	pointer-events: none;
+}
+
+.badge-crystal::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 10%;
+	width: 30%;
+	height: 100%;
+	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+	transform: skewX(-20deg);
+	animation: crystalSlide 3s ease-in-out infinite;
+	pointer-events: none;
+}
+
+@keyframes crystalShine {
+	0%, 100% { opacity: 0.3; }
+	50% { opacity: 0.8; }
+}
+
+@keyframes crystalSlide {
+	0% { left: -30%; }
+	100% { left: 120%; }
+}
+
+/* === HOLOGRAPHIC BADGE === */
+.badge-holo {
+	background: linear-gradient(
+		135deg,
+		#ff0080 0%,
+		#ff8c00 20%,
+		#40e0d0 40%,
+		#8a2be2 60%,
+		#ff0080 80%,
+		#ff8c00 100%
+	);
+	background-size: 400% 400%;
+	color: white;
+	animation: holoShift 5s ease infinite;
+	box-shadow: 
+		0 4px 20px rgba(255, 0, 128, 0.4),
+		0 0 40px rgba(138, 43, 226, 0.2);
+}
+
+.badge-holo::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: repeating-linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(255,255,255,0.05) 0.5%,
+		transparent 1%
+	);
+	background-size: 200% 100%;
+	animation: holoLines 2s linear infinite;
+	pointer-events: none;
+}
+
+.badge-holo::after {
+	content: '';
+	position: absolute;
+	inset: 2px;
+	background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 40%);
+	pointer-events: none;
+}
+
+@keyframes holoShift {
+	0% { background-position: 0% 50%; }
+	50% { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+@keyframes holoLines {
+	0% { background-position: 0% 0; }
+	100% { background-position: 200% 0; }
+}
+
+/* === EMBER BADGE === */
+.badge-ember {
+	background: linear-gradient(135deg, #ff416c, #ff4b2b);
+	color: white;
+	box-shadow: 
+		0 4px 15px rgba(255, 65, 108, 0.5),
+		0 0 30px rgba(255, 75, 43, 0.3),
+		inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+.badge-ember::before {
+	content: '';
+	position: absolute;
+	inset: -2px;
+	background: linear-gradient(45deg, #ff416c, #ff4b2b, #ff9068, #ff416c);
+	background-size: 300% 300%;
+	animation: emberBorder 2s linear infinite;
+	z-index: -1;
+	filter: blur(4px);
+	opacity: 0.7;
+}
+
+.badge-ember::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 50%;
+	background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%);
+	pointer-events: none;
+}
+
+@keyframes emberBorder {
+	0% { background-position: 0% 50%; }
+	100% { background-position: 100% 50%; }
+}
+
+/* === FROST BADGE === */
+.badge-frost {
+	background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+	color: #2d3a5c;
+	box-shadow: 
+	0 4px 15px rgba(142, 197, 252, 0.5),
+	0 0 30px rgba(224, 195, 252, 0.3),
+	inset 0 1px 0 rgba(255,255,255,0.6);
+}
+
+.badge-frost::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(135deg, #e0c3fc, #8ec5fc) border-box;
+	-webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+	mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	pointer-events: none;
+}
+
+.badge-frost::after {
+	content: '';
+	position: absolute;
+	top: -10px;
+	left: 20%;
+	width: 60%;
+	height: 20px;
+	background: radial-gradient(ellipse, rgba(255,255,255,0.6) 0%, transparent 70%);
+	filter: blur(4px);
+	animation: frostGlow 3s ease-in-out infinite;
+	pointer-events: none;
+}
+
+@keyframes frostGlow {
+	0%, 100% { opacity: 0.5; transform: translateX(-10px); }
+	50% { opacity: 1; transform: translateX(10px); }
+}
+
+/* === RAINBOW BORDER BADGE === */
+.badge-rainbow {
+	background: #1a1a2e;
+	color: #fff;
+	z-index: 1;
+}
+
+.badge-rainbow::before {
+	content: '';
+	position: absolute;
+	inset: -3px;
+	background: conic-gradient(from 0deg, #ff0080, #ff8c00, #40e0d0, #8a2be2, #ff0080);
+	z-index: -1;
+	animation: rainbowSpin 3s linear infinite;
+}
+
+.badge-rainbow::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: #1a1a2e;
+	z-index: -1;
+}
+
+@keyframes rainbowSpin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}

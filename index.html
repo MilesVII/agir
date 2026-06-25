@@ -11,6 +11,7 @@
 		<link rel="stylesheet" href="assets/css/utils.css"/>
 		<link rel="stylesheet" href="assets/css/components.css"/>
 		<link rel="stylesheet" href="assets/css/md.css"/>
+		<link rel="stylesheet" href="assets/css/badger.css"/>
 		<script type="module" src="assets/index.js"></script>
 
 		<link rel="prefetch" href="assets/gfx/send.svg" />
@@ -30,13 +31,17 @@
 					</ram-file-picker>
 				</div>
 				<div class="main col pad float-center">
-					<div id="main-folders" class="row-compact"></div>
+					<div class="row baseline no-select">
+						<div id="main-counter"></div>
+						<div id="main-folders" class="row-compact"></div>
+					</div>
 					<div id="main-chats" class="list"></div>
 				</div>
 			</ram-tab>
 			<ram-tab key="settings">
 				<div class="topbar row shadow">
 					<button class="lineout fit" data-to="chats">back</button>
+					<div id="settings-badge" class="fit badge" hidden>badge</div>
 				</div>
 				<div class="main col pad float-center">
 					<details>

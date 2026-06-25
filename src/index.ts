@@ -15,6 +15,7 @@ import { init as initPersist } from "./persist";
 import { libraryUnit } from "@units/library";
 import { toast } from "@units/toasts";
 import { docsUnit } from "@units/docs";
+import { cheatsUnit } from "@units/cheats";
 
 defineTabs();
 defineRadio();
@@ -34,7 +35,8 @@ const units: (() => void)[] = [
 	mainUnit,
 	libraryUnit,
 	scenarioUnit,
-	docsUnit
+	docsUnit,
+	cheatsUnit
 ];
 
 async function main() {
