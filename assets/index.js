@@ -4847,6 +4847,13 @@ ${chat[remberAt].rember}`),
     });
     previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
     previewCloseButton.addEventListener("click", () => previewContainer.close());
+    window.addEventListener("beforeunload", (e) => {
+      const halt = !!textarea.value.trim();
+      if (halt) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    });
     update();
     updateProviders();
     const { open: openChatEditor } = initChatEditor();
