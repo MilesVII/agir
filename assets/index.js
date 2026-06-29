@@ -3715,6 +3715,13 @@ ${text2.slice(0, 64)}`);
 
   // src/run.ts
   var abortController;
+  var OR_ATTRIBUTION_HEADERS = {
+    "HTTP-Referer": "https://aegir",
+    // retarded OR attribution expects me to own the whole domain for some reason
+    "X-OpenRouter-Title": "Aegir (https://milesvii.github.io/agir/)",
+    // unicode? never heard of her
+    "X-OpenRouter-Categories": "roleplay"
+  };
   async function runProvider(chat, provider, onChunk, reasoningStatus) {
     const chonks = [];
     const params = {
@@ -3735,11 +3742,13 @@ ${text2.slice(0, 64)}`);
     if (!provider.max) delete params.max_completion_tokens;
     try {
       abortController = new AbortController();
+      const attribution = provider.url.toLowerCase().includes("openrouter.ai/") ? OR_ATTRIBUTION_HEADERS : {};
       const response = await fetch(provider.url, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${provider.key}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...attribution
         },
         body: JSON.stringify(params),
         signal: abortController.signal
