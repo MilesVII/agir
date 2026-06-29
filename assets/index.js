@@ -6034,6 +6034,7 @@ ${scenario}
     pager.pageCount = Math.ceil(items.value.length / CARDS_PER_PAGE);
     pager.style.display = pager.pageCount <= 1 ? "none" : "flex";
     if (pager.page >= pager.pageCount) pager.page = pager.pageCount - 1;
+    if (pager.pageCount > 0 && pager.page < 0) pager.page = 0;
     const ix0 = pager.page * CARDS_PER_PAGE;
     const ix1 = ix0 + CARDS_PER_PAGE;
     const contents = items.value.reverse().slice(ix0, ix1).map(scenarioCardView);
