@@ -155,7 +155,7 @@ function handleView(handle: Chat, folderOptions: string[]) {
 					mudcrack({
 						tagName: "button",
 						className: "lineout fit reset-text",
-						contents: handle.memo ?? "🗈",
+						contents: handle.memo ?? "📝",
 						events: {
 							click: () => setMemo(handle.id, handle.memo)
 						}
