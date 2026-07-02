@@ -5174,6 +5174,14 @@ ${card.value.card.description}`;
             T({
               className: "hint",
               contents: messagesCaption(handle.messageCount)
+            }),
+            T({
+              tagName: "button",
+              className: "lineout fit reset-text",
+              contents: handle.memo ?? "\u{1F5C8}",
+              events: {
+                click: () => setMemo(handle.id, handle.memo)
+              }
             })
           ]
         }),
@@ -5217,6 +5225,14 @@ ${card.value.card.description}`;
     chat.value.folder = folder;
     await idb.set("chats", chat.value);
     return true;
+  }
+  async function setMemo(id, old) {
+    const newMemo = prompt("set chat memo", old ?? "");
+    if (newMemo === null) return;
+    const chat = await idb.get("chats", id);
+    if (!chat.success) return false;
+    chat.value.memo = newMemo || void 0;
+    await idb.set("chats", chat.value);
   }
   async function importChat(file) {
     const json = await file.text();

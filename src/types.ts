@@ -79,7 +79,8 @@ export type Chat = {
 	messageCount: number,
 	messageChunks: string[],
 	rember: RemberSettings,
-	folder: Folder
+	folder: Folder,
+	memo?: string
 };
 export type ChatMessage = {
 	id: number,

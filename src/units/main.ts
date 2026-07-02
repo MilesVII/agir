@@ -151,6 +151,14 @@ function handleView(handle: Chat, folderOptions: string[]) {
 					mudcrack({
 						className: "hint",
 						contents: messagesCaption(handle.messageCount),
+					}),
+					mudcrack({
+						tagName: "button",
+						className: "lineout fit reset-text",
+						contents: handle.memo ?? "🗈",
+						events: {
+							click: () => setMemo(handle.id, handle.memo)
+						}
 					})
 				]
 			}),
@@ -197,6 +205,15 @@ async function assignToFolder(id: string, folder: string | null) {
 	chat.value.folder = folder;
 	await idb.set("chats", chat.value);
 	return true;
+}
+async function setMemo(id: string, old?: string) {
+	const newMemo = prompt("set chat memo", old ?? "");
+	if (newMemo === null) return;
+
+	const chat = await idb.get("chats", id);
+	if (!chat.success) return false;
+	chat.value.memo = newMemo || undefined;
+	await idb.set("chats", chat.value);
 }
 
 async function importChat(file: File) {

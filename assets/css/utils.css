@@ -88,6 +88,9 @@
 .center-text {
 	text-align: center;
 }
+.reset-text {
+	text-align: start;
+}
 
 .no-shrink {
 	flex-shrink: 0;
