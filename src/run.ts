@@ -26,13 +26,14 @@ export async function runProvider(
 	if (attachSuffix && provider.suffix && messages[0]?.role === "system") {
 		messages[0].content += `\n${provider.suffix}`;
 	}
+	const reasoningEffort = (provider.reasoning && provider.reasoning !== "unset")
+		? { reasoning: { effort: provider.reasoning } }
+		: {};
 	const params = {
 		model: provider.model,
 		messages,
 		stream: true,
-		// reasoning: {
-		// 	effort: "none"
-		// },
+		...reasoningEffort,
 		max_completion_tokens: provider.max,
 		temperature: provider.temp,
 		...provider.params

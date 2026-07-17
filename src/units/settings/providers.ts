@@ -10,6 +10,7 @@ export function providersUnit() {
 		url:   document.querySelector<HTMLInputElement>("#settings-providers-url")!,
 		key:   document.querySelector<HTMLInputElement>("#settings-providers-key")!,
 		model: document.querySelector<HTMLInputElement>("#settings-providers-model")!,
+		reason: document.querySelector<HTMLSelectElement>("#settings-providers-reasoning")!,
 		temp:   document.querySelector<HTMLInputElement>("#settings-providers-temp")!,
 		max:    document.querySelector<HTMLInputElement>("#settings-providers-max")!,
 		params: document.querySelector<HTMLTextAreaElement>("#settings-providers-additional")!,
@@ -67,7 +68,8 @@ export function providersUnit() {
 			temp:    parseNumber("temp"),
 			max:     parseNumber("max"),
 			params:  parseParams(inputs.params.value.trim()),
-			suffix: inputs.suffix.value.trim()
+			suffix: inputs.suffix.value.trim(),
+			reasoning: inputs.reason.value
 		};
 		const missing = (["name", "url", "model"] as const).some(k => !e[k]);
 		if (e.params === null) return;
@@ -86,6 +88,7 @@ export function providersUnit() {
 		inputs.max.value    = String(defaults.max);
 		inputs.params.value = "";
 		inputs.suffix.value = "";
+		inputs.reason.value = "unset";
 		textareaReconsider(inputs.params);
 		textareaReconsider(inputs.suffix);
 
@@ -142,6 +145,7 @@ export function providersUnit() {
 		inputs.max.value =    String(e.max);
 		inputs.params.value = stringifyParams();
 		inputs.suffix.value = e.suffix ?? "";
+		inputs.reason.value = e.reasoning ?? "unset";
 		textareaReconsider(inputs.params);
 		textareaReconsider(inputs.suffix);
 

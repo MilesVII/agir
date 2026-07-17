@@ -65,6 +65,13 @@ export function makeMessageView(
 			display: "none"
 		}
 	});
+
+	function updateReasoning() {
+		const r = msg.reasoningBoxes?.[msg.selectedSwipe];
+		reasoningButton.hidden = !r;
+		reasoningBox.innerHTML = r || "";
+		reasoningBox.hidden = true;
+	}
 	async function changeSwipe(delta: number) {
 		msg.selectedSwipe += delta;
 		if (msg.selectedSwipe < 0) msg.selectedSwipe = msg.swipes.length - 1;
@@ -73,17 +80,14 @@ export function makeMessageView(
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (isLast && msg.swipes.length > 1) ? "flex" : "none";
 		onSwipe(msg.selectedSwipe);
-
-		const r = msg.reasoningBoxes?.[msg.selectedSwipe];
-		reasoningButton.hidden = !r;
-		reasoningBox.innerHTML = r || "";
-		reasoningBox.hidden = true;
+		updateReasoning();
 	}
 	async function setSwipeToLast() {
 		msg.selectedSwipe = msg.swipes.length - 1;
 		textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (msg.swipes.length > 1) ? "flex" : "none";
+		updateReasoning();
 	}
 	function setStatus(value: string | null) {
 		if (value === null) {
@@ -219,6 +223,7 @@ export function makeMessageView(
 		textBox.innerHTML = "";
 		reasoningPreview.innerHTML = "";
 		reasoningPreview.hidden = true;
+		reasoningBox.hidden = true;
 		changeControlsState("streaming");
 		setStatus(STATUS.RESPONDING);
 

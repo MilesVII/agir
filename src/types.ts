@@ -38,7 +38,8 @@ export type Provider = {
 	temp:   number,
 	max:    number,
 	params: Record<string, any>,
-	suffix: string
+	suffix: string,
+	reasoning: string
 };
 export type ProviderMap = Record<string, Provider>;
 export type ProviderMapWithActive = Record<string, Provider & { isActive: boolean, remberActive: boolean }>;

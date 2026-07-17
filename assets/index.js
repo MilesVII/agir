@@ -3143,6 +3143,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       url: document.querySelector("#settings-providers-url"),
       key: document.querySelector("#settings-providers-key"),
       model: document.querySelector("#settings-providers-model"),
+      reason: document.querySelector("#settings-providers-reasoning"),
       temp: document.querySelector("#settings-providers-temp"),
       max: document.querySelector("#settings-providers-max"),
       params: document.querySelector("#settings-providers-additional"),
@@ -3194,7 +3195,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         temp: parseNumber("temp"),
         max: parseNumber("max"),
         params: parseParams(inputs.params.value.trim()),
-        suffix: inputs.suffix.value.trim()
+        suffix: inputs.suffix.value.trim(),
+        reasoning: inputs.reason.value
       };
       const missing = ["name", "url", "model"].some((k2) => !e[k2]);
       if (e.params === null) return;
@@ -3211,6 +3213,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       inputs.max.value = String(defaults.max);
       inputs.params.value = "";
       inputs.suffix.value = "";
+      inputs.reason.value = "unset";
       textareaReconsider(inputs.params);
       textareaReconsider(inputs.suffix);
       editingIndicator.hidden = true;
@@ -3267,6 +3270,7 @@ ${text2.slice(0, 64)}`);
       inputs.max.value = String(e.max);
       inputs.params.value = stringifyParams();
       inputs.suffix.value = e.suffix ?? "";
+      inputs.reason.value = e.reasoning ?? "unset";
       textareaReconsider(inputs.params);
       textareaReconsider(inputs.suffix);
       editingIndicator.textContent = `editing provider: ${e.name}`;
@@ -3748,13 +3752,12 @@ ${text2.slice(0, 64)}`);
       messages[0].content += `
 ${provider.suffix}`;
     }
+    const reasoningEffort = provider.reasoning && provider.reasoning !== "unset" ? { reasoning: { effort: provider.reasoning } } : {};
     const params = {
       model: provider.model,
       messages,
       stream: true,
-      // reasoning: {
-      // 	effort: "none"
-      // },
+      ...reasoningEffort,
       max_completion_tokens: provider.max,
       temperature: provider.temp,
       ...provider.params
@@ -3913,6 +3916,12 @@ Status ${response.status}${metaWrapped}`
         display: "none"
       }
     });
+    function updateReasoning() {
+      const r = msg.reasoningBoxes?.[msg.selectedSwipe];
+      reasoningButton.hidden = !r;
+      reasoningBox.innerHTML = r || "";
+      reasoningBox.hidden = true;
+    }
     async function changeSwipe(delta) {
       msg.selectedSwipe += delta;
       if (msg.selectedSwipe < 0) msg.selectedSwipe = msg.swipes.length - 1;
@@ -3921,16 +3930,14 @@ Status ${response.status}${metaWrapped}`
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
       onSwipe(msg.selectedSwipe);
-      const r = msg.reasoningBoxes?.[msg.selectedSwipe];
-      reasoningButton.hidden = !r;
-      reasoningBox.innerHTML = r || "";
-      reasoningBox.hidden = true;
+      updateReasoning();
     }
     async function setSwipeToLast() {
       msg.selectedSwipe = msg.swipes.length - 1;
       textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = msg.swipes.length > 1 ? "flex" : "none";
+      updateReasoning();
     }
     function setStatus(value) {
       if (value === null) {
@@ -4069,6 +4076,7 @@ Status ${response.status}${metaWrapped}`
       textBox.innerHTML = "";
       reasoningPreview.innerHTML = "";
       reasoningPreview.hidden = true;
+      reasoningBox.hidden = true;
       changeControlsState("streaming");
       setStatus(STATUS.RESPONDING);
       return (value) => {
