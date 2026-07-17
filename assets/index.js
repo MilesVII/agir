@@ -5178,7 +5178,7 @@ ${card.value.card.description}`;
             T({
               tagName: "button",
               className: "lineout fit reset-text",
-              contents: handle.memo ?? "\u{1F5C8}",
+              contents: handle.memo ?? "\u{1F4DD}",
               events: {
                 click: () => setMemo(handle.id, handle.memo)
               }
