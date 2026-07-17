@@ -24,9 +24,9 @@ export async function runProvider(
 			content: m.swipes[m.from === "user" ? 0 : m.selectedSwipe] // HACK: user messages sometimes have nonzero selectedSwipe
 		})),
 		stream: true,
-		reasoning: {
-			effort: "none"
-		},
+		// reasoning: {
+		// 	effort: "none"
+		// },
 		max_completion_tokens: provider.max,
 		temperature: provider.temp,
 		...provider.params

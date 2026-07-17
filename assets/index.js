@@ -3174,9 +3174,13 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         return f2;
       }
       function parseParams(raw) {
+        if (!raw.trim()) return {};
         const result = nothrow(() => JSON.parse(raw));
         const value = result.success ? result.value : {};
-        if (typeof value !== "object") return {};
+        if (!result.success || typeof value !== "object") {
+          toast("the additional parameters value must be a valid JSON object, provider is not updated");
+          return null;
+        }
         return value;
       }
       const e = {
@@ -3189,6 +3193,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         params: parseParams(inputs.params.value)
       };
       const missing = ["name", "url", "model"].some((k2) => !e[k2]);
+      if (e.params === null) return;
       if (missing) return;
       const eMap = readProviders();
       eMap[id] = e;
@@ -3732,9 +3737,9 @@ ${text2.slice(0, 64)}`);
         // HACK: user messages sometimes have nonzero selectedSwipe
       })),
       stream: true,
-      reasoning: {
-        effort: "none"
-      },
+      // reasoning: {
+      // 	effort: "none"
+      // },
       max_completion_tokens: provider.max,
       temperature: provider.temp,
       ...provider.params

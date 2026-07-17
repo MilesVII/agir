@@ -46,9 +46,14 @@ export function providersUnit() {
 			return f;
 		}
 		function parseParams(raw: string) {
+			if (!raw.trim()) return {};
+			
 			const result = nothrow(() => JSON.parse(raw));
 			const value = result.success ? result.value : {};
-			if (typeof value !== "object") return {};
+			if (!result.success || typeof value !== "object") {
+				toast("the additional parameters value must be a valid JSON object, provider is not updated")
+				return null;
+			}
 			return value;
 		}
 		const e: Provider = {
@@ -61,6 +66,7 @@ export function providersUnit() {
 			params:  parseParams(inputs.params.value)
 		};
 		const missing = (["name", "url", "model"] as const).some(k => !e[k]);
+		if (e.params === null) return;
 		if (missing) return;
 
 		const eMap = readProviders();
