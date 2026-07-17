@@ -1,6 +1,6 @@
 import { listen, local } from "@root/persist";
 import { ActiveProviders, Provider, ProviderMap, ProviderMapWithActive } from "@root/types";
-import { nothrow, nothrowAsync } from "@root/utils";
+import { makeResizable, nothrow, nothrowAsync, textareaReconsider } from "@root/utils";
 import { toast } from "@units/toasts";
 import { mudcrack } from "rampike";
 
@@ -12,7 +12,8 @@ export function providersUnit() {
 		model: document.querySelector<HTMLInputElement>("#settings-providers-model")!,
 		temp:   document.querySelector<HTMLInputElement>("#settings-providers-temp")!,
 		max:    document.querySelector<HTMLInputElement>("#settings-providers-max")!,
-		params: document.querySelector<HTMLInputElement>("#settings-providers-additional")!
+		params: document.querySelector<HTMLTextAreaElement>("#settings-providers-additional")!,
+		suffix: document.querySelector<HTMLTextAreaElement>("#settings-providers-suffix")!
 	};
 	const defaults = {
 		temp:    .9,
@@ -28,7 +29,9 @@ export function providersUnit() {
 	let editing: string | null = null;
 
 	submitButton.addEventListener("click", submit);
-	fetchModelsButton.addEventListener("click", fetchModels)
+	fetchModelsButton.addEventListener("click", fetchModels);
+	makeResizable(inputs.params);
+	makeResizable(inputs.suffix);
 
 	listen(update => {
 		if (update.storage !== "local") return;
@@ -57,13 +60,14 @@ export function providersUnit() {
 			return value;
 		}
 		const e: Provider = {
-			name:  inputs.name.value,
-			url:   inputs.url.value,
-			key:   inputs.key.value,
-			model: inputs.model.value,
+			name:  inputs.name.value.trim(),
+			url:   inputs.url.value.trim(),
+			key:   inputs.key.value.trim(),
+			model: inputs.model.value.trim(),
 			temp:    parseNumber("temp"),
 			max:     parseNumber("max"),
-			params:  parseParams(inputs.params.value)
+			params:  parseParams(inputs.params.value.trim()),
+			suffix: inputs.suffix.value.trim()
 		};
 		const missing = (["name", "url", "model"] as const).some(k => !e[k]);
 		if (e.params === null) return;
@@ -81,6 +85,9 @@ export function providersUnit() {
 		inputs.temp.value   = String(defaults.temp);
 		inputs.max.value    = String(defaults.max);
 		inputs.params.value = "";
+		inputs.suffix.value = "";
+		textareaReconsider(inputs.params);
+		textareaReconsider(inputs.suffix);
 
 		editingIndicator.hidden = true;
 	}
@@ -134,6 +141,9 @@ export function providersUnit() {
 		inputs.temp.value =   String(e.temp);
 		inputs.max.value =    String(e.max);
 		inputs.params.value = stringifyParams();
+		inputs.suffix.value = e.suffix ?? "";
+		textareaReconsider(inputs.params);
+		textareaReconsider(inputs.suffix);
 
 		editingIndicator.textContent = `editing provider: ${e.name}`;
 		editingIndicator.hidden = false;

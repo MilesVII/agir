@@ -215,7 +215,7 @@ export async function runRember(
 	const providers = readProviders();
 	if (!providers[provider]) return { success: false, error: "noproviders"};
 
-	const response = await runProvider(payload, providers[provider], value => onChunk(value, tix));
+	const response = await runProvider(payload, providers[provider], value => onChunk(value, tix), false);
 
 	if (!response.success) {
 		toast(response.error);

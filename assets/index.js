@@ -3145,7 +3145,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       model: document.querySelector("#settings-providers-model"),
       temp: document.querySelector("#settings-providers-temp"),
       max: document.querySelector("#settings-providers-max"),
-      params: document.querySelector("#settings-providers-additional")
+      params: document.querySelector("#settings-providers-additional"),
+      suffix: document.querySelector("#settings-providers-suffix")
     };
     const defaults = {
       temp: 0.9,
@@ -3160,6 +3161,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     let editing = null;
     submitButton.addEventListener("click", submit);
     fetchModelsButton.addEventListener("click", fetchModels);
+    makeResizable(inputs.params);
+    makeResizable(inputs.suffix);
     listen((update4) => {
       if (update4.storage !== "local") return;
       if (update4.key !== "providers") return;
@@ -3184,13 +3187,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         return value;
       }
       const e = {
-        name: inputs.name.value,
-        url: inputs.url.value,
-        key: inputs.key.value,
-        model: inputs.model.value,
+        name: inputs.name.value.trim(),
+        url: inputs.url.value.trim(),
+        key: inputs.key.value.trim(),
+        model: inputs.model.value.trim(),
         temp: parseNumber("temp"),
         max: parseNumber("max"),
-        params: parseParams(inputs.params.value)
+        params: parseParams(inputs.params.value.trim()),
+        suffix: inputs.suffix.value.trim()
       };
       const missing = ["name", "url", "model"].some((k2) => !e[k2]);
       if (e.params === null) return;
@@ -3206,6 +3210,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       inputs.temp.value = String(defaults.temp);
       inputs.max.value = String(defaults.max);
       inputs.params.value = "";
+      inputs.suffix.value = "";
+      textareaReconsider(inputs.params);
+      textareaReconsider(inputs.suffix);
       editingIndicator.hidden = true;
     }
     async function fetchModels() {
@@ -3259,6 +3266,9 @@ ${text2.slice(0, 64)}`);
       inputs.temp.value = String(e.temp);
       inputs.max.value = String(e.max);
       inputs.params.value = stringifyParams();
+      inputs.suffix.value = e.suffix ?? "";
+      textareaReconsider(inputs.params);
+      textareaReconsider(inputs.suffix);
       editingIndicator.textContent = `editing provider: ${e.name}`;
       editingIndicator.hidden = false;
       divider.scrollIntoView({ behavior: "smooth" });
@@ -3727,15 +3737,20 @@ ${text2.slice(0, 64)}`);
     // unicode? never heard of her
     "X-OpenRouter-Categories": "roleplay"
   };
-  async function runProvider(chat, provider, onChunk, reasoningStatus) {
+  async function runProvider(chat, provider, onChunk, attachSuffix, reasoningStatus) {
     const chonks = [];
+    const messages = chat.map((m3) => ({
+      role: m3.from === "model" ? "assistant" : m3.from,
+      content: m3.swipes[m3.from === "user" ? 0 : m3.selectedSwipe]
+      // HACK: user messages sometimes have nonzero selectedSwipe
+    }));
+    if (attachSuffix && provider.suffix && messages[0]?.role === "system") {
+      messages[0].content += `
+${provider.suffix}`;
+    }
     const params = {
       model: provider.model,
-      messages: chat.map((m3) => ({
-        role: m3.from === "model" ? "assistant" : m3.from,
-        content: m3.swipes[m3.from === "user" ? 0 : m3.selectedSwipe]
-        // HACK: user messages sometimes have nonzero selectedSwipe
-      })),
+      messages,
       stream: true,
       // reasoning: {
       // 	effort: "none"
@@ -4352,7 +4367,7 @@ Status ${response.status}${metaWrapped}`
     );
     const providers = readProviders();
     if (!providers[provider]) return { success: false, error: "noproviders" };
-    const response = await runProvider(payload, providers[provider], (value) => onChunk(value, tix));
+    const response = await runProvider(payload, providers[provider], (value) => onChunk(value, tix), false);
     if (!response.success) {
       toast(response.error);
       return { success: false, error: "failed" };
@@ -4566,6 +4581,7 @@ ${m3.swipes[m3.selectedSwipe]}
       expandRember(payload),
       provider,
       responseStreamingUpdater,
+      true,
       responseReasoningReporter
     );
     if (streamingResult.success) {

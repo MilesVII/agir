@@ -14,15 +14,20 @@ export async function runProvider(
 	chat: ChatMessage[],
 	provider: Provider,
 	onChunk: (v: string) => void,
+	attachSuffix: boolean,
 	reasoningStatus?: (on: boolean) => void
 ): Promise<Result<string, string>> {
 	const chonks: string[] = [];
+	const messages = chat.map(m => ({
+		role: m.from === "model" ? "assistant" : m.from,
+		content: m.swipes[m.from === "user" ? 0 : m.selectedSwipe] // HACK: user messages sometimes have nonzero selectedSwipe
+	}));
+	if (attachSuffix && provider.suffix && messages[0]?.role === "system") {
+		messages[0].content += `\n${provider.suffix}`;
+	}
 	const params = {
 		model: provider.model,
-		messages: chat.map(m => ({
-			role: m.from === "model" ? "assistant" : m.from,
-			content: m.swipes[m.from === "user" ? 0 : m.selectedSwipe] // HACK: user messages sometimes have nonzero selectedSwipe
-		})),
+		messages,
 		stream: true,
 		// reasoning: {
 		// 	effort: "none"

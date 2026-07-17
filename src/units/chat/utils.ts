@@ -204,6 +204,7 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 		expandRember(payload),
 		provider,
 		responseStreamingUpdater,
+		true,
 		responseReasoningReporter
 	);
 	if (streamingResult.success) {
