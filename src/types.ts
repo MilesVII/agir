@@ -88,6 +88,7 @@ export type ChatMessage = {
 	name: string,
 	from: "user" | "model" | "system",
 	swipes: string[],
+	reasoningBoxes?: string[],
 	selectedSwipe: number,
 	rember: string | null
 };

@@ -20,7 +20,7 @@ export async function setSwipe(chatId: string, messageId: number, swipeIx: numbe
 	await idb.set("chatContents", contents.value);
 }
 
-export async function pushSwipe(chatId: string, messageId: number, value: string) {
+export async function pushSwipe(chatId: string, messageId: number, value: string, reasoning?: string) {
 	const [contents, chat] = await Promise.all([
 		idb.get("chatContents", chatId),
 		idb.get("chats", chatId)
@@ -33,7 +33,12 @@ export async function pushSwipe(chatId: string, messageId: number, value: string
 
 	messages[mix].swipes = messages[mix].swipes.filter(m => m.trim());
 	messages[mix].swipes.push(value);
-	messages[mix].selectedSwipe = messages[mix].swipes.length - 1;
+	const six = messages[mix].swipes.length - 1;
+	messages[mix].selectedSwipe = six;
+	if (reasoning) {
+		if (!messages[mix].reasoningBoxes) messages[mix].reasoningBoxes = [];
+		messages[mix].reasoningBoxes[six] = reasoning;
+	}
 
 	chat.value.lastUpdate = Date.now();
 	await Promise.all([
@@ -198,17 +203,23 @@ export async function loadResponse(payload: ChatMessage[], msgId: number, chatId
 		return;
 	}
 	const responseStreamingUpdater = messageView.controls.startStreaming();
-	const responseReasoningReporter = messageView.controls.reasoningStatus;
+	const responseReasoningStatusReporter = messageView.controls.reasoningStatus;
+	let reasoning = "";
+	const responseReasoningReporter = (chunk: string) => {
+		reasoning += chunk;
+		messageView.controls.addReasoningChunk(chunk);
+	}
 
 	const streamingResult = await runProvider(
 		expandRember(payload),
 		provider,
 		responseStreamingUpdater,
 		true,
+		responseReasoningStatusReporter,
 		responseReasoningReporter
 	);
 	if (streamingResult.success) {
-		const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
+		const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value, reasoning);
 		if (!updatedMessage) {
 			toast("failed to save response message");
 			return;

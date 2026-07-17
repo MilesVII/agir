@@ -360,7 +360,19 @@ summary.settings-label {
 .message-control {
 	align-self: center;
 }
-
+.message-think-box, .message-reasoning-preview {
+	font-size: .8rem;
+	line-height: 115%;
+	white-space: break-spaces;
+	width: 80%;
+	margin: var(--dims-smol) 0 var(--dims-reg) auto;
+	color: var(--color-subtext);
+}
+.message-reasoning-preview {
+	max-height: 3rem;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}
 
 .armory-item > img {
 	border-radius: var(--dims-smol);

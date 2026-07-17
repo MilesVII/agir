@@ -3737,7 +3737,7 @@ ${text2.slice(0, 64)}`);
     // unicode? never heard of her
     "X-OpenRouter-Categories": "roleplay"
   };
-  async function runProvider(chat, provider, onChunk, attachSuffix, reasoningStatus) {
+  async function runProvider(chat, provider, onChunk, attachSuffix, reasoningStatus, onReasonChunk) {
     const chonks = [];
     const messages = chat.map((m3) => ({
       role: m3.from === "model" ? "assistant" : m3.from,
@@ -3815,7 +3815,7 @@ Status ${response.status}${metaWrapped}`
         while (true) {
           const lineEnd = buffer.indexOf("\n");
           if (lineEnd === -1) break;
-          const line = buffer.slice(0, lineEnd).trim();
+          const line = buffer.slice(0, lineEnd);
           buffer = buffer.slice(lineEnd + 1);
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
@@ -3829,13 +3829,15 @@ Status ${response.status}${metaWrapped}`
               };
             }
             const delta = parsed.value.choices[0].delta;
+            const reasoning = delta.reasoning || delta.reasoning_content;
             const content = delta.content;
-            if (content) {
+            if (reasoning) {
+              reasoningStatus?.(true);
+              onReasonChunk?.(reasoning);
+            } else if (content) {
               reasoningStatus?.(false);
               chonks.push(content);
               onChunk(content);
-            } else {
-              if (delta.reasoning_content) reasoningStatus?.(true);
             }
           }
         }
@@ -3862,6 +3864,7 @@ Status ${response.status}${metaWrapped}`
     REASONING: "thinking..."
   };
   function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete, onSwipe) {
+    if (!msg.reasoningBoxes) msg.reasoningBoxes = [];
     const status = T({
       tagName: "div",
       className: "message-status"
@@ -3871,6 +3874,20 @@ Status ${response.status}${metaWrapped}`
       tagName: "div",
       className: "message-text edible md",
       contents: text2
+    });
+    const reasoningBox = T({
+      tagName: "div",
+      className: "lineout message-think-box",
+      attributes: {
+        hidden: "true"
+      }
+    });
+    const reasoningPreview = T({
+      tagName: "div",
+      className: "lineout message-reasoning-preview",
+      attributes: {
+        hidden: "true"
+      }
     });
     const swipesCaption = T({
       tagName: "span",
@@ -3904,6 +3921,10 @@ Status ${response.status}${metaWrapped}`
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
       onSwipe(msg.selectedSwipe);
+      const r = msg.reasoningBoxes?.[msg.selectedSwipe];
+      reasoningButton.hidden = !r;
+      reasoningBox.innerHTML = r || "";
+      reasoningBox.hidden = true;
     }
     async function setSwipeToLast() {
       msg.selectedSwipe = msg.swipes.length - 1;
@@ -3919,6 +3940,14 @@ Status ${response.status}${metaWrapped}`
       status.hidden = false;
       status.textContent = value;
     }
+    const reasoningButton = controlButton(
+      "R",
+      "show reasoning",
+      () => {
+        reasoningBox.hidden = !reasoningBox.hidden;
+      }
+    );
+    reasoningButton.hidden = true;
     const editButton = controlButton(
       "\u270E",
       "edit message",
@@ -3954,6 +3983,7 @@ Status ${response.status}${metaWrapped}`
         rerollButton.style.display = "none";
     }
     const mainControls = [
+      reasoningButton,
       swipesControl,
       editButton,
       copyButton,
@@ -4016,6 +4046,8 @@ Status ${response.status}${metaWrapped}`
                 ...controls
               ]
             }),
+            reasoningPreview,
+            reasoningBox,
             textBox
           ]
         })
@@ -4035,6 +4067,8 @@ Status ${response.status}${metaWrapped}`
     function startStreaming() {
       textBox.removeAttribute("contenteditable");
       textBox.innerHTML = "";
+      reasoningPreview.innerHTML = "";
+      reasoningPreview.hidden = true;
       changeControlsState("streaming");
       setStatus(STATUS.RESPONDING);
       return (value) => {
@@ -4044,6 +4078,8 @@ Status ${response.status}${metaWrapped}`
     }
     async function endStreaming() {
       await setSwipeToLast();
+      reasoningPreview.innerHTML = "";
+      reasoningPreview.hidden = true;
       changeControlsState("main");
       scrollIntoView();
       setStatus(null);
@@ -4056,6 +4092,10 @@ Status ${response.status}${metaWrapped}`
     function reasoningStatus(on) {
       setStatus(on ? STATUS.REASONING : STATUS.RESPONDING);
     }
+    function addReasoningChunk(chunk) {
+      reasoningPreview.hidden = false;
+      reasoningPreview.innerHTML += chunk;
+    }
     const viewControls = {
       updateSwipe: changeSwipe,
       changeControlsState,
@@ -4063,7 +4103,8 @@ Status ${response.status}${metaWrapped}`
       startStreaming,
       endStreaming,
       setIsLast,
-      reasoningStatus
+      reasoningStatus,
+      addReasoningChunk
     };
     return M(element, viewControls, "controls");
   }
@@ -4430,7 +4471,7 @@ ${m3.swipes[m3.selectedSwipe]}
     contents.value.messages[tix].swipes[swipeIx] = value;
     await idb.set("chatContents", contents.value);
   }
-  async function pushSwipe(chatId, messageId, value) {
+  async function pushSwipe(chatId, messageId, value, reasoning) {
     const [contents, chat] = await Promise.all([
       idb.get("chatContents", chatId),
       idb.get("chats", chatId)
@@ -4441,7 +4482,12 @@ ${m3.swipes[m3.selectedSwipe]}
     if (mix < 0) return;
     messages[mix].swipes = messages[mix].swipes.filter((m3) => m3.trim());
     messages[mix].swipes.push(value);
-    messages[mix].selectedSwipe = messages[mix].swipes.length - 1;
+    const six = messages[mix].swipes.length - 1;
+    messages[mix].selectedSwipe = six;
+    if (reasoning) {
+      if (!messages[mix].reasoningBoxes) messages[mix].reasoningBoxes = [];
+      messages[mix].reasoningBoxes[six] = reasoning;
+    }
     chat.value.lastUpdate = Date.now();
     await Promise.all([
       idb.set("chatContents", contents.value),
@@ -4576,16 +4622,22 @@ ${m3.swipes[m3.selectedSwipe]}
       return;
     }
     const responseStreamingUpdater = messageView.controls.startStreaming();
-    const responseReasoningReporter = messageView.controls.reasoningStatus;
+    const responseReasoningStatusReporter = messageView.controls.reasoningStatus;
+    let reasoning = "";
+    const responseReasoningReporter = (chunk) => {
+      reasoning += chunk;
+      messageView.controls.addReasoningChunk(chunk);
+    };
     const streamingResult = await runProvider(
       expandRember(payload),
       provider,
       responseStreamingUpdater,
       true,
+      responseReasoningStatusReporter,
       responseReasoningReporter
     );
     if (streamingResult.success) {
-      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value);
+      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value, reasoning);
       if (!updatedMessage) {
         toast("failed to save response message");
         return;

@@ -17,6 +17,8 @@ export function makeMessageView(
 	onDelete: () => void,
 	onSwipe: (six: number) => void
 ) {
+	if (!msg.reasoningBoxes) msg.reasoningBoxes = [];
+
 	const status = mudcrack({
 		tagName: "div",
 		className: "message-status",
@@ -26,6 +28,20 @@ export function makeMessageView(
 		tagName: "div",
 		className: "message-text edible md",
 		contents: text
+	});
+	const reasoningBox = mudcrack({
+		tagName: "div",
+		className: "lineout message-think-box",
+		attributes: {
+			hidden: "true"
+		}
+	});
+	const reasoningPreview = mudcrack({
+		tagName: "div",
+		className: "lineout message-reasoning-preview",
+		attributes: {
+			hidden: "true"
+		}
 	});
 	const swipesCaption = mudcrack({
 		tagName: "span",
@@ -57,6 +73,11 @@ export function makeMessageView(
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (isLast && msg.swipes.length > 1) ? "flex" : "none";
 		onSwipe(msg.selectedSwipe);
+
+		const r = msg.reasoningBoxes?.[msg.selectedSwipe];
+		reasoningButton.hidden = !r;
+		reasoningBox.innerHTML = r || "";
+		reasoningBox.hidden = true;
 	}
 	async function setSwipeToLast() {
 		msg.selectedSwipe = msg.swipes.length - 1;
@@ -72,6 +93,13 @@ export function makeMessageView(
 		status.hidden = false;
 		status.textContent = value;
 	}
+	const reasoningButton = controlButton(
+		"R", "show reasoning",
+		() => {
+			reasoningBox.hidden = !reasoningBox.hidden;
+		}
+	);
+	reasoningButton.hidden = true;
 	const editButton = controlButton(
 		"✎", "edit message",
 		() => {
@@ -104,6 +132,7 @@ export function makeMessageView(
 			rerollButton.style.display = "none";
 	}
 	const mainControls = [
+		reasoningButton,
 		swipesControl,
 		editButton,
 		copyButton,
@@ -166,6 +195,8 @@ export function makeMessageView(
 							...controls
 						]
 					}),
+					reasoningPreview,
+					reasoningBox,
 					textBox
 				]
 			})
@@ -186,6 +217,8 @@ export function makeMessageView(
 	function startStreaming() {
 		textBox.removeAttribute("contenteditable");
 		textBox.innerHTML = "";
+		reasoningPreview.innerHTML = "";
+		reasoningPreview.hidden = true;
 		changeControlsState("streaming");
 		setStatus(STATUS.RESPONDING);
 
@@ -196,6 +229,8 @@ export function makeMessageView(
 	}
 	async function endStreaming() {
 		await setSwipeToLast();
+		reasoningPreview.innerHTML = "";
+		reasoningPreview.hidden = true;
 		changeControlsState("main");
 		scrollIntoView();
 		setStatus(null);
@@ -208,6 +243,10 @@ export function makeMessageView(
 	function reasoningStatus(on: boolean) {
 		setStatus(on ? STATUS.REASONING : STATUS.RESPONDING);
 	}
+	function addReasoningChunk(chunk: string) {
+		reasoningPreview.hidden = false;
+		reasoningPreview.innerHTML += chunk;
+	}
 
 	const viewControls = {
 		updateSwipe: changeSwipe,
@@ -216,7 +255,8 @@ export function makeMessageView(
 		startStreaming,
 		endStreaming,
 		setIsLast,
-		reasoningStatus
+		reasoningStatus,
+		addReasoningChunk
 	};
 	return sirocco(element, viewControls, "controls");
 }

@@ -15,7 +15,8 @@ export async function runProvider(
 	provider: Provider,
 	onChunk: (v: string) => void,
 	attachSuffix: boolean,
-	reasoningStatus?: (on: boolean) => void
+	reasoningStatus?: (on: boolean) => void,
+	onReasonChunk?: (chunk: string) => void
 ): Promise<Result<string, string>> {
 	const chonks: string[] = [];
 	const messages = chat.map(m => ({
@@ -101,7 +102,7 @@ export async function runProvider(
 				const lineEnd = buffer.indexOf("\n");
 				if (lineEnd === -1) break;
 
-				const line = buffer.slice(0, lineEnd).trim();
+				const line = buffer.slice(0, lineEnd);
 				buffer = buffer.slice(lineEnd + 1);
 
 				if (line.startsWith("data: ")) {
@@ -117,13 +118,15 @@ export async function runProvider(
 						};
 					}
 					const delta = parsed.value.choices[0].delta;
+					const reasoning = delta.reasoning || delta.reasoning_content;
 					const content = delta.content;
-					if (content) {
+					if (reasoning) {
+						reasoningStatus?.(true);
+						onReasonChunk?.(reasoning);
+					} else if (content) {
 						reasoningStatus?.(false);
 						chonks.push(content);
 						onChunk(content);
-					} else {
-						if (delta.reasoning_content) reasoningStatus?.(true);
 					}
 				}
 			}
