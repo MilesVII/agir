@@ -251,6 +251,7 @@ export function makeMessageView(
 	function addReasoningChunk(chunk: string) {
 		reasoningPreview.hidden = false;
 		reasoningPreview.innerHTML += chunk;
+		reasoningPreview.scrollTop = 9000;
 	}
 
 	const viewControls = {

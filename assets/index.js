@@ -4103,6 +4103,7 @@ Status ${response.status}${metaWrapped}`
     function addReasoningChunk(chunk) {
       reasoningPreview.hidden = false;
       reasoningPreview.innerHTML += chunk;
+      reasoningPreview.scrollTop = 9e3;
     }
     const viewControls = {
       updateSwipe: changeSwipe,
