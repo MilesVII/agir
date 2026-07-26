@@ -3929,7 +3929,7 @@ Status ${response.status}${metaWrapped}`
       textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
       swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
       swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
-      onSwipe(msg.selectedSwipe);
+      if (delta !== 0) onSwipe(msg.selectedSwipe);
       updateReasoning();
     }
     async function setSwipeToLast() {
@@ -4243,14 +4243,119 @@ Status ${response.status}${metaWrapped}`
         contents: tab
       })
     );
-    function pickTab(state) {
-      const tix = ixes.get(state);
+    function pickTab(state3) {
+      const tix = ixes.get(state3);
       contents.forEach((tab, i) => tab.style.display = i === tix ? "contents" : "none");
     }
     return {
       contents,
       pickTab
     };
+  }
+
+  // src/cachedState.ts
+  function state2(get2, set2) {
+    let value;
+    let updating = null;
+    let writing = false;
+    const readQueue = [];
+    const writeQueue = [];
+    const listeners = /* @__PURE__ */ new Map();
+    async function update4() {
+      console.log("update call");
+      const flag = Symbol();
+      updating = flag;
+      const v2 = await nothrowAsync(get2());
+      if (updating !== flag) return;
+      updating = null;
+      onValid(v2.success ? v2.value : value);
+    }
+    update4();
+    function onValid(nv) {
+      value = nv;
+      if (writeQueue.length === 0) {
+        readQueue.splice(0, readQueue.length).forEach((cb) => cb(nv));
+        notify();
+      }
+      tryWrite();
+    }
+    async function read(noClone = false) {
+      function pull(v2) {
+        return noClone ? v2 : structuredClone(v2);
+      }
+      if (updating === null && !writing) return pull(value);
+      return await new Promise((resolve) => readQueue.push((v2) => resolve(pull(v2))));
+    }
+    async function write(setter) {
+      const promise = new Promise((resolve) => {
+        writeQueue.push(async () => {
+          writing = true;
+          const nv = await nothrowAsync(setter(value));
+          if (nv.success) {
+            await nothrowAsync(set2(nv.value));
+          }
+          writing = false;
+          if (updating === null) onValid(nv.success ? nv.value : value);
+          resolve();
+        });
+      });
+      tryWrite();
+      return await promise;
+    }
+    function tryWrite() {
+      if (updating !== null || writing || writeQueue.length === 0) return;
+      const [wCall] = writeQueue.splice(0, 1);
+      wCall();
+    }
+    function notify() {
+      listeners.forEach((cb) => cb(value));
+    }
+    return {
+      read,
+      write,
+      update: update4,
+      attach: (cb, tag) => {
+        const handler = tag ?? Symbol();
+        listeners.set(handler, cb);
+        return handler;
+      },
+      detach: (handler) => {
+        listeners.delete(handler);
+      }
+    };
+  }
+
+  // src/units/caching.ts
+  var chatStore = state2(
+    async () => {
+      const [page, chatId] = getRoute();
+      if (page !== "play" || !chatId) return null;
+      const result = await idb.get("chats", chatId);
+      return result.success ? result.value : null;
+    },
+    async (v2) => {
+      if (!v2) return;
+      await idb.set("chats", v2);
+    }
+  );
+  var messagesStore = state2(
+    async () => {
+      const [page, chatId] = getRoute();
+      if (page !== "play" || !chatId) return null;
+      const result = await idb.get("chatContents", chatId);
+      return result.success ? result.value : null;
+    },
+    async (v2) => {
+      if (!v2) return;
+      await idb.set("chatContents", v2);
+    }
+  );
+  function cachingUnit() {
+    listen((u3) => {
+      if (u3.storage !== "idb") return;
+      if (u3.store === "chats") chatStore.update();
+      if (u3.store === "chatContents") messagesStore.update();
+    });
   }
 
   // src/units/chat/rember.ts
@@ -4306,30 +4411,32 @@ Status ${response.status}${metaWrapped}`
       setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
     }
     async function onOpen() {
-      const state = await getCurrentChat();
-      if (!state) return;
+      const chat = await chatStore.read();
+      if (!chat) return;
+      const messages = await messagesStore.read();
+      if (!messages) return;
       strideInput.value = state.chat.rember?.stride ?? "";
-      prompt2.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
+      prompt2.value = chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
       list.innerHTML = "";
-      const remberMessages = state.messages.messages.filter((m3) => m3.rember);
+      const remberMessages = messages.messages.filter((m3) => m3.rember);
       const items = remberMessages.map((m3) => remberMessageView(
         m3.id,
-        (v2) => updateRember(v2, m3.id, state.chat.id),
-        () => updateRember(null, m3.id, state.chat.id),
+        (v2) => updateRember(v2, m3.id, chat.id),
+        () => updateRember(null, m3.id, chat.id),
         m3.rember
       )).toReversed();
       list.append(...items);
     }
     async function step() {
-      const state = await getCurrentChat(true, false);
-      if (!state) return;
+      const chat = await chatStore.read();
+      if (!chat) return;
       let view = null;
       function checkView(mid) {
         if (!view) {
           view = remberMessageView(
             mid,
-            (v2) => updateRember(v2, mid, state.chat.id),
-            () => updateRember(null, mid, state.chat.id)
+            (v2) => updateRember(v2, mid, chat.id),
+            () => updateRember(null, mid, chat.id)
           );
           list.prepend(view);
         }
@@ -4343,7 +4450,7 @@ Status ${response.status}${metaWrapped}`
         providerPicker.value,
         getStride(),
         prompt2.value.trim(),
-        state.chat.scenario.definition
+        chat.scenario.definition
       );
       if (!result.success) return false;
       checkView(result.value.mid).controls.enable(result.value.response);
@@ -4361,14 +4468,15 @@ Status ${response.status}${metaWrapped}`
       abortController.abort();
     }
     async function saveSettings() {
-      const state = await getCurrentChat(true, false);
-      if (!state) return;
-      const v2 = {
-        prompt: prompt2.value.trim(),
-        stride: getStride()
-      };
-      state.chat.rember = v2;
-      await idb.set("chats", state.chat);
+      await chatStore.write(async (old) => {
+        if (!old) return old;
+        const v2 = {
+          prompt: prompt2.value.trim(),
+          stride: getStride()
+        };
+        old.rember = v2;
+        return old;
+      });
       const detailsElement = strideInput.parentElement?.parentElement?.parentElement?.parentElement;
       if (detailsElement) detailsElement.open = false;
     }
@@ -4394,12 +4502,13 @@ Status ${response.status}${metaWrapped}`
     };
   }
   async function runRember(onChunk, provider, stride, prompt2, system) {
-    const eh = await getCurrentChat();
-    if (!eh) return { success: false, error: "noload" };
-    const { chat, messages } = eh;
+    const chat = await chatStore.read();
+    if (!chat) return { success: false, error: "noload" };
+    const messages = await messagesStore.read();
+    if (!messages) return { success: false, error: "noload" };
     const noLastAction = messages.messages.slice(0, -2);
     let lix = noLastAction.findLastIndex((m3) => m3.rember);
-    const state = lix === -1 ? null : noLastAction[lix].rember;
+    const state3 = lix === -1 ? null : noLastAction[lix].rember;
     if (lix === -1) lix = 0;
     const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
     if (tix === lix) return { success: false, error: "iscomplete" };
@@ -4412,7 +4521,7 @@ Status ${response.status}${metaWrapped}`
         system: ""
       },
       prompt2,
-      state,
+      state3,
       system
     );
     const providers = readProviders();
@@ -4422,10 +4531,13 @@ Status ${response.status}${metaWrapped}`
       toast(response.error);
       return { success: false, error: "failed" };
     }
-    const thinkingParts = response.value.split("</think>");
-    const result = (thinkingParts[1] ?? thinkingParts[0]).trim();
-    messages.messages[tix].rember = result;
-    await idb.set("chatContents", messages);
+    const result = response.value.trim();
+    await messagesStore.write(async (old) => {
+      if (!old) return old;
+      if (old.id !== messages.id) return old;
+      old.messages[tix].rember = result;
+      return old;
+    });
     return {
       success: true,
       value: {
@@ -4434,15 +4546,15 @@ Status ${response.status}${metaWrapped}`
       }
     };
   }
-  function prepareMessages(parts, names, prompt2, state, system) {
+  function prepareMessages(parts, names, prompt2, state3, system) {
     const chat = parts.map((m3) => `## ${names[m3.from]}:
 ${m3.swipes[m3.selectedSwipe]}
 
 `).join("\n");
     const payload = [
-      ...state ? [
+      ...state3 ? [
         "# saved roleplay state",
-        state,
+        state3,
         ""
       ] : [],
       "# chat history",
@@ -4457,120 +4569,126 @@ ${m3.swipes[m3.selectedSwipe]}
   async function updateRemberCounter() {
     const remberCounter = document.querySelector("#chat-rember-counter");
     remberCounter.hidden = true;
-    const state = await getCurrentChat();
-    if (!state) return;
-    const lastRembered = state.messages.messages.findLastIndex((m3) => m3.rember);
-    const lid = state.messages.messages.length - 1;
+    const chat = await chatStore.read();
+    if (!chat) return;
+    const messages = await messagesStore.read();
+    if (!messages) return;
+    const lastRembered = messages.messages.findLastIndex((m3) => m3.rember);
+    const lid = messages.messages.length - 1;
     if (lastRembered === -1) {
       remberCounter.hidden = true;
       return;
     }
     const delta = lid - lastRembered;
     remberCounter.textContent = `\u29D6${delta}`;
-    remberCounter.dataset.run = delta > state.chat.rember.stride * 2 ? "true" : "false";
+    remberCounter.dataset.run = delta > chat.rember.stride * 2 ? "true" : "false";
     remberCounter.hidden = false;
   }
 
   // src/units/chat/utils.ts
   async function setSwipe(chatId, messageId, swipeIx, value) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const tix = contents.value.messages.findIndex((m3) => m3.id === messageId);
-    if (tix < 0) return;
-    contents.value.messages[tix].swipes[swipeIx] = value;
-    await idb.set("chatContents", contents.value);
+    await messagesStore.write(async (old) => {
+      if (!old || old.id !== chatId) return old;
+      const tix = old.messages.findIndex((m3) => m3.id === messageId);
+      if (tix < 0) return old;
+      old.messages[tix].swipes[swipeIx] = value;
+      return old;
+    });
   }
   async function pushSwipe(chatId, messageId, value, reasoning) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return;
-    messages[mix].swipes = messages[mix].swipes.filter((m3) => m3.trim());
-    messages[mix].swipes.push(value);
-    const six = messages[mix].swipes.length - 1;
-    messages[mix].selectedSwipe = six;
-    if (reasoning) {
-      if (!messages[mix].reasoningBoxes) messages[mix].reasoningBoxes = [];
-      messages[mix].reasoningBoxes[six] = reasoning;
-    }
-    chat.value.lastUpdate = Date.now();
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    return messages[mix];
+    let result = null;
+    await messagesStore.write(async (old) => {
+      if (!old || old.id !== chatId) {
+        toast("failed to push swipe: chat id mismatch");
+        return old;
+      }
+      const mix = old.messages.findIndex((m3) => m3.id === messageId);
+      if (mix < 0) return old;
+      old.messages[mix].swipes = old.messages[mix].swipes.filter((m3) => m3.trim());
+      old.messages[mix].swipes.push(value);
+      const six = old.messages[mix].swipes.length - 1;
+      old.messages[mix].selectedSwipe = six;
+      if (reasoning) {
+        if (!old.messages[mix].reasoningBoxes) old.messages[mix].reasoningBoxes = [];
+        old.messages[mix].reasoningBoxes[six] = reasoning;
+      }
+      chatStore.write(async (chat) => {
+        if (!chat || chat.id !== chatId) return chat;
+        chat.lastUpdate = Date.now();
+        return chat;
+      });
+      result = old.messages[mix];
+      return old;
+    });
+    return result;
   }
   async function addMessage(chatId, value, fromUser, name) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const newMessage = {
-      from: fromUser ? "user" : "model",
-      id: messages.length,
-      name,
-      rember: null,
-      selectedSwipe: 0,
-      swipes: [value]
-    };
-    messages.push(newMessage);
-    chat.value.lastUpdate = Date.now();
-    chat.value.messageCount = messages.length;
-    contents.value.messages.forEach((m3) => {
-      if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
-        toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
-        m3.selectedSwipe = 0;
-      }
+    let result = null;
+    await messagesStore.write(async (old) => {
+      if (!old || old.id !== chatId) return old;
+      const newMessage = {
+        from: fromUser ? "user" : "model",
+        id: old.messages.length,
+        name,
+        rember: null,
+        selectedSwipe: 0,
+        swipes: [value]
+      };
+      old.messages.push(newMessage);
+      chatStore.write(async (chat) => {
+        if (!chat || chat.id !== chatId) return chat;
+        chat.lastUpdate = Date.now();
+        chat.messageCount = old.messages.length;
+        return chat;
+      });
+      old.messages.forEach((m3) => {
+        if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
+          toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
+          m3.selectedSwipe = 0;
+        }
+      });
+      result = newMessage;
+      return old;
     });
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    return newMessage;
+    return result;
   }
   async function updateSwipeIndex(six, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
-    if (typeof contents.value.messages[mix].swipes[six] !== "string") {
-      toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
-      return;
-    }
-    contents.value.messages[mix].selectedSwipe = six;
-    await idb.set("chatContents", contents.value);
+    await messagesStore.write(async (old) => {
+      if (!old || old.id !== chatId) return old;
+      const mix = old.messages.findIndex((m3) => m3.id === mid);
+      if (typeof old.messages[mix].swipes[six] !== "string") {
+        toast(`error: setting six ${six} on mid ${mid}, but only ${old.messages[mix].swipes.length} swipes are present`);
+        return old;
+      }
+      old.messages[mix].selectedSwipe = six;
+      return old;
+    });
   }
   async function updateRember(value, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
-    contents.value.messages[mix].rember = value;
-    await idb.set("chatContents", contents.value);
+    await messagesStore.write(async (old) => {
+      if (!old || old.id !== chatId) return old;
+      const mix = old.messages.findIndex((m3) => m3.id === mid);
+      old.messages[mix].rember = value;
+      return old;
+    });
   }
   async function deleteMessage(chatId, messageId) {
     const inputModes = document.querySelector("#chat-controls");
     if (inputModes.tab !== "main") return;
     if (!confirm("all the following messages will be deleted too")) return;
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return;
-    contents.value.messages.splice(mix);
-    chat.value.lastUpdate = Date.now();
-    chat.value.messageCount = messages.length;
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
+    messagesStore.write(async (old) => {
+      if (!old || old.id !== chatId) return old;
+      const mix = old.messages.findIndex((m3) => m3.id === messageId);
+      if (mix < 0) return old;
+      old.messages.splice(mix);
+      chatStore.write(async (chat) => {
+        if (!chat || chat.id !== chatId) return chat;
+        chat.lastUpdate = Date.now();
+        chat.messageCount = old.messages.length;
+        return chat;
+      });
+      return old;
+    });
     const messageViews = document.querySelectorAll(".message[data-mid]");
     messageViews.forEach((m3) => {
       const mid = parseInt(m3.dataset.mid, 10);
@@ -4598,18 +4716,17 @@ ${m3.swipes[m3.selectedSwipe]}
     return payload;
   }
   async function prepareRerollPayload(chatId, messageId) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
+    const chat = await chatStore.read();
+    if (!chat) return;
+    const messages = await messagesStore.read();
+    if (!messages) return;
+    if (chat.id !== chatId || messages.id !== chatId) return;
+    const mix = messages.messages.findIndex((m3) => m3.id === messageId);
     if (mix < 0) return null;
-    const history = messages.slice(0, mix);
+    const history = messages.messages.slice(0, mix);
     const settings = loadMiscSettings();
     const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
-    const system = dullMessage("system", chat.value.scenario.definition);
+    const system = dullMessage("system", chat.scenario.definition);
     const payload = [
       system,
       ...sliced
@@ -4683,50 +4800,27 @@ ${chat[remberAt].rember}`),
       );
     }
   }
-  async function getCurrentChat(chat = true, contents = true) {
-    const [page, chatId] = getRoute();
-    if (page !== "play") return null;
-    if (chat && contents) {
-      const [messages, chat2] = await Promise.all([
-        idb.get("chatContents", chatId),
-        idb.get("chats", chatId)
-      ]);
-      if (!messages.success || !chat2.success) return null;
-      return { messages: messages.value, chat: chat2.value };
-    } else if (chat) {
-      const chat2 = await idb.get("chats", chatId);
-      if (chat2.success)
-        return { chat: chat2.value };
-      else
-        return null;
-    } else if (contents) {
-      const messages = await idb.get("chatContents", chatId);
-      if (messages.success)
-        return { messages: messages.value };
-      else
-        return null;
-    }
-    return null;
-  }
 
   // src/units/chat/load.ts
+  function clearMessageViews() {
+    const list = document.querySelector("#play-messages");
+    list.innerHTML = "";
+  }
   async function loadMessages(chatId) {
     const list = document.querySelector("#play-messages");
     list.innerHTML = "";
-    const [contents, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !meta.success) return;
-    updateTitle(meta.value.scenario.name);
-    const [userPic, modelPic] = await loadPictures(meta.value);
-    const messages = contents.value.messages;
-    const items = messages.map((item, ix) => {
+    const chat = await chatStore.read();
+    if (!chat) return;
+    const messages = await messagesStore.read();
+    if (!messages) return;
+    if (chat.id !== messages.id) return;
+    updateTitle(chat.scenario.name);
+    const [userPic, modelPic] = await loadPictures(chat);
+    const items = messages.messages.map((item, ix) => {
       return makeMessageView(
         item,
-        // meta.value,
         [userPic, modelPic],
-        ix === messages.length - 1,
+        ix === messages.messages.length - 1,
         (swipeIx, value) => {
           setSwipe(chatId, item.id, swipeIx, value);
         },
@@ -4745,17 +4839,14 @@ ${chat[remberAt].rember}`),
     const textarea = document.querySelector("#chat-textarea");
     const message = textarea.value?.trim();
     if (!message) return;
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const [messages, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!messages.success || !meta.success) return;
-    const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
-    const lastMessageId = messages.value.messages.findLast(() => true)?.id;
+    const chat = await chatStore.read();
+    if (!chat) return;
+    const messages = await messagesStore.read();
+    if (!messages) return;
+    const payload = await preparePayload(messages.messages, chat.scenario.definition, message);
+    const lastMessageId = messages.messages.findLast(() => true)?.id;
     getMessageViewByID(lastMessageId)?.controls.setIsLast(false);
-    const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
+    const newUserMessage = await addMessage(chat.id, message, true, chat.userPersona.name);
     if (!newUserMessage) {
       toast("failed to save user message");
       return;
@@ -4766,41 +4857,41 @@ ${chat[remberAt].rember}`),
     };
     const userMessage = makeMessageView(
       newUserMessage,
-      await loadPictures(meta.value),
+      await loadPictures(chat),
       false,
       // on edit
       (swipeIx, value) => {
-        setSwipe(chatId, newUserMessage.id, swipeIx, value);
+        setSwipe(chat.id, newUserMessage.id, swipeIx, value);
       },
       // on reroll
       () => {
         throw Error("haha nope");
       },
-      () => deleteMessage(chatId, newUserMessage.id),
+      () => deleteMessage(chat.id, newUserMessage.id),
       swipesDisabled
     );
-    const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
+    const newModelMessage = await addMessage(chat.id, "", false, chat.scenario.name);
     if (!newModelMessage) {
       toast("failed to save user message");
       return;
     }
     const responseMessage = makeMessageView(
       newModelMessage,
-      await loadPictures(meta.value),
+      await loadPictures(chat),
       true,
       // on edit
       (swipeIx, value) => {
-        setSwipe(chatId, newModelMessage.id, swipeIx, value);
+        setSwipe(chat.id, newModelMessage.id, swipeIx, value);
       },
       // reroll
-      () => reroll(chatId, newModelMessage.id),
+      () => reroll(chat.id, newModelMessage.id),
       () => {
         throw Error("haha nope");
       },
-      (six) => updateSwipeIndex(six, newModelMessage.id, chatId)
+      (six) => updateSwipeIndex(six, newModelMessage.id, chat.id)
     );
     list.append(userMessage, responseMessage);
-    loadResponse(payload, newModelMessage.id, meta.value.id);
+    loadResponse(payload, newModelMessage.id, chat.id);
     textarea.value = "";
     textareaReconsider(textarea);
     updateRemberCounter();
@@ -4965,13 +5056,18 @@ ${chat[remberAt].rember}`),
     ]);
   }
   async function update() {
-    const route = getRoute();
-    if (route[0] !== "play") {
+    const [page, chatId] = getRoute();
+    if (page !== "play") {
       updateTitle(null);
+      clearMessageViews();
       return;
     }
-    if (!route[1]) return;
-    await loadMessages(route[1]);
+    if (!chatId) return;
+    await Promise.all([
+      chatStore.update(),
+      messagesStore.update()
+    ]);
+    await loadMessages(chatId);
     updateRemberCounter();
   }
   function updateProviders() {
@@ -5027,16 +5123,14 @@ ${card.value.card.description}`;
       toast("Scenario card not found");
   }
   async function exportChat() {
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const [chat, contents] = await Promise.all([
-      idb.get("chats", chatId),
-      idb.get("chatContents", chatId)
-    ]);
-    if (!chat.success || !contents.success) return;
+    const chat = await chatStore.read();
+    if (!chat) return;
+    const messages = await messagesStore.read();
+    if (!messages) return;
+    if (chat.id !== messages.id) return;
     const mediaIDs = [
-      chat.value.userPersona.picture,
-      chat.value.scenario.picture
+      chat.userPersona.picture,
+      chat.scenario.picture
     ].filter((id) => id);
     const encodedMedia = await asyncMap(
       mediaIDs,
@@ -5050,23 +5144,28 @@ ${card.value.card.description}`;
       }
     );
     const payload = {
-      chat: chat.value,
-      contents: contents.value,
+      chat,
+      contents: messages,
       media: encodedMedia.filter((m3) => m3)
     };
-    download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
+    download(JSON.stringify(payload), `${chat.scenario.name}.${chat.id}.aegir.chat.json`);
   }
   async function cloneChat() {
-    const state = await getCurrentChat();
-    if (!state) return;
-    const { chat, messages } = state;
+    const chat = await chatStore.read();
+    if (!chat) return;
+    const messages = await messagesStore.read();
+    if (!messages) return;
     const nid = crypto.randomUUID();
-    chat.id = nid;
-    messages.id = nid;
-    chat.lastUpdate = Date.now();
     await Promise.all([
-      idb.set("chats", chat),
-      idb.set("chatContents", messages)
+      idb.set("chats", {
+        ...chat,
+        id: nid,
+        lastUpdate: Date.now()
+      }),
+      idb.set("chatContents", {
+        ...messages,
+        id: nid
+      })
     ]);
     toast("new chat created");
   }
@@ -6365,6 +6464,7 @@ ${scenario}
     libraryUnit,
     scenarioUnit,
     docsUnit,
+    cachingUnit,
     cheatsUnit
   ];
   async function main() {

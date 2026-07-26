@@ -1,28 +1,32 @@
-import { idb } from "@root/persist";
 import { deleteMessage, loadPictures, reroll, setSwipe, updateSwipeIndex } from "./utils";
 import { makeMessageView } from "./views";
 import { updateTitle } from "@root/utils";
+import { chatStore, messagesStore } from "@units/caching";
+
+export function clearMessageViews() {
+	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
+	list.innerHTML = "";
+}
 
 export async function loadMessages(chatId: string) {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
 	list.innerHTML = "";
 
-	const [contents, meta] = await Promise.all([
-		idb.get("chatContents", chatId),
-		idb.get("chats", chatId)
-	]);
-	if (!contents.success || !meta.success) return;
-	updateTitle(meta.value.scenario.name);
+	const chat = await chatStore.read();
+	if (!chat) return;
+	const messages = await messagesStore.read();
+	if (!messages) return;
+	if (chat.id !== messages.id) return;
+	
+	updateTitle(chat.scenario.name);
 
-	const [userPic, modelPic] = await loadPictures(meta.value);
+	const [userPic, modelPic] = await loadPictures(chat);
 
-	const messages = contents.value.messages;
-	const items = messages.map((item, ix) => {
+	const items = messages.messages.map((item, ix) => {
 		return makeMessageView(
 			item,
-			// meta.value,
 			[userPic, modelPic],
-			ix === messages.length - 1,
+			ix === messages.messages.length - 1,
 			(swipeIx, value) => {
 				setSwipe(chatId, item.id, swipeIx, value);
 			},
@@ -33,6 +37,5 @@ export async function loadMessages(chatId: string) {
 	});
 
 	list.append(...items);
-	// items[items.length - 1].scrollIntoView(false);
 	list.scrollTop = list.scrollHeight;
 }

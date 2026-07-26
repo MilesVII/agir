@@ -1,5 +1,5 @@
 import { asyncMap, b64Encoder, download, getRoute, makeResizable, renderMD, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
-import { loadMessages } from "./chat/load";
+import { clearMessageViews, loadMessages } from "./chat/load";
 import { RampikeTabs } from "@rampike/tabs";
 import { idb, listen, local } from "@root/persist";
 import { readActiveProviders, readProviders } from "./settings/providers";
@@ -10,7 +10,7 @@ import { initChatEditor } from "./chat/editor";
 import { initRember, updateRemberCounter } from "./chat/rember";
 import { toast } from "./toasts";
 import { RampikeModal } from "@rampike/modal";
-import { getCurrentChat } from "./chat/utils";
+import { chatStore, messagesStore } from "./caching";
 
 export function chatUnit() {
 	const scroller       = document.querySelector<HTMLElement>        ("#play-messages")!;
@@ -70,14 +70,19 @@ export function chatUnit() {
 }
 
 async function update() {
-	const route = getRoute();
-	if (route[0] !== "play") {
+	const [page, chatId] = getRoute();
+	if (page !== "play") {
 		updateTitle(null);
+		clearMessageViews();
 		return;
 	}
-	if (!route[1]) return;
+	if (!chatId) return;
 
-	await loadMessages(route[1]);
+	await Promise.all([
+		chatStore.update(),
+		messagesStore.update()
+	]);
+	await loadMessages(chatId);
 	updateRemberCounter();
 }
 
@@ -141,17 +146,15 @@ async function openScenarioIfExists() {
 }
 
 async function exportChat() {
-	const [, chatId] = getRoute();
-	if (!chatId) return;
-	const [chat, contents] = await Promise.all([
-		idb.get("chats", chatId),
-		idb.get("chatContents", chatId)
-	]);
-	if (!chat.success || !contents.success) return;
+	const chat = await chatStore.read();
+	if (!chat) return;
+	const messages = await messagesStore.read();
+	if (!messages) return;
+	if (chat.id !== messages.id) return;
 
 	const mediaIDs = [
-			chat.value.userPersona.picture,
-			chat.value.scenario.picture
+			chat.userPersona.picture,
+			chat.scenario.picture
 		].filter(id => id) as string[];
 	const encodedMedia = await asyncMap(mediaIDs,
 		async (id: string) => {
@@ -165,25 +168,31 @@ async function exportChat() {
 	);
 
 	const payload = {
-		chat: chat.value,
-		contents: contents.value,
+		chat: chat,
+		contents: messages,
 		media: encodedMedia.filter(m => m)
 	};
 
-	download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
+	download(JSON.stringify(payload), `${chat.scenario.name}.${chat.id}.aegir.chat.json`);
 }
 
 async function cloneChat() {
-	const state = await getCurrentChat();
-	if (!state) return;
-	const { chat, messages } = state;
+	const chat = await chatStore.read();
+	if (!chat) return;
+	const messages = await messagesStore.read();
+	if (!messages) return;
+
 	const nid = crypto.randomUUID();
-	chat.id = nid;
-	messages.id = nid;
-	chat.lastUpdate = Date.now();
 	await Promise.all([
-		idb.set("chats", chat),
-		idb.set("chatContents", messages),
+		idb.set("chats", {
+			...chat,
+			id: nid,
+			lastUpdate: Date.now()
+		}),
+		idb.set("chatContents", {
+			...messages,
+			id: nid
+		})
 	]);
 	toast("new chat created");
 }

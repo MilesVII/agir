@@ -1,108 +1,121 @@
 import { RampikeTabs } from "@rampike/tabs";
-import { getBlobLink, idb, listen } from "@root/persist";
+import { getBlobLink, idb } from "@root/persist";
 import { runProvider } from "@root/run";
-import { Chat, ChatContents, ChatMessage } from "@root/types";
+import { Chat, ChatMessage } from "@root/types";
 import { readProviders } from "@units/settings/providers";
 import { RampikeMessageView } from "./views";
 import { loadMiscSettings } from "@units/settings/misc";
-import { getRoute } from "@root/utils";
 import { toast } from "@units/toasts";
 import { updateRemberCounter } from "./rember";
+import { chatStore, messagesStore } from "@units/caching";
 
 export async function setSwipe(chatId: string, messageId: number, swipeIx: number, value: string) {
-	const contents = await idb.get("chatContents", chatId);
-	if (!contents.success) return;
+	await messagesStore.write(async old => {
+		if (!old || old.id !== chatId) return old;
 
-	const tix = contents.value.messages.findIndex(m => m.id === messageId);
-	if (tix < 0) return;
-
-	contents.value.messages[tix].swipes[swipeIx] = value;
-	await idb.set("chatContents", contents.value);
+		const tix = old.messages.findIndex(m => m.id === messageId);
+		if (tix < 0) return old;
+	
+		old.messages[tix].swipes[swipeIx] = value;
+		return old;
+	});
 }
 
 export async function pushSwipe(chatId: string, messageId: number, value: string, reasoning?: string) {
-	const [contents, chat] = await Promise.all([
-		idb.get("chatContents", chatId),
-		idb.get("chats", chatId)
-	]);
-	if (!contents.success || !chat.success) return null;
-	const messages = contents.value.messages;
+	let result: ChatMessage | null = null;
+	await messagesStore.write(async old => {
+		if (!old || old.id !== chatId) {
+			toast("failed to push swipe: chat id mismatch")
+			return old;
+		}
 
-	const mix = messages.findIndex(m => m.id === messageId);
-	if (mix < 0) return;
+		const mix = old.messages.findIndex(m => m.id === messageId);
+		if (mix < 0) return old;
+		
+		old.messages[mix].swipes = old.messages[mix].swipes.filter(m => m.trim());
+		old.messages[mix].swipes.push(value);
+		const six = old.messages[mix].swipes.length - 1;
+		old.messages[mix].selectedSwipe = six;
+		if (reasoning) {
+			if (!old.messages[mix].reasoningBoxes) old.messages[mix].reasoningBoxes = [];
+			old.messages[mix].reasoningBoxes[six] = reasoning;
+		}
 
-	messages[mix].swipes = messages[mix].swipes.filter(m => m.trim());
-	messages[mix].swipes.push(value);
-	const six = messages[mix].swipes.length - 1;
-	messages[mix].selectedSwipe = six;
-	if (reasoning) {
-		if (!messages[mix].reasoningBoxes) messages[mix].reasoningBoxes = [];
-		messages[mix].reasoningBoxes[six] = reasoning;
-	}
+		chatStore.write(async chat => {
+			if (!chat || chat.id !== chatId) return chat;
+			chat.lastUpdate = Date.now();
+			return chat;
+		});
+		result = old.messages[mix];
 
-	chat.value.lastUpdate = Date.now();
-	await Promise.all([
-		idb.set("chatContents", contents.value),
-		idb.set("chats", chat.value)
-	]);
+		return old;
+	})
 
-	return messages[mix];
+	return result;
 }
 
-export async function addMessage(chatId: string, value: string, fromUser: boolean, name: string) {
-	const [contents, chat] = await Promise.all([
-		idb.get("chatContents", chatId),
-		idb.get("chats", chatId)
-	]);
-	if (!contents.success || !chat.success) return null;
-	const messages = contents.value.messages;
+export async function addMessage(chatId: string, value: string, fromUser: boolean, name: string): Promise<ChatMessage | null> {
+	let result: ChatMessage | null = null;
 
-	const newMessage: ChatMessage = {
-		from: fromUser ? "user" : "model",
-		id: messages.length,
-		name: name,
-		rember: null,
-		selectedSwipe: 0,
-		swipes: [value]
-	};
-	messages.push(newMessage);
+	await messagesStore.write(async old => {
+		if (!old || old.id !== chatId) return old;
 
-	chat.value.lastUpdate = Date.now();
-	chat.value.messageCount = messages.length;
+		const newMessage: ChatMessage = {
+			from: fromUser ? "user" : "model",
+			id: old.messages.length,
+			name: name,
+			rember: null,
+			selectedSwipe: 0,
+			swipes: [value]
+		};
+		old.messages.push(newMessage);
+	
+		chatStore.write(async chat => {
+			if (!chat || chat.id !== chatId) return chat;
 
-	// HACK: heal bugged swipeIndesex
-	contents.value.messages.forEach(m => {
-		if (typeof m.swipes[m.selectedSwipe] !== "string") {
-			toast(`healed malformed message: mid ${m.id}, old six: ${m.selectedSwipe}`);
-			m.selectedSwipe = 0;
-		}
+			chat.lastUpdate = Date.now();
+			chat.messageCount = old.messages.length;
+			return chat;
+		})
+	
+		// HACK: heal bugged swipeIndesex
+		old.messages.forEach(m => {
+			if (typeof m.swipes[m.selectedSwipe] !== "string") {
+				toast(`healed malformed message: mid ${m.id}, old six: ${m.selectedSwipe}`);
+				m.selectedSwipe = 0;
+			}
+		});
+
+		result = newMessage;
+		return old;
 	});
 
-	await Promise.all([
-		idb.set("chatContents", contents.value),
-		idb.set("chats", chat.value)
-	]);
-
-	return newMessage;
+	return result;
 }
 
 export async function updateSwipeIndex(six: number, mid: number, chatId: string) {
-	const contents = await idb.get("chatContents", chatId);
-	if (!contents.success) return;
-	const mix = contents.value.messages.findIndex(m => m.id === mid);
-	if (typeof contents.value.messages[mix].swipes[six] !== "string") {
-		toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
-		return;
-	}
-	contents.value.messages[mix].selectedSwipe = six;
-	await idb.set("chatContents", contents.value);
+	await messagesStore.write(async old => {
+		if (!old || old.id !== chatId) return old;
+
+		const mix = old.messages.findIndex(m => m.id === mid);
+		if (typeof old.messages[mix].swipes[six] !== "string") {
+			toast(`error: setting six ${six} on mid ${mid}, but only ${old.messages[mix].swipes.length} swipes are present`);
+			return old;
+		}
+		old.messages[mix].selectedSwipe = six;
+
+		return old;
+	});
 }
 export async function updateRember(value: string | null, mid: number, chatId: string) {
-	const contents = await idb.get("chatContents", chatId);
-	if (!contents.success) return;
-	const mix = contents.value.messages.findIndex(m => m.id === mid);
-	contents.value.messages[mix].rember = value;
-	await idb.set("chatContents", contents.value);
+	await messagesStore.write(async old => {
+		if (!old || old.id !== chatId) return old;
+
+		const mix = old.messages.findIndex(m => m.id === mid);
+		old.messages[mix].rember = value;
+
+		return old;
+	});
 }
 
 export async function deleteMessage(chatId: string, messageId: number) {
@@ -111,24 +124,24 @@ export async function deleteMessage(chatId: string, messageId: number) {
 
 	if (!confirm("all the following messages will be deleted too")) return;
 
-	const [contents, chat] = await Promise.all([
-		idb.get("chatContents", chatId),
-		idb.get("chats", chatId)
-	]);
-	if (!contents.success || !chat.success) return;
-	const messages = contents.value.messages;
+	messagesStore.write(async old => {
+		if (!old || old.id !== chatId) return old;
 
-	const mix = messages.findIndex(m => m.id === messageId);
-	if (mix < 0) return;
+		const mix = old.messages.findIndex(m => m.id === messageId);
+		if (mix < 0) return old;
+	
+		old.messages.splice(mix);
+		chatStore.write(async chat => {
+			if (!chat || chat.id !== chatId) return chat;
 
-	contents.value.messages.splice(mix);
-	chat.value.lastUpdate = Date.now();
-	chat.value.messageCount = messages.length;
+			chat.lastUpdate = Date.now();
+			chat.messageCount = old.messages.length;
 
-	await Promise.all([
-		idb.set("chatContents", contents.value),
-		idb.set("chats", chat.value)
-	]);
+			return chat;
+		});
+
+		return old;
+	})
 
 	const messageViews = document.querySelectorAll<RampikeMessageView>(".message[data-mid]");
 	messageViews.forEach(m => {
@@ -162,22 +175,21 @@ export async function preparePayload(contents: ChatMessage[], systemPrompt: stri
 }
 
 export async function prepareRerollPayload(chatId: string, messageId: number) {
-	const [contents, chat] = await Promise.all([
-		idb.get("chatContents", chatId),
-		idb.get("chats", chatId)
-	]);
-	if (!contents.success || !chat.success) return null;
-	
-	const messages = contents.value.messages;
-	const mix = messages.findIndex(m => m.id === messageId);
+	const chat = await chatStore.read();
+	if (!chat) return;
+	const messages = await messagesStore.read();
+	if (!messages) return;
+	if (chat.id !== chatId || messages.id !== chatId) return;
+
+	const mix = messages.messages.findIndex(m => m.id === messageId);
 	if (mix < 0) return null;
 
-	const history = messages.slice(0, mix);
+	const history = messages.messages.slice(0, mix);
 
 	const settings = loadMiscSettings();
 	const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
 
-	const system: ChatMessage = dullMessage("system", chat.value.scenario.definition);
+	const system: ChatMessage = dullMessage("system", chat.scenario.definition);
 	const payload: ChatMessage[] = [
 		system,
 		...sliced
@@ -260,37 +272,4 @@ export function expandRember(chat: ChatMessage[]) {
 				chat.slice(remberAt + 1)
 			);
 	}
-}
-
-export async function getCurrentChat(chat?: true, contents?: true): Promise<{ chat: Chat, messages: ChatContents } | null>;
-export async function getCurrentChat(chat?: false, contents?: true): Promise<{ messages: ChatContents } | null>;
-export async function getCurrentChat(chat?: true, contents?: false): Promise<{ chat: Chat } | null>;
-
-export async function getCurrentChat(chat = true, contents = true) {
-	const [page, chatId] = getRoute();
-	if (page !== "play") return null;
-
-	if (chat && contents) {
-		const [messages, chat] = await Promise.all([
-			idb.get("chatContents", chatId),
-			idb.get("chats", chatId)
-		]);
-		if (!messages.success || !chat.success) return null;
-
-		return { messages: messages.value, chat: chat.value };
-	} else if (chat) {
-		const chat = await idb.get("chats", chatId);
-		if (chat.success)
-			return { chat: chat.value };
-		else
-			return null;
-	} else if (contents) {
-		const messages = await idb.get("chatContents", chatId);
-		if (messages.success)
-			return { messages: messages.value };
-		else
-			return null;
-	}
-
-	return null;
 }

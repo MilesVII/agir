@@ -1,9 +1,9 @@
-import { getRoute, textareaReconsider } from "@root/utils";
-import { idb } from "@root/persist";
+import { textareaReconsider } from "@root/utils";
 import { addMessage, deleteMessage, getMessageViewByID, loadPictures, loadResponse, preparePayload, reroll, setSwipe, updateSwipeIndex } from "./utils";
 import { makeMessageView } from "./views";
 import { toast } from "@units/toasts";
 import { updateRemberCounter } from "./rember";
+import { chatStore, messagesStore } from "@units/caching";
 
 export async function sendMessage() {
 	const list = document.querySelector<HTMLDivElement>("#play-messages")!;
@@ -12,21 +12,17 @@ export async function sendMessage() {
 	const message = textarea.value?.trim();
 	if (!message) return;
 
-	const [, chatId] = getRoute();
-	if (!chatId) return;
+	const chat = await chatStore.read();
+	if (!chat) return;
+	const messages = await messagesStore.read();
+	if (!messages) return;
 
-	const [messages, meta] = await Promise.all([
-		idb.get("chatContents", chatId),
-		idb.get("chats", chatId)
-	]);
-	if (!messages.success || !meta.success) return;
+	const payload = await preparePayload(messages.messages, chat.scenario.definition, message);
 
-	const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
-
-	const lastMessageId = messages.value.messages.findLast(() => true)?.id;
+	const lastMessageId = messages.messages.findLast(() => true)?.id;
 	getMessageViewByID(lastMessageId!)?.controls.setIsLast(false);
 
-	const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
+	const newUserMessage = await addMessage(chat.id, message, true, chat.userPersona.name);
 	if (!newUserMessage) {
 		toast("failed to save user message");
 		return;
@@ -38,18 +34,18 @@ export async function sendMessage() {
 	};
 	const userMessage = makeMessageView(
 		newUserMessage,
-		await loadPictures(meta.value),
+		await loadPictures(chat),
 		false,
 		// on edit
 		(swipeIx, value) => {
-			setSwipe(chatId, newUserMessage.id, swipeIx, value);
+			setSwipe(chat.id, newUserMessage.id, swipeIx, value);
 		},
 		// on reroll
 		() => { throw Error("haha nope"); },
-		() => deleteMessage(chatId, newUserMessage.id),
+		() => deleteMessage(chat.id, newUserMessage.id),
 		swipesDisabled
 	);
-	const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
+	const newModelMessage = await addMessage(chat.id, "", false, chat.scenario.name);
 	if (!newModelMessage) {
 		toast("failed to save user message");
 		return;
@@ -57,19 +53,19 @@ export async function sendMessage() {
 
 	const responseMessage = makeMessageView(
 		newModelMessage,
-		await loadPictures(meta.value),
+		await loadPictures(chat),
 		true,
 		// on edit
 		(swipeIx, value) => {
-			setSwipe(chatId, newModelMessage.id, swipeIx, value);
+			setSwipe(chat.id, newModelMessage.id, swipeIx, value);
 		},
 		// reroll
-		() => reroll(chatId, newModelMessage.id),
+		() => reroll(chat.id, newModelMessage.id),
 		() => { throw Error("haha nope"); },
-		(six) => updateSwipeIndex(six, newModelMessage.id, chatId)
+		(six) => updateSwipeIndex(six, newModelMessage.id, chat.id)
 	);
 	list.append(userMessage, responseMessage);
-	loadResponse(payload, newModelMessage.id, meta.value.id);
+	loadResponse(payload, newModelMessage.id, chat.id);
 
 	textarea.value = "";
 	textareaReconsider(textarea);

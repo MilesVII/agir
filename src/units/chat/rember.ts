@@ -1,12 +1,13 @@
 import { abortController, runProvider } from "@root/run";
 import { ChatMessage, Result } from "@root/types";
-import { dullMessage, getCurrentChat, updateRember } from "./utils";
-import { idb, listen, local } from "@root/persist";
+import { dullMessage, updateRember } from "./utils";
+import { listen, local } from "@root/persist";
 import { readActiveProviders, readProviders } from "@units/settings/providers";
 import { RampikeModal } from "@rampike/modal";
 import { setSelectOptions } from "@root/utils";
 import { toast } from "@units/toasts";
 import { remberMessageView, RemberView } from "./views";
+import { chatStore, messagesStore } from "@units/caching";
 
 export const REMBER_DEFAULTS = {
 	stride: 10,
@@ -65,22 +66,24 @@ export function initRember() {
 		setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
 	}
 	async function onOpen() {
-		const state = await getCurrentChat();
-		if (!state) return;
+		const chat = await chatStore.read();
+		if (!chat) return;
+		const messages = await messagesStore.read();
+		if (!messages) return;
 
 		// @ts-expect-error yeah that's fine
 		strideInput.value = state.chat.rember?.stride ?? "";
 		// HACK: Remove optional after migrations
-		prompt.value   = state.chat.rember?.prompt   ?? REMBER_DEFAULTS.prompt;
+		prompt.value   = chat.rember?.prompt   ?? REMBER_DEFAULTS.prompt;
 
 		list.innerHTML = "";
 
-		const remberMessages = state.messages.messages.filter(m => m.rember);
+		const remberMessages = messages.messages.filter(m => m.rember);
 		const items = remberMessages
 			.map(m => remberMessageView(
 				m.id,
-				v => updateRember(v, m.id, state.chat.id),
-				() => updateRember(null, m.id, state.chat.id),
+				v => updateRember(v, m.id, chat.id),
+				() => updateRember(null, m.id, chat.id),
 				m.rember!
 			))
 			.toReversed();
@@ -88,16 +91,16 @@ export function initRember() {
 	}
 
 	async function step() {
-		const state = await getCurrentChat(true, false);
-		if (!state) return;
+		const chat = await chatStore.read();
+		if (!chat) return;
 
 		let view: RemberView | null = null;
 		function checkView(mid: number) {
 			if (!view) {
 				view = remberMessageView(
 					mid,
-					v => updateRember(v, mid, state!.chat.id),
-					() => updateRember(null, mid, state!.chat.id),
+					v => updateRember(v, mid, chat!.id),
+					() => updateRember(null, mid, chat!.id),
 				);
 				list.prepend(view);
 			}
@@ -112,7 +115,7 @@ export function initRember() {
 			providerPicker.value,
 			getStride(),
 			prompt.value.trim(),
-			state.chat.scenario.definition
+			chat.scenario.definition
 		);
 		if (!result.success) return false;
 		checkView(result.value.mid).controls.enable(result.value.response);
@@ -130,16 +133,18 @@ export function initRember() {
 		abortController.abort();
 	}
 	async function saveSettings() {
-		const state = await getCurrentChat(true, false);
-		if (!state) return;
-		const v = {
-			prompt: prompt.value.trim(),
-			stride: getStride()
-		};
-		state.chat.rember = v;
-		await idb.set("chats", state.chat);
+		await chatStore.write(async (old) => {
+			if (!old) return old;
 
-		const detailsElement = strideInput.parentElement?.parentElement?.parentElement?.parentElement as HTMLDetailsElement;
+			const v = {
+				prompt: prompt.value.trim(),
+				stride: getStride()
+			};
+			old.rember = v;
+			return old;
+		});
+
+		const detailsElement = strideInput.parentElement?.parentElement?.parentElement?.parentElement as HTMLDetailsElement; // TODO: eto... bleh
 		if (detailsElement) detailsElement.open = false;
 	}
 	function resetPrompt() {
@@ -189,9 +194,11 @@ export async function runRember(
 	start = lix; // 3
 	end = tix = start + stride * 2
 	*/
-	const eh = await getCurrentChat();
-	if (!eh) return { success: false, error: "noload"};
-	const { chat, messages } = eh;
+	const chat = await chatStore.read();
+	if (!chat) return { success: false, error: "noload"};
+	const messages = await messagesStore.read();
+	if (!messages) return { success: false, error: "noload"};
+
 	const noLastAction = messages.messages.slice(0, -2);
 	let lix = noLastAction.findLastIndex(m => m.rember);
 	const state = lix === -1
@@ -221,12 +228,16 @@ export async function runRember(
 		toast(response.error);
 		return { success: false, error: "failed"};
 	}
-	
-	const thinkingParts = response.value.split("</think>");
-	const result = (thinkingParts[1] ?? thinkingParts[0]!).trim();
 
-	messages.messages[tix].rember = result;
-	await idb.set("chatContents", messages);
+	const result = response.value.trim();
+
+	await messagesStore.write(async old => {
+		if (!old) return old;
+		if (old.id !== messages.id) return old;
+
+		old.messages[tix].rember = result;
+		return old;
+	});
 
 	return {
 		success: true,
@@ -273,16 +284,19 @@ export async function updateRemberCounter() {
 	const remberCounter = document.querySelector<HTMLButtonElement>("#chat-rember-counter")!;
 	remberCounter.hidden = true;
 
-	const state = await getCurrentChat();
-	if (!state) return;
-	const lastRembered = state.messages.messages.findLastIndex(m => m.rember);
-	const lid = state.messages.messages.length - 1;
+	const chat = await chatStore.read();
+	if (!chat) return;
+	const messages = await messagesStore.read();
+	if (!messages) return;
+
+	const lastRembered = messages.messages.findLastIndex(m => m.rember);
+	const lid = messages.messages.length - 1;
 	if (lastRembered === -1) { // forgor
 		remberCounter.hidden = true;
 		return;
 	}
 	const delta = lid - lastRembered;
 	remberCounter.textContent = `⧖${delta}`;
-	remberCounter.dataset.run = (delta > state.chat.rember.stride * 2) ? "true" : "false";
+	remberCounter.dataset.run = (delta > chat.rember.stride * 2) ? "true" : "false";
 	remberCounter.hidden = false;
 }

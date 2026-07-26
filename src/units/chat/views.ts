@@ -79,7 +79,7 @@ export function makeMessageView(
 		textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
 		swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
 		swipesControl.style.display = (isLast && msg.swipes.length > 1) ? "flex" : "none";
-		onSwipe(msg.selectedSwipe);
+		if (delta !== 0) onSwipe(msg.selectedSwipe);
 		updateReasoning();
 	}
 	async function setSwipeToLast() {

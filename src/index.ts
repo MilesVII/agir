@@ -16,6 +16,7 @@ import { libraryUnit } from "@units/library";
 import { toast } from "@units/toasts";
 import { docsUnit } from "@units/docs";
 import { cheatsUnit } from "@units/cheats";
+import { cachingUnit } from "@units/caching";
 
 defineTabs();
 defineRadio();
@@ -36,6 +37,7 @@ const units: (() => void)[] = [
 	libraryUnit,
 	scenarioUnit,
 	docsUnit,
+	cachingUnit,
 	cheatsUnit
 ];
 
