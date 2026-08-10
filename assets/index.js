@@ -3833,7 +3833,8 @@ Status ${response.status}${metaWrapped}`
               };
             }
             parsedPocket = parsed.value;
-            const delta = parsed.value.choices[0].delta;
+            const delta = parsed.value.choices?.[0]?.delta;
+            if (!delta) continue;
             const reasoning = delta.reasoning || delta.reasoning_content;
             const content = delta.content;
             if (reasoning) {
