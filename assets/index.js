@@ -3832,18 +3832,21 @@ Status ${response.status}${metaWrapped}`
                 error: `Provider says "${JSON.stringify(parsed.value.error)}"`
               };
             }
-            parsedPocket = parsed.value;
-            const delta = parsed.value.choices?.[0]?.delta;
-            if (!delta) continue;
-            const reasoning = delta.reasoning || delta.reasoning_content;
-            const content = delta.content;
-            if (reasoning) {
-              reasoningStatus?.(true);
-              onReasonChunk?.(reasoning);
-            } else if (content) {
-              reasoningStatus?.(false);
-              chonks.push(content);
-              onChunk(content);
+            try {
+              parsedPocket = parsed.value;
+              const delta = parsed.value.choices[0].delta;
+              const reasoning = delta.reasoning || delta.reasoning_content;
+              const content = delta.content;
+              if (reasoning) {
+                reasoningStatus?.(true);
+                onReasonChunk?.(reasoning);
+              } else if (content) {
+                reasoningStatus?.(false);
+                chonks.push(content);
+                onChunk(content);
+              }
+            } catch (e) {
+              console.warn("Chunk error: ", parsed.value, e);
             }
           }
         }
