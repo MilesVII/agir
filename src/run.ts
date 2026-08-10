@@ -3,6 +3,7 @@ import { nothrow, nothrowAsync } from "./utils";
 
 
 export let abortController: AbortController;
+let parsedPocket: any;
 
 const OR_ATTRIBUTION_HEADERS = {
 	"HTTP-Referer": "https://aegir", // retarded OR attribution expects me to own the whole domain for some reason
@@ -118,6 +119,7 @@ export async function runProvider(
 							error: `Provider says "${JSON.stringify(parsed.value.error)}"`
 						};
 					}
+					parsedPocket = parsed.value;
 					const delta = parsed.value.choices[0].delta;
 					const reasoning = delta.reasoning || delta.reasoning_content;
 					const content = delta.content;
@@ -133,6 +135,7 @@ export async function runProvider(
 			}
 		}
 	} catch(e: any) {
+		console.error(parsedPocket);
 		if (!abortController.signal.aborted) // or: if (!e instanceof DOMException)
 			return {
 				success: false,

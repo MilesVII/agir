@@ -3734,6 +3734,7 @@ ${text2.slice(0, 64)}`);
 
   // src/run.ts
   var abortController;
+  var parsedPocket;
   var OR_ATTRIBUTION_HEADERS = {
     "HTTP-Referer": "https://aegir",
     // retarded OR attribution expects me to own the whole domain for some reason
@@ -3831,6 +3832,7 @@ Status ${response.status}${metaWrapped}`
                 error: `Provider says "${JSON.stringify(parsed.value.error)}"`
               };
             }
+            parsedPocket = parsed.value;
             const delta = parsed.value.choices[0].delta;
             const reasoning = delta.reasoning || delta.reasoning_content;
             const content = delta.content;
@@ -3846,6 +3848,7 @@ Status ${response.status}${metaWrapped}`
         }
       }
     } catch (e) {
+      console.error(parsedPocket);
       if (!abortController.signal.aborted)
         return {
           success: false,
