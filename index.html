@@ -205,12 +205,35 @@
 						<button id="library-armory-button"   class="lineout fit">armory</button>
 					</div>
 				</div>
-				<ram-page
-					id="library-pager"
-					class="row-compact baseline pad float-center fit"
-					class-buttons="lineout"
-				></ram-page>
-				<div id="library-cards" class="grid-list"></div>
+				<div class="col pad">
+					<div class="row float-center fit hor-autoflow">
+						<button id="library-search" class="lineout fit">search</button>
+						<ram-page
+							id="library-pager"
+							class="row-compact baseline"
+							class-buttons="lineout"
+						></ram-page>
+					</div>
+					<div id="library-search-dialog" class="lineout col" hidden>
+						<div class="row-compact">
+							<input type="text" id="library-search-input" class="lineout wide" placeholder="search query" />
+							<button class="lineout" id="library-search-button">search</button>
+							<button class="lineout" id="library-search-cancel">cancel</button>
+						</div>
+						
+						<div class="list">
+							<div>search in</div>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-ct" checked/><div>card title</div></label>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-cd" checked/><div>card description</div></label>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-tg" checked/><div>card tags</div></label>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-cn" checked/><div>character name</div></label>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-an" checked/><div>author's name and url</div></label>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-cp" checked/><div>character prompt</div></label>
+							<label class="row-compact"><input type="checkbox" id="library-search-f-co" checked/><div>character openings</div></label>
+						</div>
+					</div>
+					<div id="library-cards" class="grid-list"></div>
+				</div>
 			</ram-tab>
 			<ram-tab key="scenario-editor">
 				<div class="topbar shadow">

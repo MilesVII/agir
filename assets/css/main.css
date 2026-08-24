@@ -24,7 +24,7 @@
 	.grid-list {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		padding: var(--dims-huge);
+		/* padding: var(--dims-huge); */
 		gap: var(--dims-reg);
 	}
 	.scenario-card {
@@ -46,7 +46,7 @@
 	.grid-list {
 		display: flex;
 		flex-flow: column nowrap;
-		padding: var(--dims-huge);
+		/* padding: var(--dims-huge); */
 		gap: var(--dims-reg);
 	}
 	.scenario-card {
@@ -221,4 +221,8 @@ progress::-webkit-progress-value {
 /* Firefox */
 progress::-moz-progress-bar {
 	background-color: var(--color-accent);
+}
+
+*[hidden] {
+	display: none !important;
 }

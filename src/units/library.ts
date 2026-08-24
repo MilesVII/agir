@@ -11,6 +11,7 @@ import { toast } from "./toasts";
 import { startArmory } from "./library/armory";
 import { DatacatCard, importDatacatJSON } from "./library/datacat";
 import { RampikePagination } from "@rampike/pagination";
+import { filterBySearch } from "./library/search";
 
 const CARDS_PER_PAGE = 16;
 let openerRelay: {
@@ -25,8 +26,13 @@ export function libraryUnit() {
 	const downloadButton     = document.querySelector<HTMLButtonElement>("#library-download")!;
 	const armoryButton       = document.querySelector<HTMLButtonElement>("#library-armory-button")!;
 	const pager              = document.querySelector<RampikePagination>("#library-pager")!;
-
-	const modal = document.querySelector<RampikeModal>("#library-start")!;
+	const modal              = document.querySelector<RampikeModal>("#library-start")!;
+	const search = {
+		open: document.querySelector<HTMLButtonElement>("#library-search")!,
+		button: document.querySelector<HTMLButtonElement>("#library-search-button")!,
+		cancel: document.querySelector<HTMLButtonElement>("#library-search-cancel")!,
+		dialog: document.querySelector<HTMLElement>("#library-search-dialog")!
+	}
 
 	startButton.addEventListener("click", async () => {
 		if (!openerRelay) return;
@@ -80,6 +86,20 @@ export function libraryUnit() {
 	});
 	armoryButton.addEventListener("click", startArmory);
 
+	search.open.addEventListener("click", () => {
+		search.dialog.hidden = false;
+	});
+	search.button.addEventListener("click", () => {
+		pager.page = 0;
+		search.dialog.dataset.active = "true";
+		update();
+	});
+	search.cancel.addEventListener("click", () => {
+		search.dialog.hidden = true;
+		search.dialog.removeAttribute("data-active");
+		update();
+	});
+
 	pager.addEventListener("pick", update);
 	listen(async u => {
 		if (u.storage !== "idb") return;
@@ -97,6 +117,8 @@ async function update() {
 	list.innerHTML = "";
 	const items = await idb.getAll("scenarios");
 	if (!items.success) return;
+
+	items.value = filterBySearch(items.value);
 
 	pager.pageCount = Math.ceil(items.value.length / CARDS_PER_PAGE);
 	pager.style.display = pager.pageCount <= 1 ? "none" : "flex";

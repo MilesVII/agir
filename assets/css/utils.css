@@ -99,3 +99,8 @@
 .no-select {
 	user-select: none;
 }
+
+.hor-autoflow {
+	max-width: 100%;
+	overflow-x: auto;
+}

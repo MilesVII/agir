@@ -6073,6 +6073,44 @@ ${scenario}
     return raw.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/\{\{.*?\}\}/g, (v2) => v2.toLowerCase()).replace(/^#+/gm, (v2) => `##${v2}`);
   }
 
+  // src/units/library/search.ts
+  function filterBySearch(cards) {
+    const params = getSearchParams();
+    if (!params) return cards;
+    return cards.filter(params.filter);
+  }
+  function getSearchParams() {
+    const search = {
+      dialog: document.querySelector("#library-search-dialog"),
+      input: document.querySelector("#library-search-input"),
+      filters: {
+        ct: document.querySelector("#library-search-f-ct"),
+        cd: document.querySelector("#library-search-f-cd"),
+        tg: document.querySelector("#library-search-f-tg"),
+        cn: document.querySelector("#library-search-f-cn"),
+        an: document.querySelector("#library-search-f-an"),
+        cp: document.querySelector("#library-search-f-cp"),
+        co: document.querySelector("#library-search-f-co")
+      }
+    };
+    const q2 = search.input.value.trim().toLowerCase();
+    if (search.dialog.hidden || !search.dialog.dataset.active || !q2) return null;
+    return {
+      query: q2,
+      filter: (card) => {
+        if (search.filters.ct.checked && card.card.title?.toLowerCase().includes(q2)) return true;
+        if (search.filters.cd.checked && card.card.description.toLowerCase().includes(q2)) return true;
+        if (search.filters.tg.checked && card.card.tags?.some((t) => t.toLowerCase().includes(q2))) return true;
+        if (search.filters.cn.checked && card.chat.name?.toLowerCase().includes(q2)) return true;
+        if (search.filters.an.checked && card.card.author?.name?.toLowerCase().includes(q2)) return true;
+        if (search.filters.an.checked && card.card.author?.url?.toLowerCase().includes(q2)) return true;
+        if (search.filters.cp.checked && card.chat.definition.toLowerCase().includes(q2)) return true;
+        if (search.filters.ct.checked && card.chat.initials.some((m3) => m3.toLowerCase().includes(q2))) return true;
+        return false;
+      }
+    };
+  }
+
   // src/units/library.ts
   var CARDS_PER_PAGE = 16;
   var openerRelay = null;
@@ -6085,6 +6123,12 @@ ${scenario}
     const armoryButton = document.querySelector("#library-armory-button");
     const pager = document.querySelector("#library-pager");
     const modal = document.querySelector("#library-start");
+    const search = {
+      open: document.querySelector("#library-search"),
+      button: document.querySelector("#library-search-button"),
+      cancel: document.querySelector("#library-search-cancel"),
+      dialog: document.querySelector("#library-search-dialog")
+    };
     startButton.addEventListener("click", async () => {
       if (!openerRelay) return;
       const personaId = startPersonaPicker.value;
@@ -6131,6 +6175,19 @@ ${scenario}
       }
     });
     armoryButton.addEventListener("click", startArmory);
+    search.open.addEventListener("click", () => {
+      search.dialog.hidden = false;
+    });
+    search.button.addEventListener("click", () => {
+      pager.page = 0;
+      search.dialog.dataset.active = "true";
+      update3();
+    });
+    search.cancel.addEventListener("click", () => {
+      search.dialog.hidden = true;
+      search.dialog.removeAttribute("data-active");
+      update3();
+    });
     pager.addEventListener("pick", update3);
     listen(async (u3) => {
       if (u3.storage !== "idb") return;
@@ -6145,6 +6202,7 @@ ${scenario}
     list.innerHTML = "";
     const items = await idb.getAll("scenarios");
     if (!items.success) return;
+    items.value = filterBySearch(items.value);
     pager.pageCount = Math.ceil(items.value.length / CARDS_PER_PAGE);
     pager.style.display = pager.pageCount <= 1 ? "none" : "flex";
     if (pager.page >= pager.pageCount) pager.page = pager.pageCount - 1;
