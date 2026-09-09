@@ -70,7 +70,7 @@ export async function runProvider(
 			if (!parsed.success || !parsed.value?.error?.message) {
 				return {
 					success: false,
-					error: `Provider says "${body}"\nStatus ${response.status}`
+					error: `Unparsed; Provider says "${body.value}"\nStatus ${response.status}`
 				};
 			}
 			const meta = parsed.value?.error?.metadata;
