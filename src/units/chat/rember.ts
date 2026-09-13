@@ -21,10 +21,13 @@ export const REMBER_DEFAULTS = {
 		"## current location",
 		"",
 		"## locations and objects",
+		"### location example",
+		"- example item",
+		"- example item",
 		"",
-		"## trivia",
+		"## noteworthy trivia",
 		"",
-		"## plans and intentions",
+		"## future plans and promises",
 		"",
 		"```"
 	].join("\n")
