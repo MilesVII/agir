@@ -5557,6 +5557,7 @@ ${card.value.card.description}`;
     function updateMessagesPager() {
       messagesControlsCaption.textContent = `${messageIndex + 1}/${messagesState.length}`;
       messages.value = messagesState[messageIndex];
+      textareaReconsider(messages);
     }
     messages.addEventListener("input", () => {
       messagesState[messageIndex] = messages.value;
