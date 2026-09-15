@@ -154,7 +154,7 @@ function scenarioCardView(item: ScenarioCard) {
 	const description = mudcrack({
 		className: "scenario-card-description md"
 	});
-	description.innerHTML = renderMD(item.card.description);
+	description.innerHTML = renderMD(item.card.description ?? "");
 
 	const author = mudcrack({
 		tagName: item.card.author?.url ? "a" : "span",

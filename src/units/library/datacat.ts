@@ -12,6 +12,7 @@ export type DatacatCard = {
 		scenario: string,    // scenario
 		first_mes: string,
 		description: string, // char persona
+		personality: string, // char persona if not fetched from janitor
 		mes_example: string, // examples
 		// personality: "", // skipped?
 		// system_prompt: "",
@@ -45,9 +46,22 @@ const definitionTemplate = {
 };
 
 export async function importDatacatJSON(parsed: DatacatCard) {
+	const definitionSource = parsed.data.description
+		? parsed.data.description.replace("##DESCRIPTION START##", "")
+		: parsed.data.personality;
+	const author = parsed.metadata.janitor_creator_name
+		? {
+			name: parsed.metadata.janitor_creator_name,
+			url: parsed.data.creator
+		}
+		: {
+			name: parsed.data.creator,
+			url: null
+		};
+
 	const definition = [
 		...definitionTemplate.characters,
-		fix(parsed.data.description.replace("##DESCRIPTION START##", "").trim()),
+		fix(definitionSource.trim()),
 		"",
 		...definitionTemplate.userPersona,
 		"",
@@ -59,14 +73,11 @@ export async function importDatacatJSON(parsed: DatacatCard) {
 		id: crypto.randomUUID(),
 		lastUpdate: Date.now(),
 		card: {
-			author: {
-				name: parsed.metadata.janitor_creator_name,
-				url: parsed.data.creator
-			},
-			description: parsed.metadata.raw_description_html,
+			author,
+			description: parsed.metadata.raw_description_html ?? parsed.data.description,
 			picture: await avatar(parsed.data.avatar),
 			tags: parsed.data.tags,
-			title: parsed.metadata.janitor_character_name
+			title: parsed.metadata.janitor_character_name ?? parsed.data.name
 		},
 		chat: {
 			definition,
@@ -74,11 +85,13 @@ export async function importDatacatJSON(parsed: DatacatCard) {
 				parsed.data.first_mes,
 				...(parsed.data.alternate_greetings ?? [])
 			].map(fix),
-			name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name,
+			name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name ?? parsed.data.name,
 			picture: null,
 			tokenCount: estimateTokenCount(definition)
 		}
 	}
+
+	console.log(converted)
 
 	return converted;
 }

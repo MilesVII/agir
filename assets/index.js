@@ -6030,9 +6030,17 @@ ${scenario}
     ]
   };
   async function importDatacatJSON(parsed) {
+    const definitionSource = parsed.data.description ? parsed.data.description.replace("##DESCRIPTION START##", "") : parsed.data.personality;
+    const author = parsed.metadata.janitor_creator_name ? {
+      name: parsed.metadata.janitor_creator_name,
+      url: parsed.data.creator
+    } : {
+      name: parsed.data.creator,
+      url: null
+    };
     const definition = [
       ...definitionTemplate3.characters,
-      fix(parsed.data.description.replace("##DESCRIPTION START##", "").trim()),
+      fix(definitionSource.trim()),
       "",
       ...definitionTemplate3.userPersona,
       "",
@@ -6043,14 +6051,11 @@ ${scenario}
       id: crypto.randomUUID(),
       lastUpdate: Date.now(),
       card: {
-        author: {
-          name: parsed.metadata.janitor_creator_name,
-          url: parsed.data.creator
-        },
-        description: parsed.metadata.raw_description_html,
+        author,
+        description: parsed.metadata.raw_description_html ?? parsed.data.description,
         picture: await avatar(parsed.data.avatar),
         tags: parsed.data.tags,
-        title: parsed.metadata.janitor_character_name
+        title: parsed.metadata.janitor_character_name ?? parsed.data.name
       },
       chat: {
         definition,
@@ -6058,11 +6063,12 @@ ${scenario}
           parsed.data.first_mes,
           ...parsed.data.alternate_greetings ?? []
         ].map(fix),
-        name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name,
+        name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name ?? parsed.data.name,
         picture: null,
         tokenCount: estimateTokenCount(definition)
       }
     };
+    console.log(converted);
     return converted;
   }
   async function avatar(url) {
@@ -6238,7 +6244,7 @@ ${scenario}
     const description = T({
       className: "scenario-card-description md"
     });
-    description.innerHTML = renderMD(item.card.description);
+    description.innerHTML = renderMD(item.card.description ?? "");
     const author = T({
       tagName: item.card.author?.url ? "a" : "span",
       contents: item.card.author?.name ?? ""
