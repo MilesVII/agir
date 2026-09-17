@@ -39,7 +39,7 @@ Alternatively, you can check `Armories`, which are decentralized character repos
 ### How do I use ⧖ rEmber?
 Navigate to an existing chat, then open rEmber dialog via chat menu (`[☰]`). Ägir will send chat fragments to the model you pick and will ask it to provide summary using the prompt you can customize in the same dialog. The provided summary will then be stored and attached to chat messages. Only the most recent summary will be included during the roleplay. You can edit summary text manually.
 
-As long as at least one summary is added, there will appear a counter in the topbar showing how many messages aren't summarized. Since only last N (70 by default, customizable in settings) chat messages are sent to the model, no summary will be included once the counter exceeds that number. The counter will also glow faintly as soon as there's enough unsummarized messages.
+After the first summary is added,a counter will appear in the topbar showing how many messages aren't included in the summary. Since only last N (70 by default, customizable in settings) chat messages are sent to the model, no summary will be included once the counter exceeds that number. The counter will also glow if unprocessed message count exceeds the stride size.
 
 ### Self-host
 Clone or download the repo on your device:
