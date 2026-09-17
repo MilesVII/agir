@@ -138,9 +138,10 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 	padding-inline: var(--dims-reg);
 	padding-block: var(--dims-smol);
 	border-radius: var(--dims-smol);
+	border: 2px solid var(--color-secondary);
 }
 #main-folders > button[data-selected="true"] {
-	background-color: var(--color-accent);
+	border-color: var(--color-accent);
 }
 
 summary.settings-label {
