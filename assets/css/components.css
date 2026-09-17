@@ -49,7 +49,7 @@ button.lineout, .pointer {
 
 .hint {
 	font: var(--font-smol);
-	color: var(--color-secondary);
+	color: var(--color-subtext);
 }
 
 .edible[contenteditable] {
@@ -189,6 +189,9 @@ summary.settings-label {
 	justify-content: space-between;
 }
 
+.settings-theme-section-space {
+	margin-top: var(--dims-huge);
+}
 .settings-theme-selector-button {
 	width: 128px;
 	border: 2px solid var(--color-secondary);

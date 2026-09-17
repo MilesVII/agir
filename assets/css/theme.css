@@ -15,12 +15,44 @@
 	--color-accent: #29DF47;
 	--color-text: #EDEDED;
 }
+.theme-dark-jade {
+	--color-base: rgb(13, 17, 13);
+	--color-base-semi: rgb(13, 17, 13 / 70%);
+	--color-secondary: #777;
+	--color-subtext: #98cba7;
+	--color-accent: #00b54f;
+	--color-text: #EEEEEE;
+}
+.theme-dark-fireplace {
+	--color-base: rgb(17, 14, 13);
+	--color-base-semi: rgb(17, 14, 13 / 70%);
+	--color-secondary: #777;
+	--color-subtext: #cba898;
+	--color-accent: #b55100;
+	--color-text: #EDEDED;
+}
 .theme-dark-da40 {
 	--color-base: #171717;
 	--color-base-semi: rgb(23 23 23 / 70%);
 	--color-secondary: #777;
 	--color-subtext: #868686;
 	--color-accent: #DA4000;
+	--color-text: #EDEDED;
+}
+.theme-dark-candy {
+	--color-base: rgb(17, 13, 14);
+	--color-base-semi: rgb(17, 13, 14 / 70%);
+	--color-secondary: #777;
+	--color-subtext: #cb98be;
+	--color-accent: #ab479a;
+	--color-text: #EDEDED;
+}
+.theme-dark-navy {
+	--color-base: rgb(37, 60, 109);
+	--color-base-semi: rgb(37, 60, 109 / 70%);
+	--color-secondary: #7887aa;
+	--color-subtext: #929eb9;
+	--color-accent: #F2842F;
 	--color-text: #EDEDED;
 }
 .theme-dark-teal {
@@ -39,11 +71,19 @@
 	--color-accent: #00ADB5;
 	--color-text: #111130;
 }
-.theme-light-flashbang {
+.theme-light-coffee {
 	--color-base: #EEEEEE;
 	--color-base-semi: rgb(240 240 250 / 70%);
 	--color-secondary: #444444;
 	--color-subtext: #646464;
 	--color-accent: #a16161;
+	--color-text: #101010;
+}
+.theme-light-flashbang {
+	--color-base: #EEEEEE;
+	--color-base-semi: rgb(240 240 250 / 70%);
+	--color-secondary: #444444;
+	--color-subtext: #736258;
+	--color-accent: #F2842F;
 	--color-text: #101010;
 }

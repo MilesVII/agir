@@ -187,8 +187,40 @@
 								placeholder="70"
 							></ram-labeled>
 							<button id="settings-misc-save" class="lineout">Save</button>
-							<div>Theme:</div>
+							<div class="settings-theme-section-space">Theme:</div>
 							<div id="settings-themes" class="row-wrap"></div>
+							
+							<details>
+								<summary class="settings-label">
+									Preview
+								</summary>
+								<div class="message" data-mid="35">
+									<img src="/assets/gfx/placeholder.png" title="mid #35">
+									<div>
+										<div class="row">
+											<div class="message-name">Themis</div>
+											<div class="message-status" hidden=""></div>
+											<button class="strip ghost pointer message-control" title="show reasoning" hidden="">R</button>
+											<div class="row-compact no-shrink">
+												<button class="strip ghost pointer message-control" title="prev swipe">&lt;</button>
+												<span>6 / 9</span>
+												<button class="strip ghost pointer message-control" title="next swipe">&gt;</button>
+											</div>
+											<button class="strip ghost pointer message-control">✎</button>
+											<button class="strip ghost pointer message-control">⧉</button>
+											<button class="strip ghost pointer message-control">✖</button>
+										</div>
+										<div class="lineout message-reasoning-preview">okay, user wants an example message to check the colors, i'll just compose one right away</div>
+										<div class="message-text edible md"><p><em>The air is cool and crisp, the park quiet in the late Sunday afternoon. Themis sits stiffly on a wooden bench beside Nadir, her hands folded neatly in her lap, the white blindfold covering her pale face. She’s been silent for several minutes, her posture perfectly upright, but her fingers are twisting slightly in her lap -- a subtle sign of nerves.</em></p>
+											<p><em>Nearby, a young girl, maybe seven or eight, sits alone on a bench, sniffling quietly. Themis turns her head slightly toward the sound, her senses sharpening. She stands abruptly, smoothing her black suit jacket.</em></p>
+											<p>Excuse me for a moment.</p>
+											<p><em>She walks toward the girl, her steps measured but a little too quick. She crouches down, her voice intentionally softened, but it still comes out clear and precise -- like she’s addressing a courtroom.</em></p>
+											<p>Greetings. Are you lost? Do you require assistance?</p>
+											<p><em>The girl looks up, takes in Themis's stern posture and blindfold, and her lip trembles. She bursts into fresh, loud sobs, forcing zenith to intervene</em></p>
+										</div>
+									</div>
+								</div>
+							</details>
 						</div>
 					</details>
 					<div class="lineout fit pointer float-end">
@@ -545,7 +577,7 @@
 			/>
 			<path
 				d="M4,1 l1,-1 L100,0 L100,1 Z"
-				fill="var(--color-base)"
+				fill="var(--color-subtext)"
 			/>
 		</svg>
 	</template>
