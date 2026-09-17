@@ -63,6 +63,14 @@
 	--color-accent: #EDEDED;
 	--color-text: #c8ff00;
 }
+.theme-dark-electric {
+	--color-base: rgb(15, 15, 15);
+	--color-base-semi: rgb(15 15 15 / 70%);
+	--color-secondary: #d1d1d1;
+	--color-subtext: #a69773;
+	--color-accent: #f1ff26;
+	--color-text: #f5f5f5;
+}
 .theme-dark-teal {
 	--color-base: #222831;
 	--color-base-semi: rgb(34 40 49 / 70%);

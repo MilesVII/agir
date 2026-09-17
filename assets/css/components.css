@@ -266,6 +266,7 @@ summary.settings-label {
 }
 .scenario-card-tags > span:hover {
 	background-color: var(--color-accent);
+	color: var(--color-base);
 }
 
 .chat-layout {
