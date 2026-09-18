@@ -343,6 +343,9 @@ summary.settings-label {
 	grid-template-columns: var(--profile-pictire-size) auto;
 	gap: var(--dims-reg);
 }
+.message > div {
+	min-width: 0;
+}
 
 .message > img {
 	object-fit: cover;
@@ -354,9 +357,16 @@ summary.settings-label {
 	font: var(--font-bold);
 	margin-bottom: var(--dims-smol);
 	margin-inline-end: auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 .message-status {
 	color: var(--color-subtext);
+}
+.message-controls-scroller {
+	max-width: 60%;
+	overflow-x: auto;
+	flex-shrink: 0;
 }
 .message .row-compact {
 	align-items: center;

@@ -4057,7 +4057,10 @@ Status ${response.status}${metaWrapped}`
                   contents: msg.name
                 }),
                 status,
-                ...controls
+                T({
+                  className: "message-controls-scroller row",
+                  contents: controls
+                })
               ]
             }),
             reasoningPreview,

@@ -196,7 +196,10 @@ export function makeMessageView(
 								contents: msg.name
 							}),
 							status,
-							...controls
+							mudcrack({
+								className: "message-controls-scroller row",
+								contents: controls
+							})
 						]
 					}),
 					reasoningPreview,
