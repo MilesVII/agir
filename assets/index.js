@@ -4575,6 +4575,7 @@ ${m3.swipes[m3.selectedSwipe]}
     const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
     contents.value.messages[mix].rember = value;
     await idb.set("chatContents", contents.value);
+    getMessageViewByID(mid)?.controls.toggleRember(!!value);
   }
   async function deleteMessage(chatId, messageId) {
     const inputModes = document.querySelector("#chat-controls");

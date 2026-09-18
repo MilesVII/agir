@@ -103,6 +103,8 @@ export async function updateRember(value: string | null, mid: number, chatId: st
 	const mix = contents.value.messages.findIndex(m => m.id === mid);
 	contents.value.messages[mix].rember = value;
 	await idb.set("chatContents", contents.value);
+
+	getMessageViewByID(mid)?.controls.toggleRember(!!value);
 }
 
 export async function deleteMessage(chatId: string, messageId: number) {
