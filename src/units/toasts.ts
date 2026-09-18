@@ -2,7 +2,8 @@ import { mudcrack } from "rampike";
 
 type ToastOptions = {
 	timeoutMS?: number,
-	actions?: [caption: string, cb: (close: () => void) => void][]
+	actions?: [caption: string, cb: (close: () => void) => void][],
+	parent?: HTMLElement
 };
 
 export function toast(message: string, options?: ToastOptions) {
@@ -64,7 +65,12 @@ export function toast(message: string, options?: ToastOptions) {
 		});
 	}
 
-	list.append(item);
+	if (options?.parent) {
+		item.style.position = "unset";
+		options?.parent.append(item);
+	} else {
+		list.append(item);
+	}
 	setTimeout(() => item.style.transform = `translateX(0px)`, 100);
 
 	if (options?.timeoutMS) {

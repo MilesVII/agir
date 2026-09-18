@@ -263,7 +263,7 @@
         tagName: "dialog",
         events: {
           click: (e, el) => {
-            if (e.target === el) el.close();
+            if (e.target === el && !this.hasAttribute("strong")) el.close();
           }
         },
         contents: [form]
@@ -511,7 +511,12 @@
         squish();
       });
     }
-    list.append(item);
+    if (options?.parent) {
+      item.style.position = "unset";
+      options?.parent.append(item);
+    } else {
+      list.append(item);
+    }
     setTimeout(() => item.style.transform = `translateX(0px)`, 100);
     if (options?.timeoutMS) {
       setTimeout(close, options.timeoutMS);
@@ -3157,11 +3162,20 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const submitButton = document.querySelector("#settings-providers-submit");
     const fetchModelsButton = document.querySelector("#settings-providers-fetch-models");
     const list = document.querySelector("#settings-providers-list");
-    const divider = document.querySelector("#settings-providers-divider");
     const editingIndicator = document.querySelector("#settings-providers-editing-indicator");
     let editing = null;
+    const addNew = document.querySelector("#settings-providers-add");
+    const form = {
+      modal: document.querySelector("#settings-providers-modal"),
+      close: document.querySelector("#settings-providers-modal-close")
+    };
     submitButton.addEventListener("click", submit);
     fetchModelsButton.addEventListener("click", fetchModels);
+    form.close.addEventListener("click", () => form.modal.close());
+    addNew.addEventListener("click", () => {
+      clearInputs();
+      form.modal.open();
+    });
     makeResizable(inputs.params);
     makeResizable(inputs.suffix);
     listen((update4) => {
@@ -3182,7 +3196,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         const result = nothrow(() => JSON.parse(raw));
         const value = result.success ? result.value : {};
         if (!result.success || typeof value !== "object") {
-          toast("the additional parameters value must be a valid JSON object, provider is not updated");
+          toast("the additional parameters value must be a valid JSON object, provider is not updated", { parent: getToastParent() });
           return null;
         }
         return value;
@@ -3200,29 +3214,20 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       };
       const missing = ["name", "url", "model"].some((k2) => !e[k2]);
       if (e.params === null) return;
-      if (missing) return;
+      if (missing) {
+        toast("some of required inputs are missing", { parent: getToastParent() });
+        return;
+      }
       const eMap = readProviders();
       eMap[id] = e;
       saveProviders(eMap);
-      editing = null;
-      inputs.name.value = "";
-      inputs.url.value = "";
-      inputs.key.value = "";
-      inputs.model.value = "";
-      inputs.temp.value = String(defaults.temp);
-      inputs.max.value = String(defaults.max);
-      inputs.params.value = "";
-      inputs.suffix.value = "";
-      inputs.reason.value = "unset";
-      textareaReconsider(inputs.params);
-      textareaReconsider(inputs.suffix);
-      editingIndicator.hidden = true;
+      clearInputs();
     }
     async function fetchModels() {
       const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
       if (!url) return;
       const key = inputs.key.value;
-      const closeToast = toast("calling...");
+      const closeToast = toast("calling...", { parent: getToastParent() });
       const response = await nothrowAsync(fetch(url, {
         headers: {
           Authorization: `Bearer ${key}`
@@ -3231,14 +3236,14 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       closeToast();
       if (!response.success) {
         toast(`can't reach "${url}"
-${response.error}`);
+${response.error}`, { parent: getToastParent() });
         return;
       }
       if (!response.value.ok) {
         const text2 = await response.value.text();
         toast(`"${url}" returned error
 status ${response.value.status}
-${text2.slice(0, 64)}`);
+${text2.slice(0, 64)}`, { parent: getToastParent() });
         return;
       }
       const payload = await response.value.json();
@@ -3253,7 +3258,7 @@ ${text2.slice(0, 64)}`);
           })
         )
       );
-      toast(`success; ${payload.data.length} models are available`);
+      toast(`success; ${payload.data.length} models are available`), { parent: getToastParent() };
     }
     function edit(id, e) {
       function stringifyParams() {
@@ -3275,7 +3280,7 @@ ${text2.slice(0, 64)}`);
       textareaReconsider(inputs.suffix);
       editingIndicator.textContent = `editing provider: ${e.name}`;
       editingIndicator.hidden = false;
-      divider.scrollIntoView({ behavior: "smooth" });
+      form.modal.open();
     }
     function updateList() {
       modelsDatalist.innerHTML = "";
@@ -3329,6 +3334,21 @@ ${text2.slice(0, 64)}`);
           contents: "No providers found"
         }));
     }
+    function clearInputs() {
+      editing = null;
+      inputs.name.value = "";
+      inputs.url.value = "";
+      inputs.key.value = "";
+      inputs.model.value = "";
+      inputs.temp.value = String(defaults.temp);
+      inputs.max.value = String(defaults.max);
+      inputs.params.value = "";
+      inputs.suffix.value = "";
+      inputs.reason.value = "unset";
+      textareaReconsider(inputs.params);
+      textareaReconsider(inputs.suffix);
+      editingIndicator.hidden = true;
+    }
   }
   function readProviders() {
     const providersRaw = local.get("providers");
@@ -3344,7 +3364,7 @@ ${text2.slice(0, 64)}`);
   }
   function saveProviders(eMap) {
     local.set("providers", JSON.stringify(eMap));
-    toast("providers updated");
+    toast("providers updated", { timeoutMS: 5e3 });
   }
   function deleteProvider(id) {
     if (!confirm("confirm deletion")) return;
@@ -3372,6 +3392,9 @@ ${text2.slice(0, 64)}`);
     const parsed = nothrow(() => JSON.parse(activeRaw));
     if (!parsed.success) return defaultProviders;
     return parsed.value;
+  }
+  function getToastParent() {
+    return document.querySelector("#settings-providers-toasts") ?? void 0;
   }
 
   // src/units/settings/persona.ts

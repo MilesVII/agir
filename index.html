@@ -72,95 +72,10 @@
 							LLM Providers
 						</summary>
 						<div class="list">
-							<div id="settings-providers-list" class="virtual">
-							</div>
-							<hr id="settings-providers-divider" class="topbar-scroll-offset" />
-							<div id="settings-providers-editing-indicator" class="placeholder" hidden></div>
-							<div class="hint">
-								Any OpenAI-compatible LLM provider is supported, including OpenRouter and AI Horde
-							</div>
-							<ram-labeled
-								legend="Display name"
-								id="settings-providers-name"
-								class="strip wide"
-								placeholder="Goober"
-							></ram-labeled>
-							<ram-labeled
-								legend="API URL"
-								id="settings-providers-url"
-								class="strip wide"
-								placeholder="https://openrouter.ai/api/v1/chat/completions"
-							></ram-labeled>
-							<ram-labeled
-								legend="API key"
-								id="settings-providers-key"
-								class="strip wide"
-								placeholder="sk-or-v1-haha-nope"
-							></ram-labeled>
-							<ram-labeled
-								legend="Model"
-								id="settings-providers-model"
-								class="strip wide"
-								placeholder="xiaomi/mimo-v2-flash:free"
-								list="settings-providers-models-datalist"
-							></ram-labeled>
-							<datalist id="settings-providers-models-datalist"></datalist>
-							<div class="baseline row-compact">
-								<div>Reasoning effort (if available): </div>
-								<select id="settings-providers-reasoning" class="lineout">
-									<option value="unset" selected>unset</option>
-									<option value="max">max</option>
-									<option value="xhigh">xhigh</option>
-									<option value="high">high</option>
-									<option value="medium">medium</option>
-									<option value="low">low</option>
-									<option value="minimal">minimal</option>
-									<option value="none">none</option>
-								</select>
-							</div>
-							<button id="settings-providers-fetch-models" class="lineout">fetch available models</button>
-							<hr/>
-							<div class="hint">
-								Temperature controls randomness. Lower = focused, higher = creative
-							</div>
-							<ram-labeled
-								legend="Temperature (0.0-2.0)"
-								id="settings-providers-temp"
-								class="strip wide"
-								placeholder="0.9"
-								value="0.9"
-							></ram-labeled>
-							<ram-labeled
-								legend="Response length limit (in tokens, 0 = unlimited)"
-								id="settings-providers-max"
-								class="strip wide"
-								placeholder="720"
-								value="720"
-							></ram-labeled>
-							<div class="hint">
-								A JSON object containing additional API request parameters. Refer to docs: <a href="https://platform.openai.com/docs/api-reference/chat/create">[OpenAI]</a>, <a href="https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion">[OpenRouter]</a>
-							</div>
-							<div class="hint">
-								Note: streaming is enabled and required
-							</div>
-							<ram-labeled
-								legend="Additional parameters"
-								id="settings-providers-additional"
-								class="strip wide"
-								placeholder='{&#10;&#x09;"top_p": 0.7,&#10;&#x09;"top_k": 40,&#10;&#x09;"repetition_penalty": 1&#10;}'
-								value=""
-								multiline
-							></ram-labeled>
-							<ram-labeled
-								legend="System prompt addendum"
-								id="settings-providers-suffix"
-								class="strip wide"
-								placeholder="# Style and formatting instructions&#10;Please keep the roleplay as realistic as possible and avoid stilted and pretentious language. Don't make mistakes."
-								value=""
-								multiline
-							></ram-labeled>
-							<button id="settings-providers-submit" class="lineout">Save provider</button>
+							<button id="settings-providers-add" class="lineout">Add provider</button>
+							<div id="settings-providers-list" class="virtual"></div>
 						</div>
+
 					</details>
 					<details>
 						<summary class="settings-label">
@@ -199,8 +114,7 @@
 									<div>
 										<div class="row">
 											<div class="message-name">Themis</div>
-											<div class="message-status" hidden=""></div>
-											<button class="strip ghost pointer message-control" title="show reasoning" hidden="">R</button>
+											<button class="strip ghost pointer message-control" title="show reasoning">R</button>
 											<div class="row-compact no-shrink">
 												<button class="strip ghost pointer message-control" title="prev swipe">&lt;</button>
 												<span>6 / 9</span>
@@ -211,7 +125,7 @@
 											<button class="strip ghost pointer message-control">✖</button>
 										</div>
 										<div class="lineout message-reasoning-preview">okay, user wants an example message to check the colors, i'll just compose one right away</div>
-										<div class="message-text edible md"><p><em>The air is cool and crisp, the park quiet in the late Sunday afternoon. Themis sits stiffly on a wooden bench beside Nadir, her hands folded neatly in her lap, the white blindfold covering her pale face. She’s been silent for several minutes, her posture perfectly upright, but her fingers are twisting slightly in her lap -- a subtle sign of nerves.</em></p>
+										<div class="message-text edible md"><p><em>The air is cool and crisp, the park quiet in the late Sunday afternoon. Themis sits stiffly on a wooden bench beside Zenith, her hands folded neatly in her lap, the white blindfold covering her pale face. She’s been silent for several minutes, her posture perfectly upright, but her fingers are twisting slightly in her lap -- a subtle sign of nerves.</em></p>
 											<p><em>Nearby, a young girl, maybe seven or eight, sits alone on a bench, sniffling quietly. Themis turns her head slightly toward the sound, her senses sharpening. She stands abruptly, smoothing her black suit jacket.</em></p>
 											<p>Excuse me for a moment.</p>
 											<p><em>She walks toward the girl, her steps measured but a little too quick. She crouches down, her voice intentionally softened, but it still comes out clear and precise -- like she’s addressing a courtroom.</em></p>
@@ -454,6 +368,97 @@
 			</div>
 			<div id="library-start-description" class="lineout md"></div>
 		</ram-modal>
+		<ram-modal id="settings-providers-modal" strong>
+			<div class="row-compact">
+				<div id="settings-providers-editing-indicator" class="placeholder" hidden></div>
+				<button id="settings-providers-modal-close" class="lineout fit float-end">close</button>
+				<button id="settings-providers-submit" class="lineout fit">save</button>
+			</div>
+			<div id="settings-providers-toasts" class="virtual"></div>
+			<div class="hint">
+				Any OpenAI-compatible LLM provider is supported, including OpenRouter and AI Horde
+			</div>
+			<ram-labeled
+				legend="Display name *"
+				id="settings-providers-name"
+				class="strip wide"
+				placeholder="Goober"
+			></ram-labeled>
+			<ram-labeled
+				legend="API URL *"
+				id="settings-providers-url"
+				class="strip wide"
+				placeholder="https://openrouter.ai/api/v1/chat/completions"
+			></ram-labeled>
+			<ram-labeled
+				legend="API key"
+				id="settings-providers-key"
+				class="strip wide"
+				placeholder="sk-or-v1-haha-nope"
+			></ram-labeled>
+			<ram-labeled
+				legend="Model *"
+				id="settings-providers-model"
+				class="strip wide"
+				placeholder="xiaomi/mimo-v2-flash:free"
+				list="settings-providers-models-datalist"
+			></ram-labeled>
+			<datalist id="settings-providers-models-datalist"></datalist>
+			<div class="baseline row-compact">
+				<div>Reasoning effort (if available): </div>
+				<select id="settings-providers-reasoning" class="lineout">
+					<option value="unset" selected>unset</option>
+					<option value="max">max</option>
+					<option value="xhigh">xhigh</option>
+					<option value="high">high</option>
+					<option value="medium">medium</option>
+					<option value="low">low</option>
+					<option value="minimal">minimal</option>
+					<option value="none">none</option>
+				</select>
+			</div>
+			<button id="settings-providers-fetch-models" class="lineout">fetch available models</button>
+			<hr/>
+			<div class="hint">
+				Temperature controls randomness. Lower = focused, higher = creative
+			</div>
+			<ram-labeled
+				legend="Temperature (0.0-2.0)"
+				id="settings-providers-temp"
+				class="strip wide"
+				placeholder="0.9"
+				value="0.9"
+			></ram-labeled>
+			<ram-labeled
+				legend="Response length limit (in tokens, 0 = unlimited)"
+				id="settings-providers-max"
+				class="strip wide"
+				placeholder="720"
+				value="720"
+			></ram-labeled>
+			<div class="hint">
+				A JSON object containing additional API request parameters. Refer to docs: <a href="https://platform.openai.com/docs/api-reference/chat/create">[OpenAI]</a>, <a href="https://openrouter.ai/docs/api/api-reference/chat/create-a-chat-completion">[OpenRouter]</a>
+			</div>
+			<div class="hint">
+				Note: streaming is enabled and required
+			</div>
+			<ram-labeled
+				legend="Additional parameters"
+				id="settings-providers-additional"
+				class="strip wide"
+				placeholder='{&#10;&#x09;"top_p": 0.7,&#10;&#x09;"top_k": 40,&#10;&#x09;"repetition_penalty": 1&#10;}'
+				value=""
+				multiline
+			></ram-labeled>
+			<ram-labeled
+				legend="System prompt addendum"
+				id="settings-providers-suffix"
+				class="strip wide"
+				placeholder="# Style and formatting instructions&#10;Please keep the roleplay as realistic as possible and avoid stilted and pretentious language. Don't make mistakes."
+				value=""
+				multiline
+			></ram-labeled>
+		</ram-modal>
 		<ram-modal id="library-armory">
 			<ram-tabs id="library-armory-tabs" tab="list">
 				<ram-tab key="list">
@@ -492,7 +497,7 @@
 			</div>
 			<div id="play-card-preview" class="lineout md"></div>
 		</ram-modal>
-		<ram-modal id="play-editor">
+		<ram-modal id="play-editor" strong>
 			<div class="row-compact">
 				<button id="play-editor-reset" class="lineout fit">reset</button>
 				<button id="play-editor-close" class="lineout fit">close</button>
@@ -507,7 +512,7 @@
 				rows="1"
 			></ram-labeled>
 		</ram-modal>
-		<ram-modal id="play-rember">
+		<ram-modal id="play-rember" strong>
 			<div class="chat-provider-control row-compact">
 				<div>Provider:</div>
 				<select id="play-rember-provider-picker" class="lineout"></select>

@@ -31,7 +31,7 @@ export class RampikeModal extends HTMLElement {
 			tagName: "dialog",
 			events: {
 				click: (e, el) => {
-					if (e.target === el) el.close();
+					if (e.target === el && !this.hasAttribute("strong")) el.close();
 				}
 			},
 			contents: [ form ]

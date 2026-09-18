@@ -1,3 +1,4 @@
+import { RampikeModal } from "@rampike/modal";
 import { listen, local } from "@root/persist";
 import { ActiveProviders, Provider, ProviderMap, ProviderMapWithActive } from "@root/types";
 import { makeResizable, nothrow, nothrowAsync, textareaReconsider } from "@root/utils";
@@ -25,12 +26,23 @@ export function providersUnit() {
 	const submitButton      = document.querySelector<HTMLButtonElement>("#settings-providers-submit")!;
 	const fetchModelsButton = document.querySelector<HTMLButtonElement>("#settings-providers-fetch-models")!;
 	const list              = document.querySelector<HTMLElement>("#settings-providers-list")!;
-	const divider           = document.querySelector("#settings-providers-divider")!;
+	// const divider           = document.querySelector("#settings-providers-divider")!;
 	const editingIndicator  = document.querySelector<HTMLElement>("#settings-providers-editing-indicator")!;
 	let editing: string | null = null;
 
+	const addNew = document.querySelector<HTMLButtonElement>("#settings-providers-add")!;
+	const form = {
+		modal: document.querySelector<RampikeModal>("#settings-providers-modal")!,
+		close: document.querySelector<HTMLButtonElement>("#settings-providers-modal-close")!
+	};
+
 	submitButton.addEventListener("click", submit);
 	fetchModelsButton.addEventListener("click", fetchModels);
+	form.close.addEventListener("click", () => form.modal.close());
+	addNew.addEventListener("click", () => {
+		clearInputs();
+		form.modal.open();
+	});
 	makeResizable(inputs.params);
 	makeResizable(inputs.suffix);
 
@@ -55,7 +67,7 @@ export function providersUnit() {
 			const result = nothrow(() => JSON.parse(raw));
 			const value = result.success ? result.value : {};
 			if (!result.success || typeof value !== "object") {
-				toast("the additional parameters value must be a valid JSON object, provider is not updated")
+				toast("the additional parameters value must be a valid JSON object, provider is not updated", { parent: getToastParent() })
 				return null;
 			}
 			return value;
@@ -73,32 +85,22 @@ export function providersUnit() {
 		};
 		const missing = (["name", "url", "model"] as const).some(k => !e[k]);
 		if (e.params === null) return;
-		if (missing) return;
+		if (missing) {
+			toast("some of required inputs are missing", { parent: getToastParent() });
+			return;
+		}
 
 		const eMap = readProviders();
 		// @ts-expect-error isActive missing
 		eMap[id] = e;
 		saveProviders(eMap);
-		editing = null;
-		inputs.name.value   = "";
-		inputs.url.value    = "";
-		inputs.key.value    = "";
-		inputs.model.value  = "";
-		inputs.temp.value   = String(defaults.temp);
-		inputs.max.value    = String(defaults.max);
-		inputs.params.value = "";
-		inputs.suffix.value = "";
-		inputs.reason.value = "unset";
-		textareaReconsider(inputs.params);
-		textareaReconsider(inputs.suffix);
-
-		editingIndicator.hidden = true;
+		clearInputs();
 	}
 	async function fetchModels() {
 		const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
 		if (!url) return;
 		const key = inputs.key.value;
-		const closeToast = toast("calling...");
+		const closeToast = toast("calling...", { parent: getToastParent() });
 		const response = await nothrowAsync(fetch(url, {
 			headers: {
 				Authorization: `Bearer ${key}`,
@@ -106,12 +108,12 @@ export function providersUnit() {
 		}));
 		closeToast();
 		if (!response.success) {
-			toast(`can't reach "${url}"\n${response.error}`);
+			toast(`can't reach "${url}"\n${response.error}`, { parent: getToastParent() });
 			return;
 		}
 		if (!response.value.ok) {
 			const text = await response.value.text();
-			toast(`"${url}" returned error\nstatus ${response.value.status}\n${text.slice(0, 64)}`);
+			toast(`"${url}" returned error\nstatus ${response.value.status}\n${text.slice(0, 64)}`, { parent: getToastParent() });
 			return;
 		}
 		const payload = await response.value.json();
@@ -127,7 +129,7 @@ export function providersUnit() {
 					})
 			)
 		);
-		toast(`success; ${payload.data.length} models are available`);
+		toast(`success; ${payload.data.length} models are available`), { parent: getToastParent() };
 	}
 	function edit(id: string, e: Provider) {
 		function stringifyParams() {
@@ -152,7 +154,7 @@ export function providersUnit() {
 		editingIndicator.textContent = `editing provider: ${e.name}`;
 		editingIndicator.hidden = false;
 
-		divider.scrollIntoView({ behavior: "smooth", });
+		form.modal.open();
 	}
 
 	function updateList() {
@@ -207,6 +209,22 @@ export function providersUnit() {
 				contents: "No providers found"
 			}));
 	}
+
+	function clearInputs() {
+		editing = null;
+		inputs.name.value   = "";
+		inputs.url.value    = "";
+		inputs.key.value    = "";
+		inputs.model.value  = "";
+		inputs.temp.value   = String(defaults.temp);
+		inputs.max.value    = String(defaults.max);
+		inputs.params.value = "";
+		inputs.suffix.value = "";
+		inputs.reason.value = "unset";
+		textareaReconsider(inputs.params);
+		textareaReconsider(inputs.suffix);
+		editingIndicator.hidden = true;
+	}
 }
 
 export function readProviders(): ProviderMapWithActive {
@@ -225,7 +243,7 @@ export function readProviders(): ProviderMapWithActive {
 }
 function saveProviders(eMap: ProviderMap) {
 	local.set("providers", JSON.stringify(eMap));
-	toast("providers updated");
+	toast("providers updated", { timeoutMS: 5000 });
 }
 function deleteProvider(id: string) {
 	if (!confirm("confirm deletion")) return;
@@ -255,4 +273,8 @@ export function readActiveProviders(): ActiveProviders {
 	if (!parsed.success) return defaultProviders;
 
 	return parsed.value;
+}
+
+function getToastParent() {
+	return document.querySelector<HTMLElement>("#settings-providers-toasts") ?? undefined;
 }
