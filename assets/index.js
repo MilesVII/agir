@@ -3962,6 +3962,12 @@ Status ${response.status}${metaWrapped}`
       }
     );
     reasoningButton.hidden = true;
+    const remberButton = controlButton(
+      "\u29D6",
+      "open rember",
+      chatSingletonRelay.openRember
+    );
+    remberButton.hidden = !msg.rember;
     const editButton = controlButton(
       "\u270E",
       "edit message",
@@ -3998,6 +4004,7 @@ Status ${response.status}${metaWrapped}`
     }
     const mainControls = [
       reasoningButton,
+      remberButton,
       swipesControl,
       editButton,
       copyButton,
@@ -4115,6 +4122,9 @@ Status ${response.status}${metaWrapped}`
       reasoningPreview.innerHTML += chunk;
       reasoningPreview.scrollTop = 9e3;
     }
+    function toggleRember(state) {
+      remberButton.hidden = !state;
+    }
     const viewControls = {
       updateSwipe: changeSwipe,
       changeControlsState,
@@ -4123,7 +4133,8 @@ Status ${response.status}${metaWrapped}`
       endStreaming,
       setIsLast,
       reasoningStatus,
-      addReasoningChunk
+      addReasoningChunk,
+      toggleRember
     };
     return M(element, viewControls, "controls");
   }
@@ -4924,6 +4935,10 @@ ${chat[remberAt].rember}`),
   }
 
   // src/units/chat.ts
+  var chatSingletonRelay = {
+    openRember: () => {
+    }
+  };
   function chatUnit() {
     const scroller = document.querySelector("#play-messages");
     const textarea = document.querySelector("#chat-textarea");
@@ -4969,6 +4984,7 @@ ${chat[remberAt].rember}`),
       }
       openRember();
     }
+    chatSingletonRelay.openRember = openRemberGuarded;
     setSelectMenu(menuButton, "\u2630", [
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", openChatEditor],

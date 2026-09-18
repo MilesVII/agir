@@ -1,5 +1,6 @@
 import { ChatMessage } from "@root/types";
 import { elementVisible, placeholder, renderMD, renderMDAsync } from "@root/utils";
+import { chatSingletonRelay } from "@units/chat";
 import { toast } from "@units/toasts";
 import { mudcrack, sirocco } from "rampike";
 
@@ -104,6 +105,11 @@ export function makeMessageView(
 		}
 	);
 	reasoningButton.hidden = true;
+	const remberButton = controlButton(
+		"⧖", "open rember",
+		chatSingletonRelay.openRember
+	);
+	remberButton.hidden = !msg.rember;
 	const editButton = controlButton(
 		"✎", "edit message",
 		() => {
@@ -137,6 +143,7 @@ export function makeMessageView(
 	}
 	const mainControls = [
 		reasoningButton,
+		remberButton,
 		swipesControl,
 		editButton,
 		copyButton,
@@ -256,6 +263,9 @@ export function makeMessageView(
 		reasoningPreview.innerHTML += chunk;
 		reasoningPreview.scrollTop = 9000;
 	}
+	function toggleRember(state: boolean) {
+		remberButton.hidden = !state;
+	}
 
 	const viewControls = {
 		updateSwipe: changeSwipe,
@@ -265,7 +275,8 @@ export function makeMessageView(
 		endStreaming,
 		setIsLast,
 		reasoningStatus,
-		addReasoningChunk
+		addReasoningChunk,
+		toggleRember
 	};
 	return sirocco(element, viewControls, "controls");
 }

@@ -12,6 +12,10 @@ import { toast } from "./toasts";
 import { RampikeModal } from "@rampike/modal";
 import { getCurrentChat } from "./chat/utils";
 
+export const chatSingletonRelay = {
+	openRember: () => {}
+};
+
 export function chatUnit() {
 	const scroller       = document.querySelector<HTMLElement>        ("#play-messages")!;
 	const textarea       = document.querySelector<HTMLTextAreaElement>("#chat-textarea")!;
@@ -60,6 +64,8 @@ export function chatUnit() {
 		}
 		openRember();
 	}
+	chatSingletonRelay.openRember = openRemberGuarded;
+
 	setSelectMenu(menuButton, "☰", [
 		["Scenario card",   openScenarioIfExists],
 		["Edit definition", openChatEditor],
