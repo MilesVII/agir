@@ -95,6 +95,7 @@ export function providersUnit() {
 		eMap[id] = e;
 		saveProviders(eMap);
 		clearInputs();
+		form.modal.close();
 	}
 	async function fetchModels() {
 		const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");

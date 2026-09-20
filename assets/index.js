@@ -3222,6 +3222,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       eMap[id] = e;
       saveProviders(eMap);
       clearInputs();
+      form.modal.close();
     }
     async function fetchModels() {
       const url = inputs.url.value.trim().replace("/v1/chat/completions", "/v1/models");
@@ -4331,13 +4332,15 @@ Status ${response.status}${metaWrapped}`
       one: document.querySelector("#play-rember-add-one"),
       stop: document.querySelector("#play-rember-stop"),
       save: document.querySelector("#play-rember-save"),
-      reset: document.querySelector("#play-rember-reset")
+      reset: document.querySelector("#play-rember-reset"),
+      close: document.querySelector("#play-rember-modal-close")
     };
     const list = document.querySelector("#play-rember-messages");
     buttons.one.addEventListener("click", runOne);
     buttons.stop.addEventListener("click", forgor);
     buttons.save.addEventListener("click", saveSettings);
     buttons.reset.addEventListener("click", resetPrompt);
+    buttons.close.addEventListener("click", () => modal.close());
     providerPicker.addEventListener("input", providerPickerChanged);
     buttons.stop.hidden = true;
     listen((u3) => {

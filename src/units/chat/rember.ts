@@ -42,7 +42,8 @@ export function initRember() {
 		one:   document.querySelector<HTMLButtonElement>("#play-rember-add-one")!,
 		stop:  document.querySelector<HTMLButtonElement>("#play-rember-stop")!,
 		save:  document.querySelector<HTMLButtonElement>("#play-rember-save")!,
-		reset: document.querySelector<HTMLButtonElement>("#play-rember-reset")!
+		reset: document.querySelector<HTMLButtonElement>("#play-rember-reset")!,
+		close: document.querySelector<HTMLButtonElement>("#play-rember-modal-close")!
 	}
 	const list = document.querySelector<HTMLElement>("#play-rember-messages")!;
 
@@ -50,6 +51,7 @@ export function initRember() {
 	buttons.stop.addEventListener("click", forgor);
 	buttons.save.addEventListener("click", saveSettings);
 	buttons.reset.addEventListener("click", resetPrompt);
+	buttons.close.addEventListener("click", () => modal.close());
 	providerPicker.addEventListener("input", providerPickerChanged);
 	buttons.stop.hidden = true;
 
