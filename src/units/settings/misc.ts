@@ -4,6 +4,7 @@ import { toast } from "@units/toasts";
 
 export function initMisc() {
 	const tailInput = document.querySelector<HTMLInputElement>("#settings-options-tail")!;
+	const remberStretchInput = document.querySelector<HTMLInputElement>("#settings-options-rember-stretch")!;
 	const miscSave = document.querySelector<HTMLButtonElement>("#settings-misc-save")!;
 
 	listen(u => {
@@ -18,6 +19,7 @@ export function initMisc() {
 		const settings = loadMiscSettings();
 		const tail = parseInt(tailInput.value, 10);
 		settings.tail = isNaN(tail) ? 0 : tail;
+		settings.remberStretch = remberStretchInput.checked;
 
 		local.set("settings", JSON.stringify(settings));
 		toast("settings updated");
@@ -26,14 +28,20 @@ export function initMisc() {
 	function updateSettings() {
 		const settings = loadMiscSettings();
 		tailInput.value = String(settings.tail);
+		remberStretchInput.checked = settings.remberStretch;
 	}
 }
 
-const DEFAULT_SETTINGS = {
-	tail: 70
-}
+export type MiscSettings = {
+	tail: number,
+	remberStretch: boolean
+};
+const DEFAULT_SETTINGS: MiscSettings = {
+	tail: 100,
+	remberStretch: true
+};
 
-export function loadMiscSettings() {
+export function loadMiscSettings(): MiscSettings {
 	const raw = local.get("settings");
 	if (!raw) return DEFAULT_SETTINGS;
 	const parsed = nothrow(() => JSON.parse(raw));
@@ -42,5 +50,5 @@ export function loadMiscSettings() {
 	return {
 		...DEFAULT_SETTINGS,
 		...parsed.value
-	} as typeof DEFAULT_SETTINGS;
+	};
 }

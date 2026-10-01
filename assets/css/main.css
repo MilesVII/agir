@@ -223,6 +223,17 @@ progress::-moz-progress-bar {
 	background-color: var(--color-accent);
 }
 
+input {
+	min-width: unset;
+}
+input[type="checkbox"] {
+	accent-color: var(--color-accent);
+	width: 20px;
+	height: 20px;
+	margin: 0;
+	flex-shrink: 0;
+}
+
 *[hidden] {
 	display: none !important;
 }

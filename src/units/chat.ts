@@ -1,20 +1,15 @@
-import { asyncMap, b64Encoder, download, getRoute, makeResizable, renderMD, setSelectMenu, setSelectOptions, updateTitle } from "@root/utils";
-import { loadMessages } from "./chat/load";
+import { asyncMap, b64Encoder, download, getRoute, makeResizable, renderMD, setSelectMenu, setSelectOptions, textareaReconsider, updateTitle } from "@root/utils";
 import { RampikeTabs } from "@rampike/tabs";
-import { idb, listen, local } from "@root/persist";
-import { readActiveProviders, readProviders } from "./settings/providers";
-import { sendMessage } from "./chat/send";
-import { abortController } from "@root/run";
-import { ActiveProviders } from "@root/types";
-import { initChatEditor } from "./chat/editor";
-import { initRember, updateRemberCounter } from "./chat/rember";
-import { toast } from "./toasts";
 import { RampikeModal } from "@rampike/modal";
-import { getCurrentChat } from "./chat/utils";
-
-export const chatSingletonRelay = {
-	openRember: () => {}
-};
+import { idb, listen, local } from "@root/persist";
+import { ActiveProviders } from "@root/types";
+import { readActiveProviders, readProviders } from "./settings/providers";
+import { toast } from "./toasts";
+import { initChatEditor } from "./chat/editor";
+import { initRember } from "./chat/rember";
+import { initMessageList, renderMessages, sendMessage } from "./chat/messages";
+import { activeJob, cancelJob, onJobChange } from "./chat/generation";
+import { getSession, onSessionReplaced, openSession } from "./chat/session";
 
 export function chatUnit() {
 	const scroller       = document.querySelector<HTMLElement>        ("#play-messages")!;
@@ -30,17 +25,30 @@ export function chatUnit() {
 	const previewCloseButton = document.querySelector<HTMLElement> ("#play-card-close")!;
 
 	makeResizable(textarea, scroller);
+	initMessageList();
+	const editor = initChatEditor();
+	const rember = initRember();
+
 	window.addEventListener("hashchange", update);
 	listen(u => {
 		if (u.storage !== "local") return;
 		if (u.key !== "providers" && u.key !== "activeProvider") return;
 		updateProviders();
 	});
+	onSessionReplaced(session => {
+		renderMessages(session);
+		if (session) updateTitle(session.chat.scenario.name);
+	});
+	onJobChange(kind => {
+		if (inputModes.tab === "disabled") return;
+		inputModes.tab = kind ? "pending" : "main";
+	});
 
-	sendButton.addEventListener("click", sendMessage);
-	stopButton.addEventListener("click", () => abortController.abort());
-	remberCounter.addEventListener("click", openRemberGuarded);
-	providerPicker.addEventListener("input", () => { pickMainProvider(providerPicker.value); })
+	sendButton.addEventListener("click", send);
+	stopButton.addEventListener("click", cancelJob);
+	remberCounter.addEventListener("click", rember.open);
+	scroller.addEventListener("message:rember", rember.open);
+	providerPicker.addEventListener("input", () => pickMainProvider(providerPicker.value));
 	previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
 	previewCloseButton.addEventListener("click", () => previewContainer.close());
 
@@ -52,39 +60,38 @@ export function chatUnit() {
 		}
 	});
 
-	update();
-	updateProviders();
-
-	const { open: openChatEditor } = initChatEditor();
-	const { open: openRember } = initRember();
-	function openRemberGuarded() {
-		if (inputModes.tab !== "main") {
-			toast("please wait until message generation is over");
-			return;
-		}
-		openRember();
-	}
-	chatSingletonRelay.openRember = openRemberGuarded;
-
 	setSelectMenu(menuButton, "☰", [
 		["Scenario card",   openScenarioIfExists],
-		["Edit definition", openChatEditor],
-		["⧖ rEmber",        openRemberGuarded],
+		["Edit definition", editor.open],
+		["⧖ rEmber",        rember.open],
 		["Export",          exportChat],
 		["Clone",           cloneChat]
 	]);
+
+	update();
+	updateProviders();
+
+	async function send() {
+		const text = textarea.value.trim();
+		if (!text) return;
+		if (await sendMessage(text)) {
+			textarea.value = "";
+			textareaReconsider(textarea);
+		}
+	}
 }
 
 async function update() {
-	const route = getRoute();
-	if (route[0] !== "play") {
+	const [page, chatId] = getRoute();
+	if (page !== "play") {
 		updateTitle(null);
 		return;
 	}
-	if (!route[1]) return;
+	if (!chatId) return;
+	// coming back to a chat that is still generating: keep the live session and its views
+	if (activeJob() && getSession()?.chat.id === chatId) return;
 
-	await loadMessages(route[1]);
-	updateRemberCounter();
+	await openSession(chatId);
 }
 
 function updateProviders() {
@@ -92,9 +99,7 @@ function updateProviders() {
 	const providerPicker = document.querySelector<HTMLSelectElement>("#chat-provider-picker")!;
 	const providerControl = document.querySelector<HTMLElement>(".chat-provider-control")!;
 
-	const providerMap = readProviders();
-
-	const providerOptions = Object.entries(providerMap);
+	const providerOptions = Object.entries(readProviders());
 	const activeId = providerOptions.find(([, e]) => e.isActive)?.[0];
 	setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId || providerOptions[0]?.[0]);
 
@@ -108,8 +113,7 @@ function updateProviders() {
 			};
 			local.set("activeProvider", JSON.stringify(actives));
 		}
-		if (inputModes.tab !== "pending")
-			inputModes.tab = "main";
+		inputModes.tab = activeJob() ? "pending" : "main";
 		providerControl.hidden = false;
 	} else {
 		inputModes.tab = "disabled";
@@ -118,9 +122,9 @@ function updateProviders() {
 }
 
 function pickMainProvider(id: string) {
-	const old = readActiveProviders();
-	old.main = id;
-	local.set("activeProvider", JSON.stringify(old));
+	const actives = readActiveProviders();
+	actives.main = id;
+	local.set("activeProvider", JSON.stringify(actives));
 }
 
 const cardPreviewRelay = {
@@ -130,16 +134,14 @@ async function openScenarioIfExists() {
 	const previewContainer = document.querySelector<RampikeModal>("#play-card")!;
 	const preview = document.querySelector<HTMLElement>("#play-card-preview")!;
 
-	const [, chatId] = getRoute();
-	if (!chatId) return;
-	const chat = await idb.get("chats", chatId);
-	if (!chat.success) return;
+	const session = getSession();
+	if (!session) return;
 
-	const cardId = chat.value.scenario.id;
-	const card = await idb.get("scenarios", cardId)
+	const cardId = session.chat.scenario.id;
+	const card = await idb.get("scenarios", cardId);
 	if (card.success && card.value) {
 		cardPreviewRelay.url = `#scenario-editor.${cardId}`;
-		const contents = `# ${card.value.card.title}\n${card.value.card.description}`
+		const contents = `# ${card.value.card.title}\n${card.value.card.description}`;
 		preview.innerHTML = renderMD(contents);
 		previewContainer.open();
 	} else
@@ -147,18 +149,14 @@ async function openScenarioIfExists() {
 }
 
 async function exportChat() {
-	const [, chatId] = getRoute();
-	if (!chatId) return;
-	const [chat, contents] = await Promise.all([
-		idb.get("chats", chatId),
-		idb.get("chatContents", chatId)
-	]);
-	if (!chat.success || !contents.success) return;
+	const session = getSession();
+	if (!session) return;
+	const { chat, contents } = session;
 
 	const mediaIDs = [
-			chat.value.userPersona.picture,
-			chat.value.scenario.picture
-		].filter(id => id) as string[];
+		chat.userPersona.picture,
+		chat.scenario.picture
+	].filter(id => id) as string[];
 	const encodedMedia = await asyncMap(mediaIDs,
 		async (id: string) => {
 			const picture = await idb.get("media", id);
@@ -171,25 +169,28 @@ async function exportChat() {
 	);
 
 	const payload = {
-		chat: chat.value,
-		contents: contents.value,
+		chat,
+		contents,
 		media: encodedMedia.filter(m => m)
 	};
 
-	download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
+	download(JSON.stringify(payload), `${chat.scenario.name}.${chat.id}.aegir.chat.json`);
 }
 
 async function cloneChat() {
-	const state = await getCurrentChat();
-	if (!state) return;
-	const { chat, messages } = state;
+	const session = getSession();
+	if (!session) return;
 	const nid = crypto.randomUUID();
-	chat.id = nid;
-	messages.id = nid;
-	chat.lastUpdate = Date.now();
 	await Promise.all([
-		idb.set("chats", chat),
-		idb.set("chatContents", messages),
+		idb.set("chats", {
+			...session.chat,
+			id: nid,
+			lastUpdate: Date.now()
+		}),
+		idb.set("chatContents", {
+			...session.contents,
+			id: nid
+		})
 	]);
 	toast("new chat created");
 }

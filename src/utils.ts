@@ -200,3 +200,7 @@ export function unique<T>(a: T[]): T[] {
 	const set = new Set(a);
 	return Array.from(set.values());
 }
+
+export function clamp(v: number, min: number, max: number) {
+	return Math.min(Math.max(v, min), max);
+}

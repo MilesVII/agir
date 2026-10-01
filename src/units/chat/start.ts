@@ -1,6 +1,6 @@
 import { idb } from "@root/persist";
 import { Chat, ChatMessage, Persona, Pronouns, ScenarioCard } from "@root/types";
-import { REMBER_DEFAULTS } from "./rember";
+import { REMBER_DEFAULTS } from "./prompt";
 import { estimateTokenCount } from "tokenx";
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {

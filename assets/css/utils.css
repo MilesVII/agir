@@ -53,6 +53,9 @@
 .baseline {
 	align-items: baseline;
 }
+.align-center {
+	align-items: center;
+}
 .grow {
 	flex-grow: 1;
 }

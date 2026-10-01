@@ -84,6 +84,8 @@ export type Chat = {
 	folder: Folder,
 	memo?: string
 };
+
+/** Persisted chat record. `id` always equals the message's index in `ChatContents.messages`. */
 export type ChatMessage = {
 	id: number,
 	name: string,
@@ -92,6 +94,13 @@ export type ChatMessage = {
 	reasoningBoxes?: string[],
 	selectedSwipe: number,
 	rember: string | null
+};
+
+/** What actually goes to the completion API. Built from ChatMessages by units/chat/prompt.ts */
+export type PromptRole = "system" | "user" | "assistant";
+export type PromptMessage = {
+	role: PromptRole,
+	content: string
 };
 
 export type RemberSettings = {

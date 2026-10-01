@@ -1,293 +1,202 @@
-import { abortController, runProvider } from "@root/run";
-import { ChatMessage, Result } from "@root/types";
-import { dullMessage, getCurrentChat, updateRember } from "./utils";
-import { idb, listen, local } from "@root/persist";
-import { readActiveProviders, readProviders } from "@units/settings/providers";
 import { RampikeModal } from "@rampike/modal";
+import { listen, local } from "@root/persist";
+import { ChatMessage, RemberSettings } from "@root/types";
 import { setSelectOptions } from "@root/utils";
+import { readActiveProviders, readProviders } from "@units/settings/providers";
 import { toast } from "@units/toasts";
-import { remberMessageView, RemberView } from "./views";
+import { cancelJob, runJob } from "./generation";
+import { getMessageView } from "./messages";
+import { REMBER_DEFAULTS, remberPrompt } from "./prompt";
+import { ChatSession, commitChat, commitContents, getSession, onSessionCommit, onSessionReplaced, setRember } from "./session";
+import { makeRemberView } from "@views/rember";
 
-export const REMBER_DEFAULTS = {
-	stride: 10,
-	prompt: [
-		"provide summary of a text roleplay session described by the user.",
-		"update provided state to reflect any changes to it.",
-		"format trivia as a list of facts.",
-		"stay concise and ignore any info irrelevant to possible future scenarios.",
-		"do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history.",
-		"follow this format when describing the roleplay state summary:",
-		"```",
-		"## current location",
-		"",
-		"## locations and objects",
-		"### location example",
-		"- example item",
-		"- example item",
-		"",
-		"## noteworthy trivia",
-		"",
-		"## future plans and promises",
-		"",
-		"```"
-	].join("\n")
-}
+/*
+⧖ rEmber: rolling state summaries attached to chat messages.
+A summary attached to message R describes everything before R. Each run summarizes
+the next `stride * 2` messages after the latest summary, keeping the last exchange out.
+*/
 
 export function initRember() {
-	const modal        = document.querySelector<RampikeModal>       ("#play-rember")!;
+	const modal          = document.querySelector<RampikeModal>       ("#play-rember")!;
 	const providerPicker = document.querySelector<HTMLSelectElement>  ("#play-rember-provider-picker")!;
-	const strideInput  = document.querySelector<HTMLInputElement>   ("#play-rember-stride")!;
-	const prompt       = document.querySelector<HTMLTextAreaElement>("#play-rember-prompt")!;
+	const strideInput    = document.querySelector<HTMLInputElement>   ("#play-rember-stride")!;
+	const promptInput    = document.querySelector<HTMLTextAreaElement>("#play-rember-prompt")!;
+	const list           = document.querySelector<HTMLElement>        ("#play-rember-messages")!;
 	const buttons = {
 		one:   document.querySelector<HTMLButtonElement>("#play-rember-add-one")!,
 		stop:  document.querySelector<HTMLButtonElement>("#play-rember-stop")!,
 		save:  document.querySelector<HTMLButtonElement>("#play-rember-save")!,
 		reset: document.querySelector<HTMLButtonElement>("#play-rember-reset")!,
 		close: document.querySelector<HTMLButtonElement>("#play-rember-modal-close")!
-	}
-	const list = document.querySelector<HTMLElement>("#play-rember-messages")!;
+	};
 
 	buttons.one.addEventListener("click", runOne);
-	buttons.stop.addEventListener("click", forgor);
+	buttons.stop.addEventListener("click", cancelJob);
 	buttons.save.addEventListener("click", saveSettings);
 	buttons.reset.addEventListener("click", resetPrompt);
 	buttons.close.addEventListener("click", () => modal.close());
-	providerPicker.addEventListener("input", providerPickerChanged);
 	buttons.stop.hidden = true;
+	providerPicker.addEventListener("input", () => {
+		const actives = readActiveProviders();
+		actives.rember = providerPicker.value;
+		local.set("activeProvider", JSON.stringify(actives));
+	});
+
+	list.addEventListener("rember:edit", ({ detail }) => {
+		const session = getSession();
+		if (!session) return;
+		if (setRember(session, detail.mid, detail.text)) commitContents(session);
+		getMessageView(session.chat.id, detail.mid)?.controls.refresh();
+	});
+	list.addEventListener("rember:remove", ({ detail, target }) => {
+		const session = getSession();
+		if (!session) return;
+		if (setRember(session, detail.mid, null)) commitContents(session);
+		getMessageView(session.chat.id, detail.mid)?.controls.refresh();
+		(target as Element).closest("[data-mid]")?.remove();
+	});
 
 	listen(u => {
-		if (u.storage !== "local") return;
-		if (u.key !== "activeProvider") return;
-
+		if (u.storage !== "local" || u.key !== "activeProvider") return;
 		updateProviderPicker();
 	});
 	updateProviderPicker();
 
+	onSessionReplaced(updateRemberCounter);
+	onSessionCommit(session => {
+		if (session === getSession()) updateRemberCounter(session);
+	});
+
 	function updateProviderPicker() {
-		const providerMap = readProviders();
-		const providerOptions = Object.entries(providerMap);
+		const providerOptions = Object.entries(readProviders());
 		const activeId = providerOptions.find(([, e]) => e.remberActive)?.[0];
 		setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
 	}
-	async function onOpen() {
-		const state = await getCurrentChat();
-		if (!state) return;
 
-		// @ts-expect-error yeah that's fine
-		strideInput.value = state.chat.rember?.stride ?? "";
-		// HACK: Remove optional after migrations
-		prompt.value   = state.chat.rember?.prompt   ?? REMBER_DEFAULTS.prompt;
+	function fill(session: ChatSession) {
+		const settings = settingsOf(session);
+		strideInput.value = String(settings.stride);
+		promptInput.value = settings.prompt;
 
 		list.innerHTML = "";
-
-		const remberMessages = state.messages.messages.filter(m => m.rember);
-		const items = remberMessages
-			.map(m => remberMessageView(
-				m.id,
-				v => updateRember(v, m.id, state.chat.id),
-				() => updateRember(null, m.id, state.chat.id),
-				m.rember!
-			))
+		const views = session.contents.messages
+			.filter(m => m.rember)
+			.map(m => makeRemberView(m.id, m.rember!))
 			.toReversed();
-		list.append(...items);
+		list.append(...views);
 	}
 
-	async function step() {
-		const state = await getCurrentChat(true, false);
-		if (!state) return;
-
-		let view: RemberView | null = null;
-		function checkView(mid: number) {
-			if (!view) {
-				view = remberMessageView(
-					mid,
-					v => updateRember(v, mid, state!.chat.id),
-					() => updateRember(null, mid, state!.chat.id),
-				);
-				list.prepend(view);
-			}
-			return view;
-		}
-		
-		const result = await runRember(
-			(content, mid) => {
-				checkView(mid).controls.appendContent(content);
-				checkView(mid).controls.hideControls();
-			},
-			providerPicker.value,
-			getStride(),
-			prompt.value.trim(),
-			state.chat.scenario.definition
-		);
-		if (!result.success) return false;
-		checkView(result.value.mid).controls.enable(result.value.response);
-		updateRemberCounter();
-		return true;
-	}
 	async function runOne() {
+		const session = getSession();
+		if (!session) return;
+		const provider = readProviders()[providerPicker.value];
+		if (!provider) {
+			toast("pick a provider for rEmber first");
+			return;
+		}
+		const settings = readSettingsInputs();
+		const plan = planRember(session.contents.messages, settings.stride);
+		if (!plan) {
+			toast("nothing left to summarize");
+			return;
+		}
+
+		const view = makeRemberView(plan.at);
+		view.controls.hideControls();
+		list.prepend(view);
 		buttons.one.hidden  = true;
 		buttons.stop.hidden = false;
-		await step();
+
+		const result = await runJob(
+			"rember", provider,
+			remberPrompt(session, settings, plan.scope, plan.previousState),
+			{ onChunk: chunk => view.controls.appendChunk(chunk) }
+		);
+
 		buttons.one.hidden  = false;
 		buttons.stop.hidden = true;
-	}
-	function forgor() {
-		abortController.abort();
-	}
-	async function saveSettings() {
-		const state = await getCurrentChat(true, false);
-		if (!state) return;
-		const v = {
-			prompt: prompt.value.trim(),
-			stride: getStride()
-		};
-		state.chat.rember = v;
-		await idb.set("chats", state.chat);
+		if (!result.success) {
+			toast(result.error);
+			view.remove();
+			return;
+		}
 
-		const detailsElement = strideInput.parentElement?.parentElement?.parentElement?.parentElement as HTMLDetailsElement;
-		if (detailsElement) detailsElement.open = false;
+		const summary = result.value.trim();
+		setRember(session, plan.at, summary);
+		await commitContents(session);
+		view.controls.setContents(summary);
+		getMessageView(session.chat.id, plan.at)?.controls.refresh();
+	}
+
+	async function saveSettings() {
+		const session = getSession();
+		if (!session) return;
+		session.chat.rember = readSettingsInputs();
+		await commitChat(session);
+		const details = strideInput.closest("details");
+		if (details) details.open = false;
 	}
 	function resetPrompt() {
 		if (!confirm("the current rember prompt will be lost after saving the settings")) return;
-		prompt.value = REMBER_DEFAULTS.prompt;
+		promptInput.value = REMBER_DEFAULTS.prompt;
 	}
-	function providerPickerChanged() {
-		const actives = readActiveProviders();
-		actives.rember = providerPicker.value!;
-		local.set("activeProvider", JSON.stringify(actives));
-	}
-	function getStride() {
-		const value = parseInt(strideInput.value, 10);
-		if (isNaN(value)) return REMBER_DEFAULTS.stride;
-		return value;
+	function readSettingsInputs(): RemberSettings {
+		const stride = parseInt(strideInput.value, 10);
+		return {
+			prompt: promptInput.value.trim(),
+			stride: isNaN(stride) ? REMBER_DEFAULTS.stride : stride
+		};
 	}
 
 	return {
 		open: () => {
-			onOpen();
+			const session = getSession();
+			if (!session) return;
+			fill(session);
 			modal.open();
-		}
-	}
-}
-
-type RemberError = "noload" | "iscomplete" | "noproviders" | "failed";
-
-export async function runRember(
-	onChunk: (chunk: string, mid: number) => void,
-	provider: string,
-	stride: number,
-	prompt: string,
-	system: string
-): Promise<Result<{ response: string, mid: number }, RemberError>> {
-	/*
-	chat example:
-	mid, from
-	0 [model]
-	1 [user]
-	2 [model]
-	3 [user, rember] <- this rember summarizes [0;3)
-	4 [model]
-	5 [user]
-	6 [model]
-
-	on new rember call:
-	start = lix; // 3
-	end = tix = start + stride * 2
-	*/
-	const eh = await getCurrentChat();
-	if (!eh) return { success: false, error: "noload"};
-	const { chat, messages } = eh;
-	const noLastAction = messages.messages.slice(0, -2);
-	let lix = noLastAction.findLastIndex(m => m.rember);
-	const state = lix === -1
-		? null
-		: noLastAction[lix].rember!;
-	if (lix === -1) lix = 0;
-	const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
-	if (tix === lix) return { success: false, error: "iscomplete" };
-	const scope = noLastAction.slice(lix, tix);
-
-	const payload = prepareMessages(
-		scope,
-		{
-			user: chat.userPersona.name,
-			model: chat.scenario.name,
-			system: ""
-		},
-		prompt, state, system
-	);
-
-	const providers = readProviders();
-	if (!providers[provider]) return { success: false, error: "noproviders"};
-
-	const response = await runProvider(payload, providers[provider], value => onChunk(value, tix), false);
-
-	if (!response.success) {
-		toast(response.error);
-		return { success: false, error: "failed"};
-	}
-	
-	const thinkingParts = response.value.split("</think>");
-	const result = (thinkingParts[1] ?? thinkingParts[0]!).trim();
-
-	messages.messages[tix].rember = result;
-	await idb.set("chatContents", messages);
-
-	return {
-		success: true,
-		value: {
-			response: result,
-			mid: tix
 		}
 	};
 }
 
-function prepareMessages(
-	parts: ChatMessage[],
-	names: Record<ChatMessage["from"], string>,
-	prompt: string,
-	state: string | null,
-	system: string
-): ChatMessage[] {
-	const chat = parts
-		.map(m => `## ${names[m.from]}:\n${m.swipes[m.selectedSwipe]}\n\n`)
-		.join("\n");
-
-	const payload = [
-		...(state
-			? [
-				"# saved roleplay state",
-				state,
-				""
-			]
-			: []
-		),
-		"# chat history",
-		chat
-	].join("\n");
-
-	const systemNested = system.replace(/^#+/gm, v => `#${v}`);
-
-	return [
-		dullMessage("system", prompt.replace("{{system}}", systemNested)),
-		dullMessage("user", payload)
-	];
+// HACK: chats created before rEmber have no settings; drop the fallback after migrations
+function settingsOf(session: ChatSession): RemberSettings {
+	return session.chat.rember ?? REMBER_DEFAULTS;
 }
 
-export async function updateRemberCounter() {
-	const remberCounter = document.querySelector<HTMLButtonElement>("#chat-rember-counter")!;
-	remberCounter.hidden = true;
+export type RemberPlan = {
+	/** message the new summary will be attached to */
+	at: number,
+	/** messages to summarize */
+	scope: ChatMessage[],
+	/** the summary being continued, if any */
+	previousState: string | null
+};
 
-	const state = await getCurrentChat();
-	if (!state) return;
-	const lastRembered = state.messages.messages.findLastIndex(m => m.rember);
-	const lid = state.messages.messages.length - 1;
-	if (lastRembered === -1) { // forgor
-		remberCounter.hidden = true;
-		return;
-	}
-	const delta = lid - lastRembered;
-	remberCounter.textContent = `⧖${delta}`;
-	remberCounter.dataset.run = (delta > state.chat.rember.stride * 2) ? "true" : "false";
-	remberCounter.hidden = false;
+/** Picks the next chunk of messages to summarize, or null when the chat is fully covered */
+export function planRember(messages: ChatMessage[], stride: number): RemberPlan | null {
+	const candidates = messages.slice(0, -2); // the latest exchange may still be rerolled
+	const lastAt = candidates.findLastIndex(m => m.rember);
+	const start = lastAt === -1 ? 0 : lastAt;
+	const at = Math.min(candidates.length - 1, start + stride * 2);
+	if (at <= start) return null;
+	return {
+		at,
+		scope: candidates.slice(start, at),
+		previousState: lastAt === -1 ? null : candidates[lastAt].rember
+	};
+}
+
+export function updateRemberCounter(session: ChatSession | null = getSession()) {
+	const counter = document.querySelector<HTMLButtonElement>("#chat-rember-counter")!;
+	counter.hidden = true;
+	if (!session) return;
+
+	const messages = session.contents.messages;
+	const lastRembered = messages.findLastIndex(m => m.rember);
+	if (lastRembered === -1) return; // forgor
+
+	const delta = messages.length - 1 - lastRembered;
+	counter.textContent = `⧖${delta}`;
+	counter.dataset.run = (delta > settingsOf(session).stride * 2) ? "true" : "false";
+	counter.hidden = false;
 }

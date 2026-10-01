@@ -20,19 +20,22 @@ const INDEX_SORTED = "sorted";
 export type IDBStore = keyof IDBStorageSchema;
 export type LocalKey = "theme" | "providers" | "settings" | "activeProvider" | "armories" | "firstLaunch" | "cheats";
 
-type StorageUpdate = {
+type StorageUpdate = ({
 	storage: "idb",
 	store: IDBStore;
 } | {
 	storage: "local",
 	key: LocalKey
+}) & {
+	remote?: boolean
 };
 type StorageListener = (event: StorageUpdate) => void;
 
 const storageListeners: StorageListener[] = [];
 const bc = new BroadcastChannel("storage-updates");
 bc.onmessage = ({ data }) => {
-	storageListeners.forEach(l => l(data));
+	const update: StorageUpdate = { ...data, remote: true };
+	storageListeners.forEach(l => l(update));
 };
 const { promise: dbInitPromise, resolve: dbInitComplete } = revolvers<IDBDatabase>();
 
@@ -84,7 +87,7 @@ async function getAll<T extends IDBStore>(store: T): Promise<Result<IDBStorageSc
 	});
 }
 
-async function set<T extends IDBStore>(store: T, value: IDBStorageSchema[T]) {
+async function set<T extends IDBStore>(store: T, value: IDBStorageSchema[T]): Promise<Result<IDBValidKey, string>> {
 	const db = await dbInitPromise;
 
 	const r = db

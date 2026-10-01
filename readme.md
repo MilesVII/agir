@@ -39,7 +39,9 @@ Alternatively, you can check `Armories`, which are decentralized character repos
 ### How do I use ⧖ rEmber?
 Navigate to an existing chat, then open rEmber dialog via chat menu (`[☰]`). Ägir will send chat fragments to the model you pick and will ask it to provide summary using the prompt you can customize in the same dialog. The provided summary will then be stored and attached to chat messages. Only the most recent summary will be included during the roleplay. You can edit summary text manually.
 
-After the first summary is added,a counter will appear in the topbar showing how many messages aren't included in the summary. Since only last N (70 by default, customizable in settings) chat messages are sent to the model, no summary will be included once the counter exceeds that number. The counter will also glow if unprocessed message count exceeds the stride size.
+After the first summary is added, a counter will appear in the topbar showing how many messages aren't included in the summary. The counter will glow if unprocessed message count exceeds the stride size.
+
+Only the last N chat messages (70 by default, customizable in settings) are sent to the model. By default the summary extends this tail: the summary and every message it does not cover are always sent, so the model keeps the full state. You can turn this off in settings, in which case the summary is only sent while the message it is attached to is still inside the tail. Note that the tail is a cost-saving measure and most providers cache prompt prefixes anyway, so a short tail rarely saves much; its main use is keeping small-context models from overflowing.
 
 ### Self-host
 Clone or download the repo on your device:

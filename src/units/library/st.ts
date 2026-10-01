@@ -1,5 +1,5 @@
 import { ChatMessage } from "@root/types";
-import { nothrow, nothrowAsync } from "@root/utils";
+import { clamp, nothrow, nothrowAsync } from "@root/utils";
 
 export async function importSTMessages(file: File) {
 	const raw = await nothrowAsync(file.text());
@@ -19,6 +19,8 @@ export async function importSTMessages(file: File) {
 }
 
 function stcToInternal(stc: STCMessage, index: number): ChatMessage {
+	const swipes = stc.swipes ?? [stc.mes];
+	const selectedSwipe = clamp(stc.swipe_id ?? 0, 0, swipes.length - 1)
 	return {
 		id: index,
 		from: stc.is_system
@@ -27,8 +29,8 @@ function stcToInternal(stc: STCMessage, index: number): ChatMessage {
 				? "user"
 				: "model",
 		name: stc.name,
-		swipes: stc.swipes ?? [stc.mes],
-		selectedSwipe: stc.swipe_id ?? 0,
+		swipes,
+		selectedSwipe,
 		rember: null
 	};
 }

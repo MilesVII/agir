@@ -3,8 +3,8 @@
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {
-		"build": "esbuild src/index.ts --bundle --sourcemap         --outfile=assets/index.js",
-		"watch": "esbuild src/index.ts --bundle --sourcemap --watch --outfile=assets/index.js",
+		"build": "esbuild src/index.ts --bundle --sourcemap --loader:.html=text         --outfile=assets/index.js",
+		"watch": "esbuild src/index.ts --bundle --sourcemap --loader:.html=text --watch --outfile=assets/index.js",
 		"dev": "concurrently \"npm run watch\" \"serve\""
 	},
 	"devDependencies": {

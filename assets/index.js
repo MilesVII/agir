@@ -326,13 +326,13 @@
     update() {
       this.innerHTML = "";
       this.append(...this.links().map((page) => {
-        const current = page === this.page;
+        const current2 = page === this.page;
         const ellipsis = page === -1;
         const contents = ellipsis ? "\u2026" : `${page + 1}`;
-        const events = ellipsis || current ? {} : {
+        const events = ellipsis || current2 ? {} : {
           "click": () => this.pick(page)
         };
-        const attributes = current ? { "data-current": "" } : {};
+        const attributes = current2 ? { "data-current": "" } : {};
         const className = ellipsis ? this.getAttribute("class-ellipsi") : this.getAttribute("class-buttons");
         return T({
           tagName: ellipsis ? "span" : "button",
@@ -2768,9 +2768,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   function renderMD(content) {
     return purify.sanitize(d.parse(content, { ...markedOptions, async: false }));
   }
-  async function renderMDAsync(content) {
-    return purify.sanitize(await d.parse(content, markedOptions));
-  }
   var PLACHEOLDER = "assets/gfx/placeholder.png";
   function placeholder(url) {
     return url || PLACHEOLDER;
@@ -2878,6 +2875,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const set2 = new Set(a);
     return Array.from(set2.values());
   }
+  function clamp(v2, min, max) {
+    return Math.min(Math.max(v2, min), max);
+  }
 
   // src/persist.ts
   var IDB_INDESEX = {
@@ -2889,7 +2889,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   var storageListeners = [];
   var bc = new BroadcastChannel("storage-updates");
   bc.onmessage = ({ data }) => {
-    storageListeners.forEach((l2) => l2(data));
+    const update4 = { ...data, remote: true };
+    storageListeners.forEach((l2) => l2(update4));
   };
   var { promise: dbInitPromise, resolve: dbInitComplete } = revolvers();
   function listen(listener) {
@@ -3714,6 +3715,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
   // src/units/settings/misc.ts
   function initMisc() {
     const tailInput = document.querySelector("#settings-options-tail");
+    const remberStretchInput = document.querySelector("#settings-options-rember-stretch");
     const miscSave = document.querySelector("#settings-misc-save");
     listen((u3) => {
       if (u3.storage !== "local") return;
@@ -3725,16 +3727,19 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       const settings = loadMiscSettings();
       const tail = parseInt(tailInput.value, 10);
       settings.tail = isNaN(tail) ? 0 : tail;
+      settings.remberStretch = remberStretchInput.checked;
       local.set("settings", JSON.stringify(settings));
       toast("settings updated");
     });
     function updateSettings() {
       const settings = loadMiscSettings();
       tailInput.value = String(settings.tail);
+      remberStretchInput.checked = settings.remberStretch;
     }
   }
   var DEFAULT_SETTINGS = {
-    tail: 70
+    tail: 100,
+    remberStretch: true
   };
   function loadMiscSettings() {
     const raw = local.get("settings");
@@ -3754,1108 +3759,6 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     providersUnit();
     initBackup();
     initMisc();
-  }
-
-  // src/run.ts
-  var abortController;
-  var parsedPocket;
-  var OR_ATTRIBUTION_HEADERS = {
-    "HTTP-Referer": "https://aegir",
-    // retarded OR attribution expects me to own the whole domain for some reason
-    "X-OpenRouter-Title": "Aegir (https://milesvii.github.io/agir/)",
-    // unicode? never heard of her
-    "X-OpenRouter-Categories": "roleplay"
-  };
-  async function runProvider(chat, provider, onChunk, attachSuffix, reasoningStatus, onReasonChunk) {
-    const chonks = [];
-    const messages = chat.map((m3) => ({
-      role: m3.from === "model" ? "assistant" : m3.from,
-      content: m3.swipes[m3.from === "user" ? 0 : m3.selectedSwipe]
-      // HACK: user messages sometimes have nonzero selectedSwipe
-    }));
-    if (attachSuffix && provider.suffix && messages[0]?.role === "system") {
-      messages[0].content += `
-${provider.suffix}`;
-    }
-    const reasoningEffort = provider.reasoning && provider.reasoning !== "unset" ? { reasoning: { effort: provider.reasoning } } : {};
-    const params = {
-      model: provider.model,
-      messages,
-      stream: true,
-      ...reasoningEffort,
-      max_completion_tokens: provider.max,
-      temperature: provider.temp,
-      ...provider.params
-    };
-    if (!provider.max) delete params.max_completion_tokens;
-    try {
-      abortController = new AbortController();
-      const attribution = provider.url.toLowerCase().includes("openrouter.ai/") ? OR_ATTRIBUTION_HEADERS : {};
-      const response = await fetch(provider.url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${provider.key}`,
-          "Content-Type": "application/json",
-          ...attribution
-        },
-        body: JSON.stringify(params),
-        signal: abortController.signal
-      });
-      if (!response.ok) {
-        const body = await nothrowAsync(response.text());
-        if (!body.success) {
-          return {
-            success: false,
-            error: `Status ${response.status}, unknown error`
-          };
-        }
-        const parsed = nothrow(() => JSON.parse(body.value));
-        if (!parsed.success || !parsed.value?.error?.message) {
-          return {
-            success: false,
-            error: `Unparsed; Provider says "${body.value}"
-Status ${response.status}`
-          };
-        }
-        const meta = parsed.value?.error?.metadata;
-        const metaWrapped = meta ? `
-Metadata:
-${JSON.stringify(meta, null, "	")}` : "";
-        return {
-          success: false,
-          error: `Provider says "${parsed.value.error.message}"
-Status ${response.status}${metaWrapped}`
-        };
-      }
-      const reader = response.body?.getReader();
-      if (!reader) {
-        return {
-          success: false,
-          error: "Response body is not readable"
-        };
-      }
-      const decoder = new TextDecoder();
-      let buffer = "";
-      while (true) {
-        const { done, value: value2 } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value2, { stream: true });
-        while (true) {
-          const lineEnd = buffer.indexOf("\n");
-          if (lineEnd === -1) break;
-          const line = buffer.slice(0, lineEnd);
-          buffer = buffer.slice(lineEnd + 1);
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") break;
-            const parsed = nothrow(() => JSON.parse(data));
-            if (!parsed.success) continue;
-            if (parsed.value.error) {
-              return {
-                success: false,
-                error: `Provider says "${JSON.stringify(parsed.value.error)}"`
-              };
-            }
-            try {
-              parsedPocket = parsed.value;
-              const delta = parsed.value.choices[0].delta;
-              const reasoning = delta.reasoning || delta.reasoning_content;
-              const content = delta.content;
-              if (reasoning) {
-                reasoningStatus?.(true);
-                onReasonChunk?.(reasoning);
-              } else if (content) {
-                reasoningStatus?.(false);
-                chonks.push(content);
-                onChunk(content);
-              }
-            } catch (e) {
-              console.warn("Chunk error: ", parsed.value, e);
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error(parsedPocket);
-      if (!abortController.signal.aborted)
-        return {
-          success: false,
-          error: e?.message ?? "unknown error"
-        };
-    }
-    let value = chonks.join("");
-    if (value.includes("</think>")) {
-      if (!value.includes("<think>")) {
-        value = "<think>" + value;
-      }
-    }
-    return { success: true, value };
-  }
-
-  // src/units/chat/views.ts
-  var STATUS = {
-    RESPONDING: "responding...",
-    REASONING: "thinking..."
-  };
-  function makeMessageView(msg, [userPic, modelPic], isLast, onEdit, onReroll, onDelete, onSwipe) {
-    if (!msg.reasoningBoxes) msg.reasoningBoxes = [];
-    const status = T({
-      tagName: "div",
-      className: "message-status"
-    });
-    const text2 = msg.swipes[msg.selectedSwipe];
-    const textBox = T({
-      tagName: "div",
-      className: "message-text edible md",
-      contents: text2
-    });
-    const reasoningBox = T({
-      tagName: "div",
-      className: "lineout message-think-box",
-      attributes: {
-        hidden: "true"
-      }
-    });
-    const reasoningPreview = T({
-      tagName: "div",
-      className: "lineout message-reasoning-preview",
-      attributes: {
-        hidden: "true"
-      }
-    });
-    const swipesCaption = T({
-      tagName: "span",
-      contents: ""
-    });
-    const swipesControl = T({
-      tagName: "div",
-      className: "row-compact no-shrink",
-      contents: [
-        controlButton(
-          "<",
-          "prev swipe",
-          () => changeSwipe(-1)
-        ),
-        swipesCaption,
-        controlButton(
-          ">",
-          "next swipe",
-          () => changeSwipe(1)
-        )
-      ],
-      style: {
-        display: "none"
-      }
-    });
-    function updateReasoning() {
-      const r = msg.reasoningBoxes?.[msg.selectedSwipe];
-      reasoningButton.hidden = !r;
-      reasoningBox.innerHTML = r || "";
-      reasoningBox.hidden = true;
-    }
-    async function changeSwipe(delta) {
-      msg.selectedSwipe += delta;
-      if (msg.selectedSwipe < 0) msg.selectedSwipe = msg.swipes.length - 1;
-      if (msg.selectedSwipe >= msg.swipes.length) msg.selectedSwipe = 0;
-      textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
-      swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
-      swipesControl.style.display = isLast && msg.swipes.length > 1 ? "flex" : "none";
-      if (delta !== 0) onSwipe(msg.selectedSwipe);
-      updateReasoning();
-    }
-    async function setSwipeToLast() {
-      msg.selectedSwipe = msg.swipes.length - 1;
-      textBox.innerHTML = renderMD(msg.swipes[msg.selectedSwipe]);
-      swipesCaption.textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
-      swipesControl.style.display = msg.swipes.length > 1 ? "flex" : "none";
-      updateReasoning();
-    }
-    function setStatus(value) {
-      if (value === null) {
-        status.hidden = true;
-        return;
-      }
-      status.hidden = false;
-      status.textContent = value;
-    }
-    const reasoningButton = controlButton(
-      "R",
-      "show reasoning",
-      () => {
-        reasoningBox.hidden = !reasoningBox.hidden;
-      }
-    );
-    reasoningButton.hidden = true;
-    const remberButton = controlButton(
-      "\u29D6",
-      "open rember",
-      chatSingletonRelay.openRember
-    );
-    remberButton.hidden = !msg.rember;
-    const editButton = controlButton(
-      "\u270E",
-      "edit message",
-      () => {
-        textBox.setAttribute("contenteditable", "true");
-        textBox.textContent = msg.swipes[msg.selectedSwipe];
-        textBox.focus();
-        changeControlsState("editing");
-      }
-    );
-    const rerollButton = controlButton(
-      "\u21BA",
-      "reroll this message",
-      onReroll
-    );
-    const deleteButton = controlButton(
-      "\u2716",
-      "delete message along with following",
-      onDelete
-    );
-    const copyButton = controlButton(
-      "\u29C9",
-      "copy message",
-      async () => {
-        await navigator.clipboard.writeText(msg.swipes[msg.selectedSwipe]);
-        toast("message copied to clipboard", { timeoutMS: 3200 });
-      }
-    );
-    function updateRerollButtonStatus() {
-      if (msg.from === "model" && isLast)
-        rerollButton.style.removeProperty("display");
-      else
-        rerollButton.style.display = "none";
-    }
-    const mainControls = [
-      reasoningButton,
-      remberButton,
-      swipesControl,
-      editButton,
-      copyButton,
-      rerollButton
-    ];
-    if (msg.from === "user") mainControls.push(deleteButton);
-    const controlsTab = virtualTabs(
-      ["main", mainControls],
-      ["editing", [
-        controlButton(
-          "\u2714",
-          "save",
-          async () => {
-            const newContents = textBox.innerText;
-            msg.swipes[msg.selectedSwipe] = newContents;
-            textBox.removeAttribute("contenteditable");
-            changeControlsState("main");
-            onEdit(msg.selectedSwipe, newContents);
-            textBox.innerHTML = await renderMDAsync(newContents);
-          }
-        ),
-        controlButton(
-          "\u2718",
-          "cancel",
-          async () => {
-            textBox.removeAttribute("contenteditable");
-            changeControlsState("main");
-            textBox.innerHTML = await renderMDAsync(msg.swipes[msg.selectedSwipe]);
-          }
-        )
-      ]],
-      ["streaming", []]
-    );
-    const controls = controlsTab.contents;
-    const changeControlsState = controlsTab.pickTab;
-    const element = T({
-      tagName: "div",
-      className: "message",
-      attributes: {
-        "data-mid": String(msg.id)
-      },
-      contents: [
-        T({
-          tagName: "img",
-          attributes: {
-            src: placeholder(msg.from === "user" ? userPic : modelPic),
-            title: `mid #${msg.id}`
-          }
-        }),
-        T({
-          contents: [
-            T({
-              className: "row",
-              contents: [
-                T({
-                  className: "message-name",
-                  contents: msg.name
-                }),
-                status,
-                T({
-                  className: "message-controls-scroller row",
-                  contents: controls
-                })
-              ]
-            }),
-            reasoningPreview,
-            reasoningBox,
-            textBox
-          ]
-        })
-      ]
-    });
-    changeSwipe(0);
-    changeControlsState("main");
-    updateRerollButtonStatus();
-    setStatus(null);
-    function updateMessage(value) {
-      msg = value;
-    }
-    function scrollIntoView() {
-      if (elementVisible(element))
-        element.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-    function startStreaming() {
-      textBox.removeAttribute("contenteditable");
-      textBox.innerHTML = "";
-      reasoningPreview.innerHTML = "";
-      reasoningPreview.hidden = true;
-      reasoningBox.hidden = true;
-      changeControlsState("streaming");
-      setStatus(STATUS.RESPONDING);
-      return (value) => {
-        textBox.innerText += value;
-        if (elementVisible(element)) scrollIntoView();
-      };
-    }
-    async function endStreaming() {
-      await setSwipeToLast();
-      reasoningPreview.innerHTML = "";
-      reasoningPreview.hidden = true;
-      changeControlsState("main");
-      scrollIntoView();
-      setStatus(null);
-    }
-    function setIsLast(value) {
-      isLast = value;
-      changeSwipe(0);
-      updateRerollButtonStatus();
-    }
-    function reasoningStatus(on) {
-      setStatus(on ? STATUS.REASONING : STATUS.RESPONDING);
-    }
-    function addReasoningChunk(chunk) {
-      reasoningPreview.hidden = false;
-      reasoningPreview.innerHTML += chunk;
-      reasoningPreview.scrollTop = 9e3;
-    }
-    function toggleRember(state) {
-      remberButton.hidden = !state;
-    }
-    const viewControls = {
-      updateSwipe: changeSwipe,
-      changeControlsState,
-      updateMessage,
-      startStreaming,
-      endStreaming,
-      setIsLast,
-      reasoningStatus,
-      addReasoningChunk,
-      toggleRember
-    };
-    return M(element, viewControls, "controls");
-  }
-  function remberMessageView(messageId, onEdit, onRemove, contents = "") {
-    const textBox = T({
-      tagName: "div",
-      className: "chat-rember-view edible",
-      contents
-    });
-    let editPocket = "";
-    const buttons = {
-      edit: controlButton(
-        "\u270E",
-        "edit",
-        () => {
-          textBox.setAttribute("contenteditable", "");
-          textBox.focus();
-          editPocket = textBox.innerText;
-          changeControlsState("edit");
-        }
-      ),
-      remove: controlButton(
-        "\u2716",
-        "remove",
-        () => {
-          if (!confirm(`the rEmber state for message #${messageId} will be removed`)) return;
-          onRemove();
-          suicide();
-        }
-      ),
-      editConfirm: controlButton(
-        "\u2714",
-        "save",
-        async () => {
-          textBox.removeAttribute("contenteditable");
-          changeControlsState("main");
-          onEdit(textBox.innerText);
-        }
-      ),
-      editCancel: controlButton(
-        "\u2718",
-        "cancel",
-        async () => {
-          textBox.removeAttribute("contenteditable");
-          changeControlsState("main");
-          textBox.innerHTML = editPocket;
-        }
-      )
-    };
-    const controlTabs = virtualTabs(
-      ["main", [
-        buttons.edit,
-        buttons.remove
-      ]],
-      ["edit", [
-        buttons.editConfirm,
-        buttons.editCancel
-      ]],
-      ["streaming", []]
-    );
-    const changeControlsState = controlTabs.pickTab;
-    changeControlsState("main");
-    const container = T({
-      tagName: "div",
-      className: "lineout list",
-      contents: [
-        T({
-          tagName: "div",
-          className: "row",
-          contents: [
-            T({
-              tagName: "span",
-              className: "hint",
-              contents: `#${messageId}`
-            }),
-            T({
-              tagName: "div",
-              className: "row-compact float-end",
-              contents: controlTabs.contents
-            })
-          ]
-        }),
-        textBox
-      ],
-      attributes: {
-        title: String(messageId)
-      }
-    });
-    function appendContent(value) {
-      textBox.textContent += value;
-    }
-    function enable(value) {
-      textBox.textContent = value;
-      changeControlsState("main");
-    }
-    function suicide() {
-      container.remove();
-    }
-    function hideControls() {
-      changeControlsState("streaming");
-    }
-    return M(
-      container,
-      {
-        appendContent,
-        enable,
-        hideControls
-      },
-      "controls"
-    );
-  }
-  function controlButton(caption, hint, cb) {
-    return T({
-      tagName: "button",
-      className: "strip ghost pointer message-control",
-      contents: caption,
-      attributes: { title: hint },
-      events: { click: cb }
-    });
-  }
-  function virtualTabs(...tabs) {
-    const ixes = new Map(tabs.map(([k2], i) => [k2, i]));
-    const contents = tabs.map(
-      ([_2, tab]) => T({
-        tagName: "div",
-        className: "virtual",
-        contents: tab
-      })
-    );
-    function pickTab(state) {
-      const tix = ixes.get(state);
-      contents.forEach((tab, i) => tab.style.display = i === tix ? "contents" : "none");
-    }
-    return {
-      contents,
-      pickTab
-    };
-  }
-
-  // src/units/chat/rember.ts
-  var REMBER_DEFAULTS = {
-    stride: 10,
-    prompt: [
-      "provide summary of a text roleplay session described by the user.",
-      "update provided state to reflect any changes to it.",
-      "format trivia as a list of facts.",
-      "stay concise and ignore any info irrelevant to possible future scenarios.",
-      "do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history.",
-      "follow this format when describing the roleplay state summary:",
-      "```",
-      "## current location",
-      "",
-      "## locations and objects",
-      "### location example",
-      "- example item",
-      "- example item",
-      "",
-      "## noteworthy trivia",
-      "",
-      "## future plans and promises",
-      "",
-      "```"
-    ].join("\n")
-  };
-  function initRember() {
-    const modal = document.querySelector("#play-rember");
-    const providerPicker = document.querySelector("#play-rember-provider-picker");
-    const strideInput = document.querySelector("#play-rember-stride");
-    const prompt2 = document.querySelector("#play-rember-prompt");
-    const buttons = {
-      one: document.querySelector("#play-rember-add-one"),
-      stop: document.querySelector("#play-rember-stop"),
-      save: document.querySelector("#play-rember-save"),
-      reset: document.querySelector("#play-rember-reset"),
-      close: document.querySelector("#play-rember-modal-close")
-    };
-    const list = document.querySelector("#play-rember-messages");
-    buttons.one.addEventListener("click", runOne);
-    buttons.stop.addEventListener("click", forgor);
-    buttons.save.addEventListener("click", saveSettings);
-    buttons.reset.addEventListener("click", resetPrompt);
-    buttons.close.addEventListener("click", () => modal.close());
-    providerPicker.addEventListener("input", providerPickerChanged);
-    buttons.stop.hidden = true;
-    listen((u3) => {
-      if (u3.storage !== "local") return;
-      if (u3.key !== "activeProvider") return;
-      updateProviderPicker();
-    });
-    updateProviderPicker();
-    function updateProviderPicker() {
-      const providerMap = readProviders();
-      const providerOptions = Object.entries(providerMap);
-      const activeId = providerOptions.find(([, e]) => e.remberActive)?.[0];
-      setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
-    }
-    async function onOpen() {
-      const state = await getCurrentChat();
-      if (!state) return;
-      strideInput.value = state.chat.rember?.stride ?? "";
-      prompt2.value = state.chat.rember?.prompt ?? REMBER_DEFAULTS.prompt;
-      list.innerHTML = "";
-      const remberMessages = state.messages.messages.filter((m3) => m3.rember);
-      const items = remberMessages.map((m3) => remberMessageView(
-        m3.id,
-        (v2) => updateRember(v2, m3.id, state.chat.id),
-        () => updateRember(null, m3.id, state.chat.id),
-        m3.rember
-      )).toReversed();
-      list.append(...items);
-    }
-    async function step() {
-      const state = await getCurrentChat(true, false);
-      if (!state) return;
-      let view = null;
-      function checkView(mid) {
-        if (!view) {
-          view = remberMessageView(
-            mid,
-            (v2) => updateRember(v2, mid, state.chat.id),
-            () => updateRember(null, mid, state.chat.id)
-          );
-          list.prepend(view);
-        }
-        return view;
-      }
-      const result = await runRember(
-        (content, mid) => {
-          checkView(mid).controls.appendContent(content);
-          checkView(mid).controls.hideControls();
-        },
-        providerPicker.value,
-        getStride(),
-        prompt2.value.trim(),
-        state.chat.scenario.definition
-      );
-      if (!result.success) return false;
-      checkView(result.value.mid).controls.enable(result.value.response);
-      updateRemberCounter();
-      return true;
-    }
-    async function runOne() {
-      buttons.one.hidden = true;
-      buttons.stop.hidden = false;
-      await step();
-      buttons.one.hidden = false;
-      buttons.stop.hidden = true;
-    }
-    function forgor() {
-      abortController.abort();
-    }
-    async function saveSettings() {
-      const state = await getCurrentChat(true, false);
-      if (!state) return;
-      const v2 = {
-        prompt: prompt2.value.trim(),
-        stride: getStride()
-      };
-      state.chat.rember = v2;
-      await idb.set("chats", state.chat);
-      const detailsElement = strideInput.parentElement?.parentElement?.parentElement?.parentElement;
-      if (detailsElement) detailsElement.open = false;
-    }
-    function resetPrompt() {
-      if (!confirm("the current rember prompt will be lost after saving the settings")) return;
-      prompt2.value = REMBER_DEFAULTS.prompt;
-    }
-    function providerPickerChanged() {
-      const actives = readActiveProviders();
-      actives.rember = providerPicker.value;
-      local.set("activeProvider", JSON.stringify(actives));
-    }
-    function getStride() {
-      const value = parseInt(strideInput.value, 10);
-      if (isNaN(value)) return REMBER_DEFAULTS.stride;
-      return value;
-    }
-    return {
-      open: () => {
-        onOpen();
-        modal.open();
-      }
-    };
-  }
-  async function runRember(onChunk, provider, stride, prompt2, system) {
-    const eh = await getCurrentChat();
-    if (!eh) return { success: false, error: "noload" };
-    const { chat, messages } = eh;
-    const noLastAction = messages.messages.slice(0, -2);
-    let lix = noLastAction.findLastIndex((m3) => m3.rember);
-    const state = lix === -1 ? null : noLastAction[lix].rember;
-    if (lix === -1) lix = 0;
-    const tix = Math.min(noLastAction.length - 1, lix + stride * 2);
-    if (tix === lix) return { success: false, error: "iscomplete" };
-    const scope = noLastAction.slice(lix, tix);
-    const payload = prepareMessages(
-      scope,
-      {
-        user: chat.userPersona.name,
-        model: chat.scenario.name,
-        system: ""
-      },
-      prompt2,
-      state,
-      system
-    );
-    const providers = readProviders();
-    if (!providers[provider]) return { success: false, error: "noproviders" };
-    const response = await runProvider(payload, providers[provider], (value) => onChunk(value, tix), false);
-    if (!response.success) {
-      toast(response.error);
-      return { success: false, error: "failed" };
-    }
-    const thinkingParts = response.value.split("</think>");
-    const result = (thinkingParts[1] ?? thinkingParts[0]).trim();
-    messages.messages[tix].rember = result;
-    await idb.set("chatContents", messages);
-    return {
-      success: true,
-      value: {
-        response: result,
-        mid: tix
-      }
-    };
-  }
-  function prepareMessages(parts, names, prompt2, state, system) {
-    const chat = parts.map((m3) => `## ${names[m3.from]}:
-${m3.swipes[m3.selectedSwipe]}
-
-`).join("\n");
-    const payload = [
-      ...state ? [
-        "# saved roleplay state",
-        state,
-        ""
-      ] : [],
-      "# chat history",
-      chat
-    ].join("\n");
-    const systemNested = system.replace(/^#+/gm, (v2) => `#${v2}`);
-    return [
-      dullMessage("system", prompt2.replace("{{system}}", systemNested)),
-      dullMessage("user", payload)
-    ];
-  }
-  async function updateRemberCounter() {
-    const remberCounter = document.querySelector("#chat-rember-counter");
-    remberCounter.hidden = true;
-    const state = await getCurrentChat();
-    if (!state) return;
-    const lastRembered = state.messages.messages.findLastIndex((m3) => m3.rember);
-    const lid = state.messages.messages.length - 1;
-    if (lastRembered === -1) {
-      remberCounter.hidden = true;
-      return;
-    }
-    const delta = lid - lastRembered;
-    remberCounter.textContent = `\u29D6${delta}`;
-    remberCounter.dataset.run = delta > state.chat.rember.stride * 2 ? "true" : "false";
-    remberCounter.hidden = false;
-  }
-
-  // src/units/chat/utils.ts
-  async function setSwipe(chatId, messageId, swipeIx, value) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const tix = contents.value.messages.findIndex((m3) => m3.id === messageId);
-    if (tix < 0) return;
-    contents.value.messages[tix].swipes[swipeIx] = value;
-    await idb.set("chatContents", contents.value);
-  }
-  async function pushSwipe(chatId, messageId, value, reasoning) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return;
-    messages[mix].swipes = messages[mix].swipes.filter((m3) => m3.trim());
-    messages[mix].swipes.push(value);
-    const six = messages[mix].swipes.length - 1;
-    messages[mix].selectedSwipe = six;
-    if (reasoning) {
-      if (!messages[mix].reasoningBoxes) messages[mix].reasoningBoxes = [];
-      messages[mix].reasoningBoxes[six] = reasoning;
-    }
-    chat.value.lastUpdate = Date.now();
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    return messages[mix];
-  }
-  async function addMessage(chatId, value, fromUser, name) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const newMessage = {
-      from: fromUser ? "user" : "model",
-      id: messages.length,
-      name,
-      rember: null,
-      selectedSwipe: 0,
-      swipes: [value]
-    };
-    messages.push(newMessage);
-    chat.value.lastUpdate = Date.now();
-    chat.value.messageCount = messages.length;
-    contents.value.messages.forEach((m3) => {
-      if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
-        toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
-        m3.selectedSwipe = 0;
-      }
-    });
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    return newMessage;
-  }
-  async function updateSwipeIndex(six, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
-    if (typeof contents.value.messages[mix].swipes[six] !== "string") {
-      toast(`error: setting six ${six} on mid ${mid}, but only ${contents.value.messages[mix].swipes.length} swipes are present`);
-      return;
-    }
-    contents.value.messages[mix].selectedSwipe = six;
-    await idb.set("chatContents", contents.value);
-  }
-  async function updateRember(value, mid, chatId) {
-    const contents = await idb.get("chatContents", chatId);
-    if (!contents.success) return;
-    const mix = contents.value.messages.findIndex((m3) => m3.id === mid);
-    contents.value.messages[mix].rember = value;
-    await idb.set("chatContents", contents.value);
-    getMessageViewByID(mid)?.controls.toggleRember(!!value);
-  }
-  async function deleteMessage(chatId, messageId) {
-    const inputModes = document.querySelector("#chat-controls");
-    if (inputModes.tab !== "main") return;
-    if (!confirm("all the following messages will be deleted too")) return;
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return;
-    contents.value.messages.splice(mix);
-    chat.value.lastUpdate = Date.now();
-    chat.value.messageCount = messages.length;
-    await Promise.all([
-      idb.set("chatContents", contents.value),
-      idb.set("chats", chat.value)
-    ]);
-    const messageViews = document.querySelectorAll(".message[data-mid]");
-    messageViews.forEach((m3) => {
-      const mid = parseInt(m3.dataset.mid, 10);
-      if (mid >= messageId) m3.remove();
-      if (mid === messageId - 1) m3.controls.setIsLast(true);
-    });
-    updateRemberCounter();
-  }
-  async function reroll(chatId, messageId) {
-    const payload = await prepareRerollPayload(chatId, messageId);
-    if (!payload) return;
-    loadResponse(payload, messageId, chatId);
-  }
-  async function preparePayload(contents, systemPrompt, userMessage) {
-    const settings = loadMiscSettings();
-    const sliced = settings.tail === 0 ? contents : contents.slice(-settings.tail);
-    const system = dullMessage("system", systemPrompt);
-    const payload = [
-      system,
-      ...sliced
-    ];
-    if (!userMessage) return payload;
-    const user = dullMessage("user", userMessage);
-    payload.push(user);
-    return payload;
-  }
-  async function prepareRerollPayload(chatId, messageId) {
-    const [contents, chat] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !chat.success) return null;
-    const messages = contents.value.messages;
-    const mix = messages.findIndex((m3) => m3.id === messageId);
-    if (mix < 0) return null;
-    const history = messages.slice(0, mix);
-    const settings = loadMiscSettings();
-    const sliced = settings.tail === 0 ? history : history.slice(-settings.tail);
-    const system = dullMessage("system", chat.value.scenario.definition);
-    const payload = [
-      system,
-      ...sliced
-    ];
-    return payload;
-  }
-  async function loadResponse(payload, msgId, chatId) {
-    const providerOptions = Object.entries(readProviders());
-    if (providerOptions.length <= 0) {
-      toast("no providers found");
-      return;
-    }
-    const [, provider] = providerOptions.find(([, e]) => e.isActive) ?? providerOptions[0];
-    const inputModes = document.querySelector("#chat-controls");
-    inputModes.tab = "pending";
-    const messageView = getMessageViewByID(msgId);
-    if (!messageView) {
-      window.location.reload();
-      return;
-    }
-    const responseStreamingUpdater = messageView.controls.startStreaming();
-    const responseReasoningStatusReporter = messageView.controls.reasoningStatus;
-    let reasoning = "";
-    const responseReasoningReporter = (chunk) => {
-      reasoning += chunk;
-      messageView.controls.addReasoningChunk(chunk);
-    };
-    const streamingResult = await runProvider(
-      expandRember(payload),
-      provider,
-      responseStreamingUpdater,
-      true,
-      responseReasoningStatusReporter,
-      responseReasoningReporter
-    );
-    if (streamingResult.success) {
-      const updatedMessage = await pushSwipe(chatId, msgId, streamingResult.value, reasoning);
-      if (!updatedMessage) {
-        toast("failed to save response message");
-        return;
-      }
-      messageView.controls.updateMessage(updatedMessage);
-    } else {
-      toast(streamingResult.error);
-    }
-    messageView.controls.endStreaming();
-    inputModes.tab = "main";
-  }
-  async function loadPictures(chat) {
-    return await Promise.all([
-      chat.userPersona.picture && getBlobLink(chat.userPersona.picture),
-      chat.scenario.picture && getBlobLink(chat.scenario.picture)
-    ]);
-  }
-  function getMessageViewByID(messageId) {
-    const list = document.querySelector("#play-messages");
-    return list.querySelector(`.message[data-mid="${messageId}"]`);
-  }
-  function dullMessage(from, text2) {
-    return { from, id: -1, name: "", rember: null, swipes: [text2], selectedSwipe: 0 };
-  }
-  function expandRember(chat) {
-    const remberAt = chat.findLastIndex((m3) => m3.rember);
-    if (remberAt === -1) {
-      return chat;
-    } else {
-      return chat.slice(0, remberAt + 1).concat(
-        dullMessage("system", `# Roleplay state summary:
-${chat[remberAt].rember}`),
-        chat.slice(remberAt + 1)
-      );
-    }
-  }
-  async function getCurrentChat(chat = true, contents = true) {
-    const [page, chatId] = getRoute();
-    if (page !== "play") return null;
-    if (chat && contents) {
-      const [messages, chat2] = await Promise.all([
-        idb.get("chatContents", chatId),
-        idb.get("chats", chatId)
-      ]);
-      if (!messages.success || !chat2.success) return null;
-      return { messages: messages.value, chat: chat2.value };
-    } else if (chat) {
-      const chat2 = await idb.get("chats", chatId);
-      if (chat2.success)
-        return { chat: chat2.value };
-      else
-        return null;
-    } else if (contents) {
-      const messages = await idb.get("chatContents", chatId);
-      if (messages.success)
-        return { messages: messages.value };
-      else
-        return null;
-    }
-    return null;
-  }
-
-  // src/units/chat/load.ts
-  async function loadMessages(chatId) {
-    const list = document.querySelector("#play-messages");
-    list.innerHTML = "";
-    const [contents, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!contents.success || !meta.success) return;
-    updateTitle(meta.value.scenario.name);
-    const [userPic, modelPic] = await loadPictures(meta.value);
-    const messages = contents.value.messages;
-    const items = messages.map((item, ix) => {
-      return makeMessageView(
-        item,
-        // meta.value,
-        [userPic, modelPic],
-        ix === messages.length - 1,
-        (swipeIx, value) => {
-          setSwipe(chatId, item.id, swipeIx, value);
-        },
-        () => reroll(chatId, item.id),
-        () => deleteMessage(chatId, item.id),
-        (six) => updateSwipeIndex(six, item.id, chatId)
-      );
-    });
-    list.append(...items);
-    list.scrollTop = list.scrollHeight;
-  }
-
-  // src/units/chat/send.ts
-  async function sendMessage() {
-    const list = document.querySelector("#play-messages");
-    const textarea = document.querySelector("#chat-textarea");
-    const message = textarea.value?.trim();
-    if (!message) return;
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const [messages, meta] = await Promise.all([
-      idb.get("chatContents", chatId),
-      idb.get("chats", chatId)
-    ]);
-    if (!messages.success || !meta.success) return;
-    const payload = await preparePayload(messages.value.messages, meta.value.scenario.definition, message);
-    const lastMessageId = messages.value.messages.findLast(() => true)?.id;
-    getMessageViewByID(lastMessageId)?.controls.setIsLast(false);
-    const newUserMessage = await addMessage(meta.value.id, message, true, meta.value.userPersona.name);
-    if (!newUserMessage) {
-      toast("failed to save user message");
-      return;
-    }
-    const swipesDisabled = (six) => {
-      if (six > 0)
-        toast(`attempt to swipe user message, mid: ${newUserMessage.id}, six: ${six}`);
-    };
-    const userMessage = makeMessageView(
-      newUserMessage,
-      await loadPictures(meta.value),
-      false,
-      // on edit
-      (swipeIx, value) => {
-        setSwipe(chatId, newUserMessage.id, swipeIx, value);
-      },
-      // on reroll
-      () => {
-        throw Error("haha nope");
-      },
-      () => deleteMessage(chatId, newUserMessage.id),
-      swipesDisabled
-    );
-    const newModelMessage = await addMessage(meta.value.id, "", false, meta.value.scenario.name);
-    if (!newModelMessage) {
-      toast("failed to save user message");
-      return;
-    }
-    const responseMessage = makeMessageView(
-      newModelMessage,
-      await loadPictures(meta.value),
-      true,
-      // on edit
-      (swipeIx, value) => {
-        setSwipe(chatId, newModelMessage.id, swipeIx, value);
-      },
-      // reroll
-      () => reroll(chatId, newModelMessage.id),
-      () => {
-        throw Error("haha nope");
-      },
-      (six) => updateSwipeIndex(six, newModelMessage.id, chatId)
-    );
-    list.append(userMessage, responseMessage);
-    loadResponse(payload, newModelMessage.id, meta.value.id);
-    textarea.value = "";
-    textareaReconsider(textarea);
-    updateRemberCounter();
-    list.scrollTop = list.scrollHeight;
   }
 
   // node_modules/tokenx/dist/index.mjs
@@ -4911,6 +3814,285 @@ ${chat[remberAt].rember}`),
     return Array.from(text2).length;
   }
 
+  // src/run.ts
+  var OR_ATTRIBUTION_HEADERS = {
+    "HTTP-Referer": "https://aegir",
+    // retarded OR attribution expects me to own the whole domain for some reason
+    "X-OpenRouter-Title": "Aegir (https://milesvii.github.io/agir/)",
+    // unicode? never heard of her
+    "X-OpenRouter-Categories": "roleplay"
+  };
+  async function runProvider(prompt2, provider, hooks) {
+    const chonks = [];
+    const reasoningEffort = provider.reasoning && provider.reasoning !== "unset" ? { reasoning: { effort: provider.reasoning } } : {};
+    const params = {
+      model: provider.model,
+      messages: prompt2,
+      stream: true,
+      ...reasoningEffort,
+      max_completion_tokens: provider.max,
+      temperature: provider.temp,
+      ...provider.params
+    };
+    if (!provider.max) delete params.max_completion_tokens;
+    try {
+      const attribution = provider.url.toLowerCase().includes("openrouter.ai/") ? OR_ATTRIBUTION_HEADERS : {};
+      const response = await fetch(provider.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${provider.key}`,
+          "Content-Type": "application/json",
+          ...attribution
+        },
+        body: JSON.stringify(params),
+        signal: hooks.signal
+      });
+      if (!response.ok) {
+        const body = await nothrowAsync(response.text());
+        if (!body.success) {
+          return {
+            success: false,
+            error: `Status ${response.status}, unknown error`
+          };
+        }
+        const parsed = nothrow(() => JSON.parse(body.value));
+        if (!parsed.success || !parsed.value?.error?.message) {
+          return {
+            success: false,
+            error: `Unparsed; Provider says "${body.value}"
+Status ${response.status}`
+          };
+        }
+        const meta = parsed.value?.error?.metadata;
+        const metaWrapped = meta ? `
+Metadata:
+${JSON.stringify(meta, null, "	")}` : "";
+        return {
+          success: false,
+          error: `Provider says "${parsed.value.error.message}"
+Status ${response.status}${metaWrapped}`
+        };
+      }
+      const reader = response.body?.getReader();
+      if (!reader) {
+        return {
+          success: false,
+          error: "Response body is not readable"
+        };
+      }
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        while (true) {
+          const lineEnd = buffer.indexOf("\n");
+          if (lineEnd === -1) break;
+          const line = buffer.slice(0, lineEnd);
+          buffer = buffer.slice(lineEnd + 1);
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") break;
+            const parsed = nothrow(() => JSON.parse(data));
+            if (!parsed.success) continue;
+            if (parsed.value.error) {
+              return {
+                success: false,
+                error: `Provider says "${JSON.stringify(parsed.value.error)}"`
+              };
+            }
+            try {
+              const delta = parsed.value.choices[0].delta;
+              const reasoning = delta.reasoning || delta.reasoning_content;
+              const content = delta.content;
+              if (reasoning) {
+                hooks.onReasoningStatus?.(true);
+                hooks.onReasoningChunk?.(reasoning);
+              } else if (content) {
+                hooks.onReasoningStatus?.(false);
+                chonks.push(content);
+                hooks.onChunk(content);
+              }
+            } catch (e) {
+              console.warn("Chunk error: ", parsed.value, e);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (!hooks.signal.aborted)
+        return {
+          success: false,
+          error: e?.message ?? "unknown error"
+        };
+    }
+    const result = chonks.join("");
+    const legacyReasoningSeparator = "</think>";
+    if (result.includes(legacyReasoningSeparator)) {
+      const [reasoning, value] = result.split(legacyReasoningSeparator).map((v2) => v2.trim());
+      if (reasoning) hooks.onReasoningChunk?.(reasoning);
+      return { success: true, value: value.trim() };
+    }
+    return { success: true, value: result };
+  }
+
+  // src/units/chat/generation.ts
+  var active = null;
+  var listeners = [];
+  function activeJob() {
+    return active?.kind ?? null;
+  }
+  function onJobChange(listener) {
+    listeners.push(listener);
+  }
+  function cancelJob() {
+    active?.controller.abort();
+  }
+  async function runJob(kind, provider, prompt2, hooks) {
+    if (active) return { success: false, error: `please wait until ${active.kind} generation is over` };
+    const controller = new AbortController();
+    active = { kind, controller };
+    listeners.forEach((l2) => l2(kind));
+    const result = await runProvider(prompt2, provider, { ...hooks, signal: controller.signal });
+    active = null;
+    listeners.forEach((l2) => l2(null));
+    return result;
+  }
+
+  // src/units/chat/session.ts
+  var current = null;
+  var replacedListeners = [];
+  var commitListeners = [];
+  function onSessionReplaced(listener) {
+    replacedListeners.push(listener);
+  }
+  function onSessionCommit(listener) {
+    commitListeners.push(listener);
+  }
+  function getSession() {
+    return current;
+  }
+  async function openSession(chatId) {
+    current = chatId ? await load(chatId) : null;
+    replacedListeners.forEach((l2) => l2(current));
+    return current;
+  }
+  async function load(chatId) {
+    const [chat, contents] = await Promise.all([
+      idb.get("chats", chatId),
+      idb.get("chatContents", chatId)
+    ]);
+    if (!chat.success || !contents.success) return null;
+    if (!chat.value || !contents.value) return null;
+    healSwipeIndexes(contents.value.messages);
+    return { chat: chat.value, contents: contents.value };
+  }
+  listen((update4) => {
+    if (update4.storage !== "idb" || !update4.remote || !current) return;
+    if (update4.store !== "chats" && update4.store !== "chatContents") return;
+    if (activeJob()) return;
+    openSession(current.chat.id);
+  });
+  async function commit(session) {
+    session.chat.lastUpdate = Date.now();
+    session.chat.messageCount = session.contents.messages.length;
+    return await write(session, true, true);
+  }
+  async function commitContents(session) {
+    return await write(session, false, true);
+  }
+  async function commitChat(session) {
+    return await write(session, true, false);
+  }
+  async function write(session, chat, contents) {
+    const results = await Promise.all([
+      chat ? idb.set("chats", session.chat) : null,
+      contents ? idb.set("chatContents", session.contents) : null
+    ]);
+    const ok = results.every((r) => r === null || r.success);
+    if (!ok) {
+      toast("failed to save chat");
+      return false;
+    }
+    if (current && current !== session && current.chat.id === session.chat.id) {
+      current = session;
+      replacedListeners.forEach((l2) => l2(current));
+    }
+    commitListeners.forEach((l2) => l2(session));
+    return true;
+  }
+  function messageByID(session, mid) {
+    return session.contents.messages.find((m3) => m3.id === mid) ?? null;
+  }
+  function lastMessage(session) {
+    return session.contents.messages.at(-1) ?? null;
+  }
+  function selectedText(message) {
+    return message.swipes[message.selectedSwipe] ?? message.swipes[0] ?? "";
+  }
+  function addMessage(session, from, text2) {
+    const messages = session.contents.messages;
+    const message = {
+      id: messages.length,
+      from,
+      name: from === "user" ? session.chat.userPersona.name : session.chat.scenario.name,
+      rember: null,
+      selectedSwipe: 0,
+      swipes: [text2]
+    };
+    messages.push(message);
+    return message;
+  }
+  function pushSwipe(session, mid, text2, reasoning) {
+    const message = messageByID(session, mid);
+    if (!message) return null;
+    message.swipes = message.swipes.filter((s) => s.trim());
+    message.swipes.push(text2);
+    message.selectedSwipe = message.swipes.length - 1;
+    if (reasoning) {
+      if (!message.reasoningBoxes) message.reasoningBoxes = [];
+      message.reasoningBoxes[message.selectedSwipe] = reasoning;
+    }
+    return message;
+  }
+  function setSwipeText(session, mid, swipe, text2) {
+    const message = messageByID(session, mid);
+    if (!message || typeof message.swipes[swipe] !== "string") return false;
+    message.swipes[swipe] = text2;
+    return true;
+  }
+  function selectSwipe(session, mid, swipe) {
+    const message = messageByID(session, mid);
+    if (!message) return false;
+    if (typeof message.swipes[swipe] !== "string") {
+      toast(`error: setting six ${swipe} on mid ${mid}, but only ${message.swipes.length} swipes are present`);
+      return false;
+    }
+    message.selectedSwipe = swipe;
+    return true;
+  }
+  function setRember(session, mid, value) {
+    const message = messageByID(session, mid);
+    if (!message) return false;
+    message.rember = value;
+    return true;
+  }
+  function truncateFrom(session, mid) {
+    const messages = session.contents.messages;
+    const index = messages.findIndex((m3) => m3.id === mid);
+    if (index < 0) return [];
+    return messages.splice(index).map((m3) => m3.id);
+  }
+  function healSwipeIndexes(messages) {
+    messages.forEach((m3) => {
+      if (typeof m3.swipes[m3.selectedSwipe] !== "string") {
+        toast(`healed malformed message: mid ${m3.id}, old six: ${m3.selectedSwipe}`);
+        m3.selectedSwipe = 0;
+      }
+    });
+  }
+
   // src/units/chat/editor.ts
   function initChatEditor() {
     const saveButton = document.querySelector("#play-editor-save");
@@ -4919,53 +4101,627 @@ ${chat[remberAt].rember}`),
     const definitionInput = document.querySelector("#play-editor-definition");
     const modal = document.querySelector("#play-editor");
     makeResizable(definitionInput);
-    listen((update4) => {
-      if (update4.storage !== "idb") return;
-      if (update4.store !== "chats") return;
-      updateDefinition();
-    });
-    window.addEventListener("hashchange", updateDefinition);
-    resetButton.addEventListener("click", updateDefinition);
-    updateDefinition();
-    async function getChat() {
-      const [page, chatId] = getRoute();
-      if (page !== "play" || !chatId) return null;
-      const chat = await idb.get("chats", chatId);
-      if (!chat.success) return null;
-      return chat.value;
-    }
-    async function updateDefinition() {
-      const chat = await getChat();
-      if (!chat) return;
-      definitionInput.value = chat.scenario.definition;
-      textareaReconsider(definitionInput);
-    }
+    resetButton.addEventListener("click", fill);
+    closeButton.addEventListener("click", () => modal.close());
     saveButton.addEventListener("click", async () => {
       const value = definitionInput.value.trim();
       if (!value) return;
-      const chat = await getChat();
-      if (!chat) return;
-      chat.scenario.definition = value;
-      chat.scenario.tokenCount = estimateTokenCount(value);
-      await idb.set("chats", chat);
+      const session = getSession();
+      if (!session) return;
+      session.chat.scenario.definition = value;
+      session.chat.scenario.tokenCount = estimateTokenCount(value);
+      await commitChat(session);
       modal.close();
     });
-    closeButton.addEventListener("click", () => {
-      modal.close();
-    });
+    function fill() {
+      const session = getSession();
+      if (!session) return;
+      definitionInput.value = session.chat.scenario.definition;
+      textareaReconsider(definitionInput);
+    }
     return {
       open: () => {
+        fill();
         modal.open();
         textareaReconsider(definitionInput);
       }
     };
   }
 
-  // src/units/chat.ts
-  var chatSingletonRelay = {
-    openRember: () => {
-    }
+  // src/units/chat/prompt.ts
+  var REMBER_DEFAULTS = {
+    stride: 40,
+    prompt: [
+      "provide summary of a text roleplay session described by the user.",
+      "update provided state to reflect any changes to it.",
+      "format trivia as a list of facts.",
+      "stay concise and ignore any info irrelevant to possible future scenarios.",
+      "do not provide any commentary, only describe the new state, do not change the format (the headings), do not include the chat history.",
+      "follow this format when describing the roleplay state summary:",
+      "```",
+      "## current location",
+      "",
+      "## locations and objects",
+      "### location example",
+      "- example item",
+      "- example item",
+      "",
+      "## noteworthy trivia",
+      "",
+      "## future plans and promises",
+      "",
+      "```"
+    ].join("\n")
   };
+  var SYSTEM_MACRO = "{{system}}";
+  function roleplayPrompt(session, upTo, options) {
+    const history = session.contents.messages.slice(0, upTo);
+    const remberAt = history.findLastIndex((m3) => m3.rember);
+    let start2 = options.tail > 0 ? Math.max(0, history.length - options.tail) : 0;
+    if (options.remberStretch && remberAt !== -1) start2 = Math.min(start2, remberAt);
+    const definition = session.chat.scenario.definition;
+    const prompt2 = [
+      system(options.suffix ? `${definition}
+${options.suffix}` : definition)
+    ];
+    for (let i = start2; i < history.length; ++i) {
+      if (i === remberAt)
+        prompt2.push(system(`# Roleplay state summary:
+${history[i].rember}`));
+      prompt2.push(toPrompt(history[i]));
+    }
+    return prompt2;
+  }
+  function remberPrompt(session, settings, scope, previousState) {
+    const names = {
+      user: session.chat.userPersona.name,
+      model: session.chat.scenario.name,
+      system: ""
+    };
+    const history = scope.map((m3) => `## ${names[m3.from]}:
+${selectedText(m3)}
+
+`).join("\n");
+    const payload = [
+      ...previousState ? ["# saved roleplay state", previousState, ""] : [],
+      "# chat history",
+      history
+    ].join("\n");
+    const definition = session.chat.scenario.definition.replace(/^#+/gm, (v2) => `#${v2}`);
+    return [
+      system(settings.prompt.replace(SYSTEM_MACRO, definition)),
+      { role: "user", content: payload }
+    ];
+  }
+  function system(content) {
+    return { role: "system", content };
+  }
+  function toPrompt(message) {
+    return {
+      role: message.from === "model" ? "assistant" : message.from,
+      content: selectedText(message)
+    };
+  }
+
+  // src/views/message.html
+  var message_default = '<div class="message">\n	<img data-ref="avatar">\n	<div>\n		<div class="row">\n			<div data-ref="name"   class="message-name"></div>\n			<div data-ref="status" class="message-status" hidden></div>\n			<div class="message-controls-scroller row">\n				<div class="virtual" data-tab="main">\n					<button data-ref="reasoning" class="strip ghost pointer message-control" title="show reasoning" hidden>R</button>\n					<button data-ref="rember"    class="strip ghost pointer message-control" title="open rember" hidden>\u29D6</button>\n					<div data-ref="swipes" class="row-compact no-shrink" hidden>\n						<button data-ref="prev" class="strip ghost pointer message-control" title="prev swipe">&lt;</button>\n						<span   data-ref="swipe-caption"></span>\n						<button data-ref="next" class="strip ghost pointer message-control" title="next swipe">&gt;</button>\n					</div>\n					<button data-ref="edit"  class="strip ghost pointer message-control" title="edit message">\u270E</button>\n					<button data-ref="copy"  class="strip ghost pointer message-control" title="copy message">\u29C9</button>\n					<button data-ref="reroll" class="strip ghost pointer message-control" title="reroll this message" hidden>\u21BA</button>\n					<button data-ref="delete" class="strip ghost pointer message-control" title="delete message along with following" hidden>\u2716</button>\n				</div>\n				<div class="virtual" data-tab="editing" hidden>\n					<button data-ref="save"   class="strip ghost pointer message-control" title="save">\u2714</button>\n					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n				</div>\n			</div>\n		</div>\n		<div data-ref="reasoning-preview" class="lineout message-reasoning-preview" hidden></div>\n		<div data-ref="reasoning-box" class="lineout message-think-box" hidden></div>\n		<div data-ref="text" class="message-text edible md"></div>\n	</div>\n</div>\n';
+
+  // src/views/common.ts
+  var templates = /* @__PURE__ */ new Map();
+  function instantiate(html2) {
+    let template = templates.get(html2);
+    if (!template) {
+      template = document.createElement("template");
+      template.innerHTML = html2;
+      templates.set(html2, template);
+    }
+    const element = f(template);
+    if (!element) throw new Error("view template has no root element");
+    return element;
+  }
+  function pickRefs(root, keys) {
+    const refs = {};
+    for (const key of keys) {
+      const element = root.querySelector(`[data-ref="${key}"]`);
+      if (!element) throw new Error(`view template is missing [data-ref="${key}"]`);
+      refs[key] = element;
+    }
+    return refs;
+  }
+  function tabGroups(root) {
+    const groups = Array.from(root.querySelectorAll("[data-tab]"));
+    return {
+      pick(name) {
+        groups.forEach((g) => g.hidden = g.dataset.tab !== name);
+      }
+    };
+  }
+  function emit(target, name, detail) {
+    target.dispatchEvent(new CustomEvent(name, { detail, bubbles: true }));
+  }
+
+  // src/views/message.ts
+  var STATUS = {
+    RESPONDING: "responding...",
+    REASONING: "thinking..."
+  };
+  var REFS = [
+    "avatar",
+    "name",
+    "status",
+    "reasoning",
+    "rember",
+    "swipes",
+    "prev",
+    "swipe-caption",
+    "next",
+    "edit",
+    "copy",
+    "reroll",
+    "delete",
+    "save",
+    "cancel",
+    "reasoning-preview",
+    "reasoning-box",
+    "text"
+  ];
+  function makeMessageView(msg, [userPic, modelPic], isLast) {
+    const root = instantiate(message_default);
+    const r = pickRefs(root, REFS);
+    const tabs = tabGroups(root);
+    root.dataset.mid = String(msg.id);
+    r.avatar.src = placeholder(msg.from === "user" ? userPic : modelPic);
+    r.avatar.title = `mid #${msg.id}`;
+    r.name.textContent = msg.name;
+    r.delete.hidden = msg.from !== "user";
+    let streamNode = null;
+    r.prev.addEventListener("click", () => swipeBy(-1));
+    r.next.addEventListener("click", () => swipeBy(1));
+    r.reasoning.addEventListener("click", () => r["reasoning-box"].hidden = !r["reasoning-box"].hidden);
+    r.rember.addEventListener("click", () => emit(root, "message:rember", { mid: msg.id }));
+    r.reroll.addEventListener("click", () => emit(root, "message:reroll", { mid: msg.id }));
+    r.delete.addEventListener("click", () => emit(root, "message:delete", { mid: msg.id }));
+    r.copy.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(currentText());
+      toast("message copied to clipboard", { timeoutMS: 3200 });
+    });
+    r.edit.addEventListener("click", () => {
+      r.text.setAttribute("contenteditable", "true");
+      r.text.textContent = currentText();
+      r.text.focus();
+      tabs.pick("editing");
+    });
+    r.save.addEventListener("click", () => {
+      const text2 = r.text.innerText;
+      stopEditing();
+      emit(root, "message:edit", { mid: msg.id, swipe: msg.selectedSwipe, text: text2 });
+    });
+    r.cancel.addEventListener("click", () => {
+      stopEditing();
+      refresh();
+    });
+    function currentText() {
+      return msg.swipes[msg.selectedSwipe] ?? "";
+    }
+    function swipeBy(delta) {
+      const count = msg.swipes.length;
+      const swipe = (msg.selectedSwipe + delta + count) % count;
+      emit(root, "message:swipe", { mid: msg.id, swipe });
+    }
+    function stopEditing() {
+      r.text.removeAttribute("contenteditable");
+      tabs.pick("main");
+    }
+    function setStatus(value) {
+      r.status.hidden = value === null;
+      r.status.textContent = value ?? "";
+    }
+    function scrollIntoView() {
+      if (elementVisible(root))
+        root.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+    function refresh() {
+      streamNode = null;
+      r.text.innerHTML = renderMD(currentText());
+      r["swipe-caption"].textContent = `${msg.selectedSwipe + 1} / ${msg.swipes.length}`;
+      r.swipes.hidden = !(isLast && msg.swipes.length > 1);
+      r.reroll.hidden = !(msg.from === "model" && isLast);
+      r.rember.hidden = !msg.rember;
+      const reasoning = msg.reasoningBoxes?.[msg.selectedSwipe];
+      r.reasoning.hidden = !reasoning;
+      r["reasoning-box"].textContent = reasoning ?? "";
+      r["reasoning-box"].hidden = true;
+    }
+    function setIsLast(value) {
+      isLast = value;
+      refresh();
+    }
+    function startStreaming() {
+      r.text.removeAttribute("contenteditable");
+      r.text.innerHTML = "";
+      streamNode = document.createTextNode("");
+      r.text.append(streamNode);
+      r["reasoning-preview"].textContent = "";
+      r["reasoning-preview"].hidden = true;
+      r["reasoning-box"].hidden = true;
+      tabs.pick("streaming");
+      setStatus(STATUS.RESPONDING);
+    }
+    function appendChunk(chunk) {
+      if (!streamNode) startStreaming();
+      streamNode.appendData(chunk);
+      scrollIntoView();
+    }
+    function addReasoningChunk(chunk) {
+      if (!streamNode) startStreaming();
+      r["reasoning-preview"].hidden = false;
+      r["reasoning-preview"].append(chunk);
+      r["reasoning-preview"].scrollTop = r["reasoning-preview"].scrollHeight;
+    }
+    function reasoningStatus(reasoning) {
+      setStatus(reasoning ? STATUS.REASONING : STATUS.RESPONDING);
+    }
+    function endStreaming() {
+      r["reasoning-preview"].textContent = "";
+      r["reasoning-preview"].hidden = true;
+      refresh();
+      tabs.pick("main");
+      setStatus(null);
+      scrollIntoView();
+    }
+    refresh();
+    tabs.pick("main");
+    return M(root, {
+      mid: msg.id,
+      refresh,
+      setIsLast,
+      startStreaming,
+      appendChunk,
+      addReasoningChunk,
+      reasoningStatus,
+      endStreaming
+    }, "controls");
+  }
+
+  // src/units/chat/messages.ts
+  var BUSY_TOAST = "please wait until message generation is over";
+  function listElement() {
+    return document.querySelector("#play-messages");
+  }
+  function initMessageList() {
+    const list = listElement();
+    list.addEventListener("message:swipe", ({ detail }) => {
+      const session = getSession();
+      if (!session) return;
+      if (selectSwipe(session, detail.mid, detail.swipe)) commitContents(session);
+      getMessageView(session.chat.id, detail.mid)?.controls.refresh();
+    });
+    list.addEventListener("message:edit", ({ detail }) => {
+      const session = getSession();
+      if (!session) return;
+      if (setSwipeText(session, detail.mid, detail.swipe, detail.text)) commitContents(session);
+      getMessageView(session.chat.id, detail.mid)?.controls.refresh();
+    });
+    list.addEventListener("message:reroll", ({ detail }) => generate(detail.mid));
+    list.addEventListener("message:delete", ({ detail }) => deleteFrom(detail.mid));
+  }
+  async function renderMessages(session) {
+    const list = listElement();
+    list.innerHTML = "";
+    delete list.dataset.chat;
+    if (!session) return;
+    const pictures = await loadPictures(session.chat);
+    if (getSession() !== session) return;
+    const messages = session.contents.messages;
+    list.dataset.chat = session.chat.id;
+    list.append(...messages.map((m3, ix) => makeMessageView(m3, pictures, ix === messages.length - 1)));
+    list.scrollTop = list.scrollHeight;
+  }
+  function getMessageView(chatId, mid) {
+    const list = listElement();
+    if (list.dataset.chat !== chatId) return null;
+    return list.querySelector(`.message[data-mid="${mid}"]`);
+  }
+  async function sendMessage(text2) {
+    const session = getSession();
+    if (!session) return false;
+    if (activeJob()) {
+      toast(BUSY_TOAST);
+      return false;
+    }
+    const previous = lastMessage(session);
+    const request = addMessage(session, "user", text2);
+    const reply = addMessage(session, "model", "");
+    if (!await commit(session)) return false;
+    const pictures = await loadPictures(session.chat);
+    const list = listElement();
+    if (previous) getMessageView(session.chat.id, previous.id)?.controls.setIsLast(false);
+    list.append(
+      makeMessageView(request, pictures, false),
+      makeMessageView(reply, pictures, true)
+    );
+    list.scrollTop = list.scrollHeight;
+    generate(reply.id);
+    return true;
+  }
+  async function generate(mid) {
+    const session = getSession();
+    if (!session) return;
+    if (activeJob()) {
+      toast(BUSY_TOAST);
+      return;
+    }
+    const provider = mainProvider();
+    if (!provider) {
+      toast("no providers found");
+      return;
+    }
+    const message = messageByID(session, mid);
+    if (!message || message.from !== "model") return;
+    const view = getMessageView(session.chat.id, mid);
+    if (!view) return;
+    const chatId = session.chat.id;
+    const settings = loadMiscSettings();
+    const prompt2 = roleplayPrompt(session, mid, {
+      tail: settings.tail,
+      remberStretch: settings.remberStretch,
+      suffix: provider.suffix
+    });
+    view.controls.startStreaming();
+    let reasoning = "";
+    const result = await runJob("roleplay", provider, prompt2, {
+      onChunk: (chunk) => getMessageView(chatId, mid)?.controls.appendChunk(chunk),
+      onReasoningChunk: (chunk) => {
+        reasoning += chunk;
+        getMessageView(chatId, mid)?.controls.addReasoningChunk(chunk);
+      },
+      onReasoningStatus: (on) => getMessageView(chatId, mid)?.controls.reasoningStatus(on)
+    });
+    if (result.success) {
+      pushSwipe(session, mid, result.value, reasoning);
+      await commit(session);
+    } else {
+      toast(result.error);
+    }
+    getMessageView(chatId, mid)?.controls.endStreaming();
+  }
+  async function deleteFrom(mid) {
+    const session = getSession();
+    if (!session) return;
+    if (activeJob()) {
+      toast(BUSY_TOAST);
+      return;
+    }
+    if (!confirm("all the following messages will be deleted too")) return;
+    const removed = truncateFrom(session, mid);
+    if (removed.length === 0) return;
+    await commit(session);
+    removed.forEach((id) => getMessageView(session.chat.id, id)?.remove());
+    const last = lastMessage(session);
+    if (last) getMessageView(session.chat.id, last.id)?.controls.setIsLast(true);
+  }
+  async function loadPictures(chat) {
+    const [user, model] = await Promise.all([
+      chat.userPersona.picture ? getBlobLink(chat.userPersona.picture) : null,
+      chat.scenario.picture ? getBlobLink(chat.scenario.picture) : null
+    ]);
+    return [user, model];
+  }
+  function mainProvider() {
+    const providers = Object.values(readProviders());
+    return providers.find((p2) => p2.isActive) ?? providers[0] ?? null;
+  }
+
+  // src/views/rember.html
+  var rember_default = '<div class="lineout list">\n	<div class="row">\n		<span data-ref="caption" class="hint"></span>\n		<div class="row-compact float-end">\n			<div class="virtual" data-tab="main">\n				<button data-ref="edit" class="strip ghost pointer message-control" title="edit">\u270E</button>\n				<button data-ref="remove" class="strip ghost pointer message-control" title="remove">\u2716</button>\n			</div>\n			<div class="virtual" data-tab="editing" hidden>\n				<button data-ref="save" class="strip ghost pointer message-control" title="save">\u2714</button>\n				<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n			</div>\n		</div>\n	</div>\n	<div data-ref="text" class="chat-rember-view edible"></div>\n</div>\n';
+
+  // src/views/rember.ts
+  var REFS2 = ["caption", "edit", "remove", "save", "cancel", "text"];
+  function makeRemberView(mid, contents = "") {
+    const root = instantiate(rember_default);
+    const r = pickRefs(root, REFS2);
+    const tabs = tabGroups(root);
+    root.dataset.mid = String(mid);
+    root.title = String(mid);
+    r.caption.textContent = `#${mid}`;
+    r.text.textContent = contents;
+    let editPocket = "";
+    r.edit.addEventListener("click", () => {
+      editPocket = r.text.textContent ?? "";
+      r.text.setAttribute("contenteditable", "");
+      r.text.focus();
+      tabs.pick("editing");
+    });
+    r.save.addEventListener("click", () => {
+      stopEditing();
+      emit(root, "rember:edit", { mid, text: r.text.innerText });
+    });
+    r.cancel.addEventListener("click", () => {
+      stopEditing();
+      r.text.textContent = editPocket;
+    });
+    r.remove.addEventListener("click", () => {
+      if (!confirm(`the rEmber state for message #${mid} will be removed`)) return;
+      emit(root, "rember:remove", { mid });
+    });
+    function stopEditing() {
+      r.text.removeAttribute("contenteditable");
+      tabs.pick("main");
+    }
+    function appendChunk(chunk) {
+      r.text.append(chunk);
+    }
+    function setContents(value) {
+      r.text.textContent = value;
+      tabs.pick("main");
+    }
+    function hideControls() {
+      tabs.pick("streaming");
+    }
+    tabs.pick("main");
+    return M(root, {
+      mid,
+      appendChunk,
+      setContents,
+      hideControls
+    }, "controls");
+  }
+
+  // src/units/chat/rember.ts
+  function initRember() {
+    const modal = document.querySelector("#play-rember");
+    const providerPicker = document.querySelector("#play-rember-provider-picker");
+    const strideInput = document.querySelector("#play-rember-stride");
+    const promptInput = document.querySelector("#play-rember-prompt");
+    const list = document.querySelector("#play-rember-messages");
+    const buttons = {
+      one: document.querySelector("#play-rember-add-one"),
+      stop: document.querySelector("#play-rember-stop"),
+      save: document.querySelector("#play-rember-save"),
+      reset: document.querySelector("#play-rember-reset"),
+      close: document.querySelector("#play-rember-modal-close")
+    };
+    buttons.one.addEventListener("click", runOne);
+    buttons.stop.addEventListener("click", cancelJob);
+    buttons.save.addEventListener("click", saveSettings);
+    buttons.reset.addEventListener("click", resetPrompt);
+    buttons.close.addEventListener("click", () => modal.close());
+    buttons.stop.hidden = true;
+    providerPicker.addEventListener("input", () => {
+      const actives = readActiveProviders();
+      actives.rember = providerPicker.value;
+      local.set("activeProvider", JSON.stringify(actives));
+    });
+    list.addEventListener("rember:edit", ({ detail }) => {
+      const session = getSession();
+      if (!session) return;
+      if (setRember(session, detail.mid, detail.text)) commitContents(session);
+      getMessageView(session.chat.id, detail.mid)?.controls.refresh();
+    });
+    list.addEventListener("rember:remove", ({ detail, target }) => {
+      const session = getSession();
+      if (!session) return;
+      if (setRember(session, detail.mid, null)) commitContents(session);
+      getMessageView(session.chat.id, detail.mid)?.controls.refresh();
+      target.closest("[data-mid]")?.remove();
+    });
+    listen((u3) => {
+      if (u3.storage !== "local" || u3.key !== "activeProvider") return;
+      updateProviderPicker();
+    });
+    updateProviderPicker();
+    onSessionReplaced(updateRemberCounter);
+    onSessionCommit((session) => {
+      if (session === getSession()) updateRemberCounter(session);
+    });
+    function updateProviderPicker() {
+      const providerOptions = Object.entries(readProviders());
+      const activeId = providerOptions.find(([, e]) => e.remberActive)?.[0];
+      setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
+    }
+    function fill(session) {
+      const settings = settingsOf(session);
+      strideInput.value = String(settings.stride);
+      promptInput.value = settings.prompt;
+      list.innerHTML = "";
+      const views = session.contents.messages.filter((m3) => m3.rember).map((m3) => makeRemberView(m3.id, m3.rember)).toReversed();
+      list.append(...views);
+    }
+    async function runOne() {
+      const session = getSession();
+      if (!session) return;
+      const provider = readProviders()[providerPicker.value];
+      if (!provider) {
+        toast("pick a provider for rEmber first");
+        return;
+      }
+      const settings = readSettingsInputs();
+      const plan = planRember(session.contents.messages, settings.stride);
+      if (!plan) {
+        toast("nothing left to summarize");
+        return;
+      }
+      const view = makeRemberView(plan.at);
+      view.controls.hideControls();
+      list.prepend(view);
+      buttons.one.hidden = true;
+      buttons.stop.hidden = false;
+      const result = await runJob(
+        "rember",
+        provider,
+        remberPrompt(session, settings, plan.scope, plan.previousState),
+        { onChunk: (chunk) => view.controls.appendChunk(chunk) }
+      );
+      buttons.one.hidden = false;
+      buttons.stop.hidden = true;
+      if (!result.success) {
+        toast(result.error);
+        view.remove();
+        return;
+      }
+      const summary = result.value.trim();
+      setRember(session, plan.at, summary);
+      await commitContents(session);
+      view.controls.setContents(summary);
+      getMessageView(session.chat.id, plan.at)?.controls.refresh();
+    }
+    async function saveSettings() {
+      const session = getSession();
+      if (!session) return;
+      session.chat.rember = readSettingsInputs();
+      await commitChat(session);
+      const details = strideInput.closest("details");
+      if (details) details.open = false;
+    }
+    function resetPrompt() {
+      if (!confirm("the current rember prompt will be lost after saving the settings")) return;
+      promptInput.value = REMBER_DEFAULTS.prompt;
+    }
+    function readSettingsInputs() {
+      const stride = parseInt(strideInput.value, 10);
+      return {
+        prompt: promptInput.value.trim(),
+        stride: isNaN(stride) ? REMBER_DEFAULTS.stride : stride
+      };
+    }
+    return {
+      open: () => {
+        const session = getSession();
+        if (!session) return;
+        fill(session);
+        modal.open();
+      }
+    };
+  }
+  function settingsOf(session) {
+    return session.chat.rember ?? REMBER_DEFAULTS;
+  }
+  function planRember(messages, stride) {
+    const candidates = messages.slice(0, -2);
+    const lastAt = candidates.findLastIndex((m3) => m3.rember);
+    const start2 = lastAt === -1 ? 0 : lastAt;
+    const at = Math.min(candidates.length - 1, start2 + stride * 2);
+    if (at <= start2) return null;
+    return {
+      at,
+      scope: candidates.slice(start2, at),
+      previousState: lastAt === -1 ? null : candidates[lastAt].rember
+    };
+  }
+  function updateRemberCounter(session = getSession()) {
+    const counter = document.querySelector("#chat-rember-counter");
+    counter.hidden = true;
+    if (!session) return;
+    const messages = session.contents.messages;
+    const lastRembered = messages.findLastIndex((m3) => m3.rember);
+    if (lastRembered === -1) return;
+    const delta = messages.length - 1 - lastRembered;
+    counter.textContent = `\u29D6${delta}`;
+    counter.dataset.run = delta > settingsOf(session).stride * 2 ? "true" : "false";
+    counter.hidden = false;
+  }
+
+  // src/units/chat.ts
   function chatUnit() {
     const scroller = document.querySelector("#play-messages");
     const textarea = document.querySelector("#chat-textarea");
@@ -4979,18 +4735,28 @@ ${chat[remberAt].rember}`),
     const previewEditButton = document.querySelector("#play-card-edit");
     const previewCloseButton = document.querySelector("#play-card-close");
     makeResizable(textarea, scroller);
+    initMessageList();
+    const editor = initChatEditor();
+    const rember = initRember();
     window.addEventListener("hashchange", update);
     listen((u3) => {
       if (u3.storage !== "local") return;
       if (u3.key !== "providers" && u3.key !== "activeProvider") return;
       updateProviders();
     });
-    sendButton.addEventListener("click", sendMessage);
-    stopButton.addEventListener("click", () => abortController.abort());
-    remberCounter.addEventListener("click", openRemberGuarded);
-    providerPicker.addEventListener("input", () => {
-      pickMainProvider(providerPicker.value);
+    onSessionReplaced((session) => {
+      renderMessages(session);
+      if (session) updateTitle(session.chat.scenario.name);
     });
+    onJobChange((kind) => {
+      if (inputModes.tab === "disabled") return;
+      inputModes.tab = kind ? "pending" : "main";
+    });
+    sendButton.addEventListener("click", send);
+    stopButton.addEventListener("click", cancelJob);
+    remberCounter.addEventListener("click", rember.open);
+    scroller.addEventListener("message:rember", rember.open);
+    providerPicker.addEventListener("input", () => pickMainProvider(providerPicker.value));
     previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
     previewCloseButton.addEventListener("click", () => previewContainer.close());
     window.addEventListener("beforeunload", (e) => {
@@ -5000,42 +4766,39 @@ ${chat[remberAt].rember}`),
         e.returnValue = "";
       }
     });
-    update();
-    updateProviders();
-    const { open: openChatEditor } = initChatEditor();
-    const { open: openRember } = initRember();
-    function openRemberGuarded() {
-      if (inputModes.tab !== "main") {
-        toast("please wait until message generation is over");
-        return;
-      }
-      openRember();
-    }
-    chatSingletonRelay.openRember = openRemberGuarded;
     setSelectMenu(menuButton, "\u2630", [
       ["Scenario card", openScenarioIfExists],
-      ["Edit definition", openChatEditor],
-      ["\u29D6 rEmber", openRemberGuarded],
+      ["Edit definition", editor.open],
+      ["\u29D6 rEmber", rember.open],
       ["Export", exportChat],
       ["Clone", cloneChat]
     ]);
+    update();
+    updateProviders();
+    async function send() {
+      const text2 = textarea.value.trim();
+      if (!text2) return;
+      if (await sendMessage(text2)) {
+        textarea.value = "";
+        textareaReconsider(textarea);
+      }
+    }
   }
   async function update() {
-    const route = getRoute();
-    if (route[0] !== "play") {
+    const [page, chatId] = getRoute();
+    if (page !== "play") {
       updateTitle(null);
       return;
     }
-    if (!route[1]) return;
-    await loadMessages(route[1]);
-    updateRemberCounter();
+    if (!chatId) return;
+    if (activeJob() && getSession()?.chat.id === chatId) return;
+    await openSession(chatId);
   }
   function updateProviders() {
     const inputModes = document.querySelector("#chat-controls");
     const providerPicker = document.querySelector("#chat-provider-picker");
     const providerControl = document.querySelector(".chat-provider-control");
-    const providerMap = readProviders();
-    const providerOptions = Object.entries(providerMap);
+    const providerOptions = Object.entries(readProviders());
     const activeId = providerOptions.find(([, e]) => e.isActive)?.[0];
     setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId || providerOptions[0]?.[0]);
     if (providerOptions.length > 0) {
@@ -5048,8 +4811,7 @@ ${chat[remberAt].rember}`),
         };
         local.set("activeProvider", JSON.stringify(actives));
       }
-      if (inputModes.tab !== "pending")
-        inputModes.tab = "main";
+      inputModes.tab = activeJob() ? "pending" : "main";
       providerControl.hidden = false;
     } else {
       inputModes.tab = "disabled";
@@ -5057,9 +4819,9 @@ ${chat[remberAt].rember}`),
     }
   }
   function pickMainProvider(id) {
-    const old = readActiveProviders();
-    old.main = id;
-    local.set("activeProvider", JSON.stringify(old));
+    const actives = readActiveProviders();
+    actives.main = id;
+    local.set("activeProvider", JSON.stringify(actives));
   }
   var cardPreviewRelay = {
     url: ""
@@ -5067,11 +4829,9 @@ ${chat[remberAt].rember}`),
   async function openScenarioIfExists() {
     const previewContainer = document.querySelector("#play-card");
     const preview = document.querySelector("#play-card-preview");
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const chat = await idb.get("chats", chatId);
-    if (!chat.success) return;
-    const cardId = chat.value.scenario.id;
+    const session = getSession();
+    if (!session) return;
+    const cardId = session.chat.scenario.id;
     const card = await idb.get("scenarios", cardId);
     if (card.success && card.value) {
       cardPreviewRelay.url = `#scenario-editor.${cardId}`;
@@ -5083,16 +4843,12 @@ ${card.value.card.description}`;
       toast("Scenario card not found");
   }
   async function exportChat() {
-    const [, chatId] = getRoute();
-    if (!chatId) return;
-    const [chat, contents] = await Promise.all([
-      idb.get("chats", chatId),
-      idb.get("chatContents", chatId)
-    ]);
-    if (!chat.success || !contents.success) return;
+    const session = getSession();
+    if (!session) return;
+    const { chat, contents } = session;
     const mediaIDs = [
-      chat.value.userPersona.picture,
-      chat.value.scenario.picture
+      chat.userPersona.picture,
+      chat.scenario.picture
     ].filter((id) => id);
     const encodedMedia = await asyncMap(
       mediaIDs,
@@ -5106,23 +4862,26 @@ ${card.value.card.description}`;
       }
     );
     const payload = {
-      chat: chat.value,
-      contents: contents.value,
+      chat,
+      contents,
       media: encodedMedia.filter((m3) => m3)
     };
-    download(JSON.stringify(payload), `${chat.value.scenario.name}.${chat.value.id}.aegir.chat.json`);
+    download(JSON.stringify(payload), `${chat.scenario.name}.${chat.id}.aegir.chat.json`);
   }
   async function cloneChat() {
-    const state = await getCurrentChat();
-    if (!state) return;
-    const { chat, messages } = state;
+    const session = getSession();
+    if (!session) return;
     const nid = crypto.randomUUID();
-    chat.id = nid;
-    messages.id = nid;
-    chat.lastUpdate = Date.now();
     await Promise.all([
-      idb.set("chats", chat),
-      idb.set("chatContents", messages)
+      idb.set("chats", {
+        ...session.chat,
+        id: nid,
+        lastUpdate: Date.now()
+      }),
+      idb.set("chatContents", {
+        ...session.contents,
+        id: nid
+      })
     ]);
     toast("new chat created");
   }
@@ -5476,9 +5235,9 @@ ${card.value.card.description}`;
     makeResizable(cardDescription);
     makeResizable(definition);
     const messagesControl = initFirstMessages();
-    window.addEventListener("hashchange", load);
-    load();
-    async function load() {
+    window.addEventListener("hashchange", load2);
+    load2();
+    async function load2() {
       const path = getRoute();
       if (path[0] !== "scenario-editor") return;
       cardIcon.usePlaceholder();
@@ -5746,12 +5505,14 @@ ${card.value.card.description}`;
     return pre;
   }
   function stcToInternal(stc, index) {
+    const swipes = stc.swipes ?? [stc.mes];
+    const selectedSwipe = clamp(stc.swipe_id ?? 0, 0, swipes.length - 1);
     return {
       id: index,
       from: stc.is_system ? "system" : stc.is_user ? "user" : "model",
       name: stc.name,
-      swipes: stc.swipes ?? [stc.mes],
-      selectedSwipe: stc.swipe_id ?? 0,
+      swipes,
+      selectedSwipe,
       rember: null
     };
   }

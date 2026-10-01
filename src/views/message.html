@@ -1,0 +1,31 @@
+<div class="message">
+	<img data-ref="avatar">
+	<div>
+		<div class="row">
+			<div data-ref="name"   class="message-name"></div>
+			<div data-ref="status" class="message-status" hidden></div>
+			<div class="message-controls-scroller row">
+				<div class="virtual" data-tab="main">
+					<button data-ref="reasoning" class="strip ghost pointer message-control" title="show reasoning" hidden>R</button>
+					<button data-ref="rember"    class="strip ghost pointer message-control" title="open rember" hidden>⧖</button>
+					<div data-ref="swipes" class="row-compact no-shrink" hidden>
+						<button data-ref="prev" class="strip ghost pointer message-control" title="prev swipe">&lt;</button>
+						<span   data-ref="swipe-caption"></span>
+						<button data-ref="next" class="strip ghost pointer message-control" title="next swipe">&gt;</button>
+					</div>
+					<button data-ref="edit"  class="strip ghost pointer message-control" title="edit message">✎</button>
+					<button data-ref="copy"  class="strip ghost pointer message-control" title="copy message">⧉</button>
+					<button data-ref="reroll" class="strip ghost pointer message-control" title="reroll this message" hidden>↺</button>
+					<button data-ref="delete" class="strip ghost pointer message-control" title="delete message along with following" hidden>✖</button>
+				</div>
+				<div class="virtual" data-tab="editing" hidden>
+					<button data-ref="save"   class="strip ghost pointer message-control" title="save">✔</button>
+					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">✘</button>
+				</div>
+			</div>
+		</div>
+		<div data-ref="reasoning-preview" class="lineout message-reasoning-preview" hidden></div>
+		<div data-ref="reasoning-box" class="lineout message-think-box" hidden></div>
+		<div data-ref="text" class="message-text edible md"></div>
+	</div>
+</div>

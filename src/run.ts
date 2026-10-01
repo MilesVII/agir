@@ -1,9 +1,5 @@
-import { ChatMessage, Provider, Result } from "./types";
+import { PromptMessage, Provider, Result } from "./types";
 import { nothrow, nothrowAsync } from "./utils";
-
-
-export let abortController: AbortController;
-let parsedPocket: any;
 
 const OR_ATTRIBUTION_HEADERS = {
 	"HTTP-Referer": "https://aegir", // retarded OR attribution expects me to own the whole domain for some reason
@@ -11,28 +7,25 @@ const OR_ATTRIBUTION_HEADERS = {
 	"X-OpenRouter-Categories": "roleplay"
 }
 
+export type ProviderHooks = {
+	signal: AbortSignal,
+	onChunk: (chunk: string) => void,
+	onReasoningChunk?: (chunk: string) => void,
+	onReasoningStatus?: (reasoning: boolean) => void
+};
+
 export async function runProvider(
-	chat: ChatMessage[],
+	prompt: PromptMessage[],
 	provider: Provider,
-	onChunk: (v: string) => void,
-	attachSuffix: boolean,
-	reasoningStatus?: (on: boolean) => void,
-	onReasonChunk?: (chunk: string) => void
+	hooks: ProviderHooks
 ): Promise<Result<string, string>> {
 	const chonks: string[] = [];
-	const messages = chat.map(m => ({
-		role: m.from === "model" ? "assistant" : m.from,
-		content: m.swipes[m.from === "user" ? 0 : m.selectedSwipe] // HACK: user messages sometimes have nonzero selectedSwipe
-	}));
-	if (attachSuffix && provider.suffix && messages[0]?.role === "system") {
-		messages[0].content += `\n${provider.suffix}`;
-	}
 	const reasoningEffort = (provider.reasoning && provider.reasoning !== "unset")
 		? { reasoning: { effort: provider.reasoning } }
 		: {};
 	const params = {
 		model: provider.model,
-		messages,
+		messages: prompt,
 		stream: true,
 		...reasoningEffort,
 		max_completion_tokens: provider.max,
@@ -43,7 +36,6 @@ export async function runProvider(
 	if (!provider.max) delete params.max_completion_tokens;
 
 	try {
-		abortController = new AbortController();
 		const attribution = provider.url.toLowerCase().includes("openrouter.ai/")
 			? OR_ATTRIBUTION_HEADERS
 			: {};
@@ -55,7 +47,7 @@ export async function runProvider(
 				...attribution
 			},
 			body: JSON.stringify(params),
-			signal: abortController.signal
+			signal: hooks.signal
 		});
 
 		if (!response.ok) {
@@ -120,17 +112,16 @@ export async function runProvider(
 						};
 					}
 					try {
-						parsedPocket = parsed.value;
 						const delta = parsed.value.choices[0].delta;
 						const reasoning = delta.reasoning || delta.reasoning_content;
 						const content = delta.content;
 						if (reasoning) {
-							reasoningStatus?.(true);
-							onReasonChunk?.(reasoning);
+							hooks.onReasoningStatus?.(true);
+							hooks.onReasoningChunk?.(reasoning);
 						} else if (content) {
-							reasoningStatus?.(false);
+							hooks.onReasoningStatus?.(false);
 							chonks.push(content);
-							onChunk(content);
+							hooks.onChunk(content);
 						}
 					} catch(e) {
 						console.warn("Chunk error: ", parsed.value, e);
@@ -139,19 +130,22 @@ export async function runProvider(
 			}
 		}
 	} catch(e: any) {
-		console.error(parsedPocket);
-		if (!abortController.signal.aborted) // or: if (!e instanceof DOMException)
+		if (!hooks.signal.aborted)
 			return {
 				success: false,
 				error: (e?.message as string) ?? "unknown error"
 			};
 	}
 
-	let value = chonks.join("");
-	if (value.includes("</think>")) {
-		if (!value.includes("<think>")) {
-			value = "<think>" + value;
-		}
+	const result = chonks.join("");
+	const legacyReasoningSeparator = "</think>";
+	if (result.includes(legacyReasoningSeparator)) {
+		const [reasoning, value] = result
+			.split(legacyReasoningSeparator)
+			.map(v => v.trim());
+		if (reasoning) hooks.onReasoningChunk?.(reasoning);
+		return { success: true, value: value.trim() };
 	}
-	return { success: true, value };
+
+	return { success: true, value: result };
 }
