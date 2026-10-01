@@ -1,6 +1,7 @@
 import { getBlobLink, idb, listen, upload } from "@root/persist";
-import { mudcrack } from "rampike";
-import { b64Encoder, download, neatNumber, placeholder, renderMD, setSelectOptions } from "@root/utils";
+import { b64Encoder, download, renderMD, setSelectOptions } from "@root/utils";
+import { placeholderView } from "@views/common";
+import { makeScenarioCardView } from "@views/scenario-card";
 import { RampikeModal } from "@rampike/modal";
 import { start } from "./chat/start";
 import { ScenarioCard } from "@root/types";
@@ -131,129 +132,20 @@ async function update() {
 
 	list.append(...contents);
 	if (contents.length === 0)
-		list.append(mudcrack({ className: "placeholder", contents: "No scenario cards found" }));
+		list.append(placeholderView("No scenario cards found"));
 }
 
 function scenarioCardView(item: ScenarioCard) {
-	const play = () => openStartModal(item.id, item.card.description);
-
-	let icon = mudcrack({
-		tagName: "img",
-		className: "pointer",
-		attributes: {
-			src: placeholder(null)
-		},
-		events: {
-			click: play
+	return makeScenarioCardView(
+		item,
+		item.card.picture ? getBlobLink(item.card.picture) : null,
+		{
+			play:     () => openStartModal(item.id, item.card.description),
+			download: () => downloadScenario(item),
+			delete:   () => deleteScenario(item.id, item.card.title),
+			edit:     () => { document.location.hash = `scenario-editor.${item.id}`; }
 		}
-	});
-	if (item.card.picture) {
-		getBlobLink(item.card.picture)
-			.then(src => { if (src) icon.src = src });
-	}
-	const description = mudcrack({
-		className: "scenario-card-description md"
-	});
-	description.innerHTML = renderMD(item.card.description ?? "");
-
-	const author = mudcrack({
-		tagName: item.card.author?.url ? "a" : "span",
-		contents: item.card.author?.name ?? ""
-	});
-	if (item.card.author?.url) {
-		author.setAttribute("href", item.card.author.url);
-	}
-	const tokens = mudcrack({
-		className: "hint float-end",
-		contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`,
-		attributes: {
-			title: `${item.chat.tokenCount ?? "N/A"} tokens`
-		}
-	});
-
-	return mudcrack({
-		className: "scenario-card lineout",
-		contents: [
-			mudcrack({
-				tagName: "div",
-				className: "scenario-card-icon-container",
-				contents: [
-					icon
-				]
-			}),
-			mudcrack({
-				className: "list grow",
-				contents: [
-					mudcrack({
-						className: "row-compact",
-						contents: [
-							mudcrack({
-								tagName: "h6",
-								className: "pointer",
-								contents: item.card.title,
-								events: {
-									click: play
-								}
-							}),
-							mudcrack({
-								tagName: "button",
-								className: "strip ghost pointer",
-								events: {
-									click: () => downloadScenario(item)
-								},
-								contents: "⤓"
-							}),
-							mudcrack({
-								tagName: "button",
-								className: "strip ghost pointer",
-								events: {
-									click: () => deleteScenario(item.id, item.card.title)
-								},
-								contents: "✖"
-							}),
-							mudcrack({
-								tagName: "button",
-								className: "strip ghost pointer",
-								events: {
-									click: () => {
-										document.location.hash = `scenario-editor.${item.id}`
-									}
-								},
-								contents: "✎"
-							}),
-							mudcrack({
-								tagName: "button",
-								className: "lineout",
-								events: {
-									click: play
-								},
-								contents: "play"
-							})
-						]
-					}),
-					mudcrack({
-						tagName: "div",
-						className: "row baseline",
-						contents: [ author, tokens ]
-					}),
-					mudcrack({
-						tagName: "hr"
-					}),
-					description,
-					mudcrack({
-						className: "scenario-card-tags",
-						contents: item.card.tags.map(tag =>
-							mudcrack({
-								tagName: "span",
-								className: "pointer",
-								contents: tag
-							})
-						).toReversed()
-					})
-				]
-			})
-		]
-	})
+	);
 }
 
 async function downloadScenario(card: ScenarioCard) {

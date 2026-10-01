@@ -4,6 +4,8 @@ import { ActiveProviders, Provider, ProviderMap, ProviderMapWithActive } from "@
 import { makeResizable, nothrow, nothrowAsync, textareaReconsider } from "@root/utils";
 import { toast } from "@units/toasts";
 import { mudcrack } from "rampike";
+import { placeholderView } from "@views/common";
+import { makeProviderItemView } from "@views/provider-item";
 
 export function providersUnit() {
 	const inputs = {
@@ -163,52 +165,15 @@ export function providersUnit() {
 		list.innerHTML = "";
 		const providersMap = readProviders();
 		const providers = Object.entries(providersMap);
-		const items = providers.map(([id, e]) => 
-			mudcrack({
-				className: "lineout row settings-provider-item",
-				contents: [
-					mudcrack({
-						contents: e.name
-					}),
-					mudcrack({
-						className: "row-compact",
-						contents: [
-							mudcrack({
-								tagName: "button",
-								className: "lineout",
-								events: {
-									click: () => edit(id, e)
-								},
-								contents: "edit"
-							}),
-							mudcrack({
-								tagName: "button",
-								className: "lineout",
-								events: {
-									click: () => copyProvider(id)
-								},
-								contents: "copy"
-							}),
-							mudcrack({
-								tagName: "button",
-								className: "lineout",
-								events: {
-									click: () => deleteProvider(id)
-								},
-								contents: "delete"
-							})
-						]
-					})
-				]
-			})
-		);
+		const items = providers.map(([id, e]) => makeProviderItemView(e.name, {
+			edit:   () => edit(id, e),
+			copy:   () => copyProvider(id),
+			delete: () => deleteProvider(id)
+		}));
 		if (items.length > 0)
 			list.append(...items);
 		else
-			list.append(mudcrack({
-				className: "placeholder",
-				contents: "No providers found"
-			}));
+			list.append(placeholderView("No providers found"));
 	}
 
 	function clearInputs() {

@@ -1,8 +1,8 @@
 import { getBlobLink, idb, listen, upload } from "@root/persist";
-import { mudcrack } from "rampike";
 import { Persona, Pronouns } from "@root/types";
 import type { RampikeImagePicker } from "@rampike/imagepicker";
-import { placeholder } from "@root/utils";
+import { placeholderView } from "@views/common";
+import { makePersonaItemView } from "@views/persona-item";
 
 const PRONOUNS_HE: Pronouns = {
 	subjective: "he",
@@ -100,69 +100,19 @@ export function personaUnit() {
 		if (!personas.success) return;
 
 		personaList.innerHTML = "";
-		const items = personas.value.reverse().map(p => mudcrack({
-			className: "lineout row settings-persona-item",
-			attributes: {
-				"data-id": p.id
-			},
-			contents: [
-				mudcrack({
-					tagName: "img",
-					className: "shadow",
-					attributes: {
-						src: placeholder(null)
-					}
-				}),
-				mudcrack({
-					className: "list settings-persona-item-main",
-					contents: [
-						mudcrack({
-							className: "row-compact",
-							contents: [
-								mudcrack({
-									tagName: "h6",
-									contents: p.name
-								}),
-								mudcrack({
-									tagName: "button",
-									className: "lineout",
-									events: {
-										click: () => startEditing(p)
-									},
-									contents: "edit"
-								}),
-								mudcrack({
-									tagName: "button",
-									className: "lineout",
-									events: {
-										click: () => removePersona(p.id)
-									},
-									contents: "delete"
-								}),
-							]
-						}),
-						mudcrack({
-							contents: p.description
-						})
-					]
-				})
-			]
-		}));
-
-		personas.value.forEach(async ({ picture }, ix) => {
-			if (!picture) return;
-			const src = await getBlobLink(picture);
-			if (src)
-				items[ix].querySelector("img")!.src = src;
-		});
+		const items = personas.value.reverse().map(p => makePersonaItemView(
+			p,
+			p.picture ? getBlobLink(p.picture) : null,
+			{
+				edit:   () => startEditing(p),
+				delete: () => removePersona(p.id)
+			}
+		));
 
 		if (items.length > 0)
 			personaList.append(...items);
 		else
-			personaList.append(mudcrack({
-				className: "placeholder",
-				contents: "No personas found"
-			}));
+			personaList.append(placeholderView("No personas found"));
 	}
 	listen(async update => {
 		if (update.storage !== "idb") return;

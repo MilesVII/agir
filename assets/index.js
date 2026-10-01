@@ -3142,6 +3142,64 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     buttons.forEach((b2) => b2.addEventListener("click", () => nav(b2.dataset.to)));
   }
 
+  // src/views/common.ts
+  var templates = /* @__PURE__ */ new Map();
+  function instantiate(html2) {
+    let template = templates.get(html2);
+    if (!template) {
+      template = document.createElement("template");
+      template.innerHTML = html2;
+      templates.set(html2, template);
+    }
+    const element = f(template);
+    if (!element) throw new Error("view template has no root element");
+    return element;
+  }
+  function pickRefs(root, keys) {
+    const refs = {};
+    for (const key of keys) {
+      const element = root.querySelector(`[data-ref="${key}"]`);
+      if (!element) throw new Error(`view template is missing [data-ref="${key}"]`);
+      refs[key] = element;
+    }
+    return refs;
+  }
+  function tabGroups(root) {
+    const groups = Array.from(root.querySelectorAll("[data-tab]"));
+    return {
+      pick(name) {
+        groups.forEach((g) => g.hidden = g.dataset.tab !== name);
+      }
+    };
+  }
+  function emit(target, name, detail) {
+    target.dispatchEvent(new CustomEvent(name, { detail, bubbles: true }));
+  }
+  function setPicture(img, source) {
+    const image = img;
+    if (typeof source === "string") image.src = source;
+    else if (source) source.then((src) => {
+      if (src) image.src = src;
+    });
+  }
+  function placeholderView(text2) {
+    return T({ className: "placeholder", contents: text2 });
+  }
+
+  // src/views/provider-item.html
+  var provider_item_default = '<div class="lineout row settings-provider-item">\n	<div data-ref="name"></div>\n	<div class="row-compact">\n		<button class="lineout" data-ref="edit">edit</button>\n		<button class="lineout" data-ref="copy">copy</button>\n		<button class="lineout" data-ref="delete">delete</button>\n	</div>\n</div>\n';
+
+  // src/views/provider-item.ts
+  function makeProviderItemView(name, handlers) {
+    const root = instantiate(provider_item_default);
+    const r = pickRefs(root, ["name", "edit", "copy", "delete"]);
+    r.name.textContent = name;
+    r.edit.addEventListener("click", handlers.edit);
+    r.copy.addEventListener("click", handlers.copy);
+    r.delete.addEventListener("click", handlers.delete);
+    return root;
+  }
+
   // src/units/settings/providers.ts
   function providersUnit() {
     const inputs = {
@@ -3289,52 +3347,15 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       list.innerHTML = "";
       const providersMap = readProviders();
       const providers = Object.entries(providersMap);
-      const items = providers.map(
-        ([id, e]) => T({
-          className: "lineout row settings-provider-item",
-          contents: [
-            T({
-              contents: e.name
-            }),
-            T({
-              className: "row-compact",
-              contents: [
-                T({
-                  tagName: "button",
-                  className: "lineout",
-                  events: {
-                    click: () => edit(id, e)
-                  },
-                  contents: "edit"
-                }),
-                T({
-                  tagName: "button",
-                  className: "lineout",
-                  events: {
-                    click: () => copyProvider(id)
-                  },
-                  contents: "copy"
-                }),
-                T({
-                  tagName: "button",
-                  className: "lineout",
-                  events: {
-                    click: () => deleteProvider(id)
-                  },
-                  contents: "delete"
-                })
-              ]
-            })
-          ]
-        })
-      );
+      const items = providers.map(([id, e]) => makeProviderItemView(e.name, {
+        edit: () => edit(id, e),
+        copy: () => copyProvider(id),
+        delete: () => deleteProvider(id)
+      }));
       if (items.length > 0)
         list.append(...items);
       else
-        list.append(T({
-          className: "placeholder",
-          contents: "No providers found"
-        }));
+        list.append(placeholderView("No providers found"));
     }
     function clearInputs() {
       editing = null;
@@ -3397,6 +3418,23 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
   }
   function getToastParent() {
     return document.querySelector("#settings-providers-toasts") ?? void 0;
+  }
+
+  // src/views/persona-item.html
+  var persona_item_default = '<div class="lineout row settings-persona-item">\n	<img class="shadow" data-ref="picture">\n	<div class="list settings-persona-item-main">\n		<div class="row-compact">\n			<h6 data-ref="name"></h6>\n			<button class="lineout" data-ref="edit">edit</button>\n			<button class="lineout" data-ref="delete">delete</button>\n		</div>\n		<div data-ref="description"></div>\n	</div>\n</div>\n';
+
+  // src/views/persona-item.ts
+  function makePersonaItemView(persona, picture, handlers) {
+    const root = instantiate(persona_item_default);
+    const r = pickRefs(root, ["picture", "name", "description", "edit", "delete"]);
+    root.dataset.id = persona.id;
+    r.picture.src = placeholder(null);
+    setPicture(r.picture, picture);
+    r.name.textContent = persona.name;
+    r.description.textContent = persona.description;
+    r.edit.addEventListener("click", handlers.edit);
+    r.delete.addEventListener("click", handlers.delete);
+    return root;
   }
 
   // src/units/settings/persona.ts
@@ -3484,67 +3522,18 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       const personas = await idb.getAll("personas");
       if (!personas.success) return;
       personaList.innerHTML = "";
-      const items = personas.value.reverse().map((p2) => T({
-        className: "lineout row settings-persona-item",
-        attributes: {
-          "data-id": p2.id
-        },
-        contents: [
-          T({
-            tagName: "img",
-            className: "shadow",
-            attributes: {
-              src: placeholder(null)
-            }
-          }),
-          T({
-            className: "list settings-persona-item-main",
-            contents: [
-              T({
-                className: "row-compact",
-                contents: [
-                  T({
-                    tagName: "h6",
-                    contents: p2.name
-                  }),
-                  T({
-                    tagName: "button",
-                    className: "lineout",
-                    events: {
-                      click: () => startEditing(p2)
-                    },
-                    contents: "edit"
-                  }),
-                  T({
-                    tagName: "button",
-                    className: "lineout",
-                    events: {
-                      click: () => removePersona(p2.id)
-                    },
-                    contents: "delete"
-                  })
-                ]
-              }),
-              T({
-                contents: p2.description
-              })
-            ]
-          })
-        ]
-      }));
-      personas.value.forEach(async ({ picture }, ix) => {
-        if (!picture) return;
-        const src = await getBlobLink(picture);
-        if (src)
-          items[ix].querySelector("img").src = src;
-      });
+      const items = personas.value.reverse().map((p2) => makePersonaItemView(
+        p2,
+        p2.picture ? getBlobLink(p2.picture) : null,
+        {
+          edit: () => startEditing(p2),
+          delete: () => removePersona(p2.id)
+        }
+      ));
       if (items.length > 0)
         personaList.append(...items);
       else
-        personaList.append(T({
-          className: "placeholder",
-          contents: "No personas found"
-        }));
+        personaList.append(placeholderView("No personas found"));
     }
     listen(async (update4) => {
       if (update4.storage !== "idb") return;
@@ -4205,40 +4194,6 @@ ${selectedText(m3)}
 
   // src/views/message.html
   var message_default = '<div class="message">\n	<img data-ref="avatar">\n	<div>\n		<div class="row">\n			<div data-ref="name"   class="message-name"></div>\n			<div data-ref="status" class="message-status" hidden></div>\n			<div class="message-controls-scroller row">\n				<div class="virtual" data-tab="main">\n					<button data-ref="reasoning" class="strip ghost pointer message-control" title="show reasoning" hidden>R</button>\n					<button data-ref="rember"    class="strip ghost pointer message-control" title="open rember" hidden>\u29D6</button>\n					<div data-ref="swipes" class="row-compact no-shrink" hidden>\n						<button data-ref="prev" class="strip ghost pointer message-control" title="prev swipe">&lt;</button>\n						<span   data-ref="swipe-caption"></span>\n						<button data-ref="next" class="strip ghost pointer message-control" title="next swipe">&gt;</button>\n					</div>\n					<button data-ref="edit"  class="strip ghost pointer message-control" title="edit message">\u270E</button>\n					<button data-ref="copy"  class="strip ghost pointer message-control" title="copy message">\u29C9</button>\n					<button data-ref="reroll" class="strip ghost pointer message-control" title="reroll this message" hidden>\u21BA</button>\n					<button data-ref="delete" class="strip ghost pointer message-control" title="delete message along with following" hidden>\u2716</button>\n				</div>\n				<div class="virtual" data-tab="editing" hidden>\n					<button data-ref="save"   class="strip ghost pointer message-control" title="save">\u2714</button>\n					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n				</div>\n			</div>\n		</div>\n		<div data-ref="reasoning-preview" class="lineout message-reasoning-preview" hidden></div>\n		<div data-ref="reasoning-box" class="lineout message-think-box" hidden></div>\n		<div data-ref="text" class="message-text edible md"></div>\n	</div>\n</div>\n';
-
-  // src/views/common.ts
-  var templates = /* @__PURE__ */ new Map();
-  function instantiate(html2) {
-    let template = templates.get(html2);
-    if (!template) {
-      template = document.createElement("template");
-      template.innerHTML = html2;
-      templates.set(html2, template);
-    }
-    const element = f(template);
-    if (!element) throw new Error("view template has no root element");
-    return element;
-  }
-  function pickRefs(root, keys) {
-    const refs = {};
-    for (const key of keys) {
-      const element = root.querySelector(`[data-ref="${key}"]`);
-      if (!element) throw new Error(`view template is missing [data-ref="${key}"]`);
-      refs[key] = element;
-    }
-    return refs;
-  }
-  function tabGroups(root) {
-    const groups = Array.from(root.querySelectorAll("[data-tab]"));
-    return {
-      pick(name) {
-        groups.forEach((g) => g.hidden = g.dataset.tab !== name);
-      }
-    };
-  }
-  function emit(target, name, detail) {
-    target.dispatchEvent(new CustomEvent(name, { detail, bubbles: true }));
-  }
 
   // src/views/message.ts
   var STATUS = {
@@ -4944,6 +4899,42 @@ ${card.value.card.description}`;
     return new TextDecoder().decode(bytes);
   }
 
+  // src/views/chat-handle.html
+  var chat_handle_default = '<div class="lineout row main-chats-item">\n	<img class="pointer" data-ref="icon">\n	<div class="list wide">\n		<h2 class="pointer" data-ref="title"></h2>\n		<div class="row-compact main-chats-item-user">\n			<img data-ref="user-icon">\n			<div data-ref="user-name"></div>\n		</div>\n		<div class="hint" data-ref="messages"></div>\n		<button class="lineout fit reset-text" data-ref="memo"></button>\n	</div>\n	<div class="list main-chats-item-actions">\n		<button class="lineout" data-ref="play">play</button>\n		<select class="lineout center-text pointer" data-ref="folder"></select>\n		<button class="lineout" data-ref="delete">delete</button>\n	</div>\n</div>\n';
+
+  // src/views/chat-handle.ts
+  function makeChatHandleView(handle, pictures, folderOptions, handlers) {
+    const root = instantiate(chat_handle_default);
+    const r = pickRefs(root, ["icon", "title", "user-icon", "user-name", "messages", "memo", "play", "folder", "delete"]);
+    r.icon.src = placeholder(null);
+    r["user-icon"].src = placeholder(null);
+    setPicture(r.icon, pictures.scenario);
+    setPicture(r["user-icon"], pictures.user);
+    r.title.textContent = handle.scenario.name;
+    r["user-name"].textContent = handle.userPersona.name;
+    r.messages.textContent = messagesCaption(handle.messageCount);
+    r.memo.textContent = handle.memo ?? "\u{1F4DD}";
+    r.icon.addEventListener("click", handlers.play);
+    r.title.addEventListener("click", handlers.play);
+    r.play.addEventListener("click", handlers.play);
+    r.memo.addEventListener("click", handlers.setMemo);
+    r.delete.addEventListener("click", handlers.delete);
+    setSelectMenu(
+      r.folder,
+      handle.folder ?? "-folder-",
+      [
+        ["unassigned", () => handlers.assignFolder(null)],
+        ["new folder", handlers.newFolder],
+        ...folderOptions.map((f2) => [f2, () => handlers.assignFolder(f2)])
+      ]
+    );
+    return root;
+  }
+  function messagesCaption(count) {
+    const singular = count === 1 || count % 10 === 1 && count % 100 !== 11;
+    return `${count} ${singular ? "message" : "messages"}`;
+  }
+
   // src/units/main.ts
   function mainUnit() {
     const importButton = document.querySelector("#main-import");
@@ -4977,7 +4968,7 @@ ${card.value.card.description}`;
     list.innerHTML = "";
     const filtered = folder ? handles.filter((c) => c.folder === folder) : handles;
     const items = filtered.reverse().map((c) => handleView(c, folderOptions));
-    if (items.length === 0) list.append(T({ className: "placeholder", contents: "No chats found" }));
+    if (items.length === 0) list.append(placeholderView("No chats found"));
     list.append(...items);
   }
   function updateFolders(folder, options, onChange) {
@@ -5003,112 +4994,25 @@ ${card.value.card.description}`;
     );
   }
   function handleView(handle, folderOptions) {
-    const play = () => window.location.hash = `play.${handle.id}`;
-    const icon = T({
-      tagName: "img",
-      className: "pointer",
-      attributes: {
-        src: placeholder(null)
+    return makeChatHandleView(
+      handle,
+      {
+        scenario: handle.scenario.picture ? getBlobLink(handle.scenario.picture) : null,
+        user: handle.userPersona.picture ? getBlobLink(handle.userPersona.picture) : null
       },
-      events: {
-        click: play
+      folderOptions,
+      {
+        play: () => window.location.hash = `play.${handle.id}`,
+        delete: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount),
+        setMemo: () => setMemo(handle.id, handle.memo),
+        assignFolder: (folder) => assignToFolder(handle.id, folder),
+        newFolder: () => {
+          const newName = prompt("Enter the name of the new folder")?.trim();
+          if (!newName) return;
+          assignToFolder(handle.id, newName);
+        }
       }
-    });
-    const userIcon = T({
-      tagName: "img",
-      attributes: {
-        src: placeholder(null)
-      }
-    });
-    const folderSelect = T({
-      tagName: "select",
-      className: "lineout center-text pointer"
-    });
-    if (handle.scenario.picture)
-      getBlobLink(handle.scenario.picture).then((src) => src && (icon.src = src));
-    if (handle.userPersona.picture)
-      getBlobLink(handle.userPersona.picture).then((src) => src && (userIcon.src = src));
-    const newFolder = () => {
-      const newName = prompt("Enter the name of the new folder")?.trim();
-      if (!newName) return;
-      assignToFolder(handle.id, newName);
-    };
-    setSelectMenu(
-      folderSelect,
-      handle.folder ?? "-folder-",
-      [
-        ["unassigned", () => assignToFolder(handle.id, null)],
-        ["new folder", newFolder],
-        ...folderOptions.map(
-          (c) => [c, () => assignToFolder(handle.id, c)]
-        )
-      ]
     );
-    return T({
-      className: "lineout row main-chats-item",
-      contents: [
-        icon,
-        T({
-          className: "list wide",
-          contents: [
-            T({
-              tagName: "h2",
-              className: "pointer",
-              contents: handle.scenario.name,
-              events: {
-                click: play
-              }
-            }),
-            T({
-              className: "row-compact main-chats-item-user",
-              contents: [
-                userIcon,
-                T({
-                  contents: handle.userPersona.name
-                })
-              ]
-            }),
-            T({
-              className: "hint",
-              contents: messagesCaption(handle.messageCount)
-            }),
-            T({
-              tagName: "button",
-              className: "lineout fit reset-text",
-              contents: handle.memo ?? "\u{1F4DD}",
-              events: {
-                click: () => setMemo(handle.id, handle.memo)
-              }
-            })
-          ]
-        }),
-        T({
-          className: "list main-chats-item-actions",
-          contents: [
-            T({
-              tagName: "button",
-              className: "lineout",
-              contents: "play",
-              events: {
-                click: play
-              }
-            }),
-            folderSelect,
-            T({
-              tagName: "button",
-              className: "lineout",
-              contents: "delete",
-              events: {
-                click: () => deleteChat(handle.id, handle.scenario.name, handle.messageCount)
-              }
-            })
-          ]
-        })
-      ]
-    });
-  }
-  function messagesCaption(count) {
-    return count % 10 === 1 ? `${count} message` : `${count} messages`;
   }
   function deleteChat(id, name, messageCount) {
     const confirmed = confirm(`Chat with ${name} (${messagesCaption(messageCount)}) will be deleted`);
@@ -5407,6 +5311,40 @@ ${card.value.card.description}`;
     });
   }
 
+  // src/views/scenario-card.html
+  var scenario_card_default = '<div class="scenario-card lineout">\n	<div class="scenario-card-icon-container">\n		<img class="pointer" data-ref="icon">\n	</div>\n	<div class="list grow">\n		<div class="row-compact">\n			<h6 class="pointer" data-ref="title"></h6>\n			<button class="strip ghost pointer" data-ref="download">\u2913</button>\n			<button class="strip ghost pointer" data-ref="delete">\u2716</button>\n			<button class="strip ghost pointer" data-ref="edit">\u270E</button>\n			<button class="lineout" data-ref="play">play</button>\n		</div>\n		<div class="row baseline">\n			<a data-ref="author-link" hidden></a>\n			<span data-ref="author" hidden></span>\n			<div class="hint float-end" data-ref="tokens"></div>\n		</div>\n		<hr>\n		<div class="scenario-card-description md" data-ref="description"></div>\n		<div class="scenario-card-tags" data-ref="tags"></div>\n	</div>\n</div>\n';
+
+  // src/views/scenario-card.ts
+  function makeScenarioCardView(item, picture, handlers) {
+    const root = instantiate(scenario_card_default);
+    const r = pickRefs(root, ["icon", "title", "download", "delete", "edit", "play", "author-link", "author", "tokens", "description", "tags"]);
+    r.icon.src = placeholder(null);
+    setPicture(r.icon, picture);
+    r.title.textContent = item.card.title;
+    const author = item.card.author;
+    if (author?.url) {
+      r["author-link"].textContent = author.name;
+      r["author-link"].setAttribute("href", author.url);
+      r["author-link"].hidden = false;
+    } else {
+      r.author.textContent = author?.name ?? "";
+      r.author.hidden = false;
+    }
+    r.tokens.textContent = `${neatNumber(item.chat.tokenCount ?? 0)} tokens`;
+    r.tokens.title = `${item.chat.tokenCount ?? "N/A"} tokens`;
+    r.description.innerHTML = renderMD(item.card.description ?? "");
+    r.tags.append(
+      ...item.card.tags.map((tag) => T({ tagName: "span", className: "pointer", contents: tag })).toReversed()
+    );
+    r.icon.addEventListener("click", handlers.play);
+    r.title.addEventListener("click", handlers.play);
+    r.play.addEventListener("click", handlers.play);
+    r.download.addEventListener("click", handlers.download);
+    r.delete.addEventListener("click", handlers.delete);
+    r.edit.addEventListener("click", handlers.edit);
+    return root;
+  }
+
   // src/units/chat/start.ts
   var PRON_MACROS = {
     "{{sub}}": "subjective",
@@ -5611,6 +5549,43 @@ ${scenario}
     };
   }
 
+  // src/views/armory-item.html
+  var armory_item_default = '<div class="lineout row-compact baseline">\n	<div data-ref="name"></div>\n	<button class="lineout float-end" data-ref="delete">\u2716</button>\n	<button class="lineout" data-ref="open">open</button>\n</div>\n';
+
+  // src/views/armory-item.ts
+  function makeArmoryItemView(name, handlers) {
+    const root = instantiate(armory_item_default);
+    const r = pickRefs(root, ["name", "open", "delete"]);
+    r.name.textContent = name;
+    r.open.addEventListener("click", handlers.open);
+    r.delete.addEventListener("click", handlers.delete);
+    return root;
+  }
+
+  // src/views/armory-card.html
+  var armory_card_default = '<div class="lineout row armory-item">\n	<img data-ref="icon">\n	<div class="list wide">\n		<div class="armory-item-summary" data-ref="summary"></div>\n		<div class="row-compact float-bottom">\n			<button class="lineout float-end" data-ref="download"></button>\n		</div>\n		<progress max="100" value="0" data-ref="progress" hidden></progress>\n		<div class="placeholder fit float-end" data-ref="status" hidden>scenario downloaded</div>\n	</div>\n</div>\n';
+
+  // src/views/armory-card.ts
+  function makeArmoryCardView(data, onDownload) {
+    const root = instantiate(armory_card_default);
+    const r = pickRefs(root, ["icon", "summary", "download", "progress", "status"]);
+    const progress = r.progress;
+    r.icon.src = placeholder(data.icon);
+    r.summary.textContent = data.summary;
+    r.download.textContent = data.downloadCaption;
+    r.download.addEventListener("click", onDownload);
+    function setState(state) {
+      r.download.hidden = state !== "ready";
+      progress.hidden = state !== "downloading";
+      r.status.hidden = state !== "done";
+    }
+    function setProgress(fraction) {
+      progress.value = fraction * 100;
+    }
+    setState(data.downloadable ? "ready" : "done");
+    return M(root, { setState, setProgress }, "controls");
+  }
+
   // src/units/library/armory.ts
   function startArmory() {
     const modal = document.querySelector("#library-armory");
@@ -5687,34 +5662,11 @@ ${scenario}
     list.innerHTML = "";
     const armories = getArmories();
     if (armories.length === 0) {
-      list.append(T({
-        className: "placeholder",
-        contents: "No armories added"
-      }));
+      list.append(placeholderView("No armories added"));
     } else {
-      list.append(...armories.map((a) => T({
-        className: "lineout row-compact baseline",
-        contents: [
-          T({
-            contents: a.name
-          }),
-          T({
-            tagName: "button",
-            className: "lineout float-end",
-            contents: "\u2716",
-            events: {
-              click: () => deleteArmory2(a.id)
-            }
-          }),
-          T({
-            tagName: "button",
-            className: "lineout",
-            contents: "open",
-            events: {
-              click: () => openArmory(a)
-            }
-          })
-        ]
+      list.append(...armories.map((a) => makeArmoryItemView(a.name, {
+        open: () => openArmory(a),
+        delete: () => deleteArmory2(a.id)
       })));
     }
   }
@@ -5723,80 +5675,26 @@ ${scenario}
     const updateAvailable = existing && existing.lastUpdate < item.lastUpdate;
     const downloadable = Boolean(!existing || updateAvailable);
     const downloadCaption = "download" + (updateAvailable ? " (update available)" : "");
-    const progressbar = T({
-      tagName: "progress",
-      attributes: {
-        max: "100",
-        value: "0",
-        hidden: "true"
-      }
-    });
-    const status = T({
-      tagName: "div",
-      className: "placeholder fit float-end",
-      contents: "scenario downloaded"
-    });
-    const downloadButton = T({
-      tagName: "button",
-      className: "lineout float-end",
-      contents: downloadCaption,
-      events: {
-        click: async () => {
-          downloadButton.hidden = true;
-          progressbar.hidden = false;
-          dl(item.url);
-        }
-      }
-    });
-    downloadButton.hidden = !downloadable;
-    status.hidden = downloadable;
+    const view = makeArmoryCardView(
+      { icon: item.icon, summary: item.summary, downloadCaption, downloadable },
+      () => dl(item.url)
+    );
     async function dl(url) {
-      downloadButton.hidden = true;
-      progressbar.hidden = false;
+      view.controls.setState("downloading");
       const response = await nothrowAsync(fetch(url));
       if (!response.success || !response.value.ok) {
-        downloadButton.hidden = false;
-        progressbar.hidden = true;
+        view.controls.setState("ready");
         return;
       }
-      const blob = await nothrowAsync(reportingFetch(url, (v2) => progressbar.value = v2 * 100));
+      const blob = await nothrowAsync(reportingFetch(url, view.controls.setProgress));
       if (!blob.success) {
-        downloadButton.hidden = false;
-        progressbar.hidden = true;
+        view.controls.setState("ready");
         return;
       }
-      progressbar.hidden = true;
-      status.hidden = false;
+      view.controls.setState("done");
       importScenario(blob.value);
     }
-    return T({
-      className: "lineout row armory-item",
-      contents: [
-        T({
-          tagName: "img",
-          attributes: {
-            src: placeholder(item.icon)
-          }
-        }),
-        T({
-          className: "list wide",
-          contents: [
-            T({
-              className: "armory-item-summary",
-              contents: item.summary
-            }),
-            T({
-              className: "row-compact float-bottom",
-              contents: [
-                downloadButton
-              ]
-            }),
-            progressbar,
-            status
-          ]
-        })
-      ]
-    });
+    return view;
   }
   function getArmories() {
     const value = local.get("armories");
@@ -6029,126 +5927,21 @@ ${scenario}
     const contents = items.value.reverse().slice(ix0, ix1).map(scenarioCardView);
     list.append(...contents);
     if (contents.length === 0)
-      list.append(T({ className: "placeholder", contents: "No scenario cards found" }));
+      list.append(placeholderView("No scenario cards found"));
   }
   function scenarioCardView(item) {
-    const play = () => openStartModal(item.id, item.card.description);
-    let icon = T({
-      tagName: "img",
-      className: "pointer",
-      attributes: {
-        src: placeholder(null)
-      },
-      events: {
-        click: play
+    return makeScenarioCardView(
+      item,
+      item.card.picture ? getBlobLink(item.card.picture) : null,
+      {
+        play: () => openStartModal(item.id, item.card.description),
+        download: () => downloadScenario(item),
+        delete: () => deleteScenario(item.id, item.card.title),
+        edit: () => {
+          document.location.hash = `scenario-editor.${item.id}`;
+        }
       }
-    });
-    if (item.card.picture) {
-      getBlobLink(item.card.picture).then((src) => {
-        if (src) icon.src = src;
-      });
-    }
-    const description = T({
-      className: "scenario-card-description md"
-    });
-    description.innerHTML = renderMD(item.card.description ?? "");
-    const author = T({
-      tagName: item.card.author?.url ? "a" : "span",
-      contents: item.card.author?.name ?? ""
-    });
-    if (item.card.author?.url) {
-      author.setAttribute("href", item.card.author.url);
-    }
-    const tokens = T({
-      className: "hint float-end",
-      contents: `${neatNumber(item.chat.tokenCount ?? 0)} tokens`,
-      attributes: {
-        title: `${item.chat.tokenCount ?? "N/A"} tokens`
-      }
-    });
-    return T({
-      className: "scenario-card lineout",
-      contents: [
-        T({
-          tagName: "div",
-          className: "scenario-card-icon-container",
-          contents: [
-            icon
-          ]
-        }),
-        T({
-          className: "list grow",
-          contents: [
-            T({
-              className: "row-compact",
-              contents: [
-                T({
-                  tagName: "h6",
-                  className: "pointer",
-                  contents: item.card.title,
-                  events: {
-                    click: play
-                  }
-                }),
-                T({
-                  tagName: "button",
-                  className: "strip ghost pointer",
-                  events: {
-                    click: () => downloadScenario(item)
-                  },
-                  contents: "\u2913"
-                }),
-                T({
-                  tagName: "button",
-                  className: "strip ghost pointer",
-                  events: {
-                    click: () => deleteScenario(item.id, item.card.title)
-                  },
-                  contents: "\u2716"
-                }),
-                T({
-                  tagName: "button",
-                  className: "strip ghost pointer",
-                  events: {
-                    click: () => {
-                      document.location.hash = `scenario-editor.${item.id}`;
-                    }
-                  },
-                  contents: "\u270E"
-                }),
-                T({
-                  tagName: "button",
-                  className: "lineout",
-                  events: {
-                    click: play
-                  },
-                  contents: "play"
-                })
-              ]
-            }),
-            T({
-              tagName: "div",
-              className: "row baseline",
-              contents: [author, tokens]
-            }),
-            T({
-              tagName: "hr"
-            }),
-            description,
-            T({
-              className: "scenario-card-tags",
-              contents: item.card.tags.map(
-                (tag) => T({
-                  tagName: "span",
-                  className: "pointer",
-                  contents: tag
-                })
-              ).toReversed()
-            })
-          ]
-        })
-      ]
-    });
+    );
   }
   async function downloadScenario(card) {
     const payload = { ...card };

@@ -2,9 +2,11 @@ import { RampikeModal } from "@rampike/modal";
 import { RampikeTabs } from "@rampike/tabs";
 import { idb, local } from "@root/persist";
 import { ScenarioCard } from "@root/types";
-import { nothrowAsync, placeholder, reportingFetch } from "@root/utils";
+import { nothrowAsync, reportingFetch } from "@root/utils";
 import { importScenario } from "@units/library";
-import { mudcrack } from "rampike";
+import { placeholderView } from "@views/common";
+import { makeArmoryItemView } from "@views/armory-item";
+import { makeArmoryCardView } from "@views/armory-card";
 
 type Armory = {
 	id: string,
@@ -119,35 +121,12 @@ function refreshList(list: HTMLElement, deleteArmory: (id: string) => void, open
 	list.innerHTML = "";
 	const armories = getArmories();
 	if (armories.length === 0) {
-		list.append(mudcrack({
-			className: "placeholder",
-			contents: "No armories added"
-		}));
+		list.append(placeholderView("No armories added"));
 	} else {
-		list.append(...armories.map(a => mudcrack({
-			className: "lineout row-compact baseline",
-			contents: [
-				mudcrack({
-					contents: a.name
-				}),
-				mudcrack({
-					tagName: "button",
-					className: "lineout float-end",
-					contents: "✖",
-					events: {
-						click: () => deleteArmory(a.id)
-					}
-				}),
-				mudcrack({
-					tagName: "button",
-					className: "lineout",
-					contents: "open",
-					events: {
-						click: () => openArmory(a)
-					}
-				})
-			]
-		})))
+		list.append(...armories.map(a => makeArmoryItemView(a.name, {
+			open:   () => openArmory(a),
+			delete: () => deleteArmory(a.id)
+		})));
 	}
 }
 
@@ -157,82 +136,28 @@ function armoryItemView(item: ArmoryItem, library: ScenarioCard[]) {
 	const downloadable = Boolean(!existing || updateAvailable);
 	const downloadCaption = "download" + (updateAvailable ? " (update available)" : "");
 
-	const progressbar = mudcrack({
-		tagName: "progress",
-		attributes: {
-			max: "100",
-			value: "0",
-			hidden: "true"
-		}
-	});
-	const status = mudcrack({
-		tagName: "div",
-		className: "placeholder fit float-end",
-		contents: "scenario downloaded"
-	});
-	const downloadButton = mudcrack({
-		tagName: "button",
-		className: "lineout float-end",
-		contents: downloadCaption,
-		events: {
-			click: async () => {
-				downloadButton.hidden = true;
-				progressbar.hidden = false;
-				dl(item.url);
-			}
-		}
-	});
-	downloadButton.hidden = !downloadable;
-	status.hidden         = downloadable;
+	const view = makeArmoryCardView(
+		{ icon: item.icon, summary: item.summary, downloadCaption, downloadable },
+		() => dl(item.url)
+	);
 
 	async function dl(url: string) {
-		downloadButton.hidden = true;
-		progressbar.hidden    = false;
+		view.controls.setState("downloading");
 		const response = await nothrowAsync(fetch(url));
 		if (!response.success || !response.value.ok) {
-			downloadButton.hidden = false;
-			progressbar.hidden    = true;
+			view.controls.setState("ready");
 			return;
 		}
-		const blob = await nothrowAsync(reportingFetch(url, v => progressbar.value = v * 100));
+		const blob = await nothrowAsync(reportingFetch(url, view.controls.setProgress));
 		if (!blob.success) {
-			downloadButton.hidden = false;
-			progressbar.hidden    = true;
+			view.controls.setState("ready");
 			return;
 		}
-		progressbar.hidden = true;
-		status.hidden      = false;
+		view.controls.setState("done");
 		importScenario(blob.value);
 	}
 
-	return mudcrack({
-		className: "lineout row armory-item",
-		contents: [
-			mudcrack({
-				tagName: "img",
-				attributes: {
-					src: placeholder(item.icon)
-				}
-			}),
-			mudcrack({
-				className: "list wide",
-				contents: [
-					mudcrack({
-						className: "armory-item-summary",
-						contents: item.summary,
-					}),
-					mudcrack({
-						className: "row-compact float-bottom",
-						contents: [
-							downloadButton
-						]
-					}),
-					progressbar,
-					status
-				]
-			}),
-		]
-	});
+	return view;
 }
 
 function getArmories(): Armory[] {
