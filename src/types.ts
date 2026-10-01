@@ -46,7 +46,8 @@ export type ProviderMapWithActive = Record<string, Provider & { isActive: boolea
 
 export type ActiveProviders = {
 	main:   string | null,
-	rember: string | null
+	rember: string | null,
+	illustrate?: string | null
 };
 
 export type ScenarioCard = {
@@ -82,7 +83,8 @@ export type Chat = {
 	messageChunks: string[],
 	rember: RemberSettings,
 	folder: Folder,
-	memo?: string
+	memo?: string,
+	illustrate?: IllustrateSettings
 };
 
 /** Persisted chat record. `id` always equals the message's index in `ChatContents.messages`. */
@@ -93,7 +95,22 @@ export type ChatMessage = {
 	swipes: string[],
 	reasoningBoxes?: string[],
 	selectedSwipe: number,
-	rember: string | null
+	rember: string | null,
+	illustration?: Illustration
+};
+
+/** A rendered scene attached to a message; `media` is an idb media id */
+export type Illustration = {
+	media: string,
+	/** the image prompt the picture was rendered from */
+	prompt: string,
+	/** the scene summary the prompt was derived from */
+	summary: string
+};
+
+export type IllustrateSettings = {
+	summaryPrompt: string,
+	tagsPrompt: string
 };
 
 /** What actually goes to the completion API. Built from ChatMessages by units/chat/prompt.ts */

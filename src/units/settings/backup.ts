@@ -33,6 +33,8 @@ async function backup() {
 		activeProvider: local.get("activeProvider"),
 		settings: local.get("settings"),
 		theme: local.get("theme"),
+		cheats: local.get("cheats"),
+		illustrate: local.get("illustrate")
 	};
 
 	const validOnly = (() => {
@@ -115,15 +117,17 @@ async function mediaCleanup() {
 
 	const [
 		chats,
+		chatContents,
 		personas,
 		scenarios,
 	] = (await Promise.all([
 		idb.getAll("chats"),
+		idb.getAll("chatContents"),
 		idb.getAll("personas"),
 		idb.getAll("scenarios")
 	]));
 
-	if (!chats.success || !personas.success || !scenarios.success) {
+	if (!chats.success || !chatContents.success || !personas.success || !scenarios.success) {
 		toast("loaded the media but can't load other data, aborting");
 		return;
 	}
@@ -131,6 +135,9 @@ async function mediaCleanup() {
 	for (const chat of chats.value) {
 		checkout(chat.scenario.picture);
 		checkout(chat.userPersona.picture);
+	}
+	for (const contents of chatContents.value) {
+		for (const message of contents.messages) checkout(message.illustration?.media ?? null);
 	}
 	for (const persona of personas.value) {
 		checkout(persona.picture);

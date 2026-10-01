@@ -3,6 +3,7 @@ import { personaUnit } from "./settings/persona";
 import { initTheme } from "@units/settings/themes";
 import { initBackup } from "./settings/backup";
 import { initMisc } from "./settings/misc";
+import { initIllustrateSettings } from "./settings/illustrate";
 
 export function settingsUnit() {
 	initTheme();
@@ -10,4 +11,5 @@ export function settingsUnit() {
 	providersUnit();
 	initBackup();
 	initMisc();
+	initIllustrateSettings();
 }

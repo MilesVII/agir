@@ -7,7 +7,7 @@ one busy signal for the UI to subscribe to. Adding a new kind of generation mean
 adding a JobKind here and a prompt builder in prompt.ts, nothing else.
 */
 
-export type JobKind = "roleplay" | "rember";
+export type JobKind = "roleplay" | "rember" | "illustrate";
 export type JobHooks = Omit<ProviderHooks, "signal">;
 
 type JobListener = (active: JobKind | null) => void;

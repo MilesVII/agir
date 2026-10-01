@@ -52,7 +52,7 @@ export async function renderMessages(session: ChatSession | null) {
 
 	const messages = session.contents.messages;
 	list.dataset.chat = session.chat.id;
-	list.append(...messages.map((m, ix) => makeMessageView(m, pictures, ix === messages.length - 1)));
+	list.append(...messages.map((m, ix) => makeMessageView(m, pictures, ix === messages.length - 1, getBlobLink)));
 	list.scrollTop = list.scrollHeight;
 }
 
@@ -81,8 +81,8 @@ export async function sendMessage(text: string) {
 	const list = listElement();
 	if (previous) getMessageView(session.chat.id, previous.id)?.controls.setIsLast(false);
 	list.append(
-		makeMessageView(request, pictures, false),
-		makeMessageView(reply,   pictures, true)
+		makeMessageView(request, pictures, false, getBlobLink),
+		makeMessageView(reply,   pictures, true,  getBlobLink)
 	);
 	list.scrollTop = list.scrollHeight;
 

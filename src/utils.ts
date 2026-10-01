@@ -87,6 +87,8 @@ export function setSelectOptions(target: HTMLSelectElement, options: [id: string
 		target.value = pick;
 	}
 }
+const selectMenuCallbacks = new WeakMap<HTMLSelectElement, (() => void)[]>();
+/** Turns a <select> into a one-shot action menu. Safe to call again to rebuild the entries. */
 export function setSelectMenu(target: HTMLSelectElement, displayCaption: string, options: [caption: string, cb: () => void][]) {
 	const option = (id: string, caption: string) => mudcrack({
 		tagName: "option",
@@ -101,11 +103,14 @@ export function setSelectMenu(target: HTMLSelectElement, displayCaption: string,
 	target.innerHTML = "";
 	target.append(defaultOption, ...optionsList);
 	target.value = "";
-	target.addEventListener("change", () => {
-		if (!target.value) return;
-		options.find((_, ix) => String(ix) === target.value)?.[1]();
-		target.value = "";
-	});
+	if (!selectMenuCallbacks.has(target)) {
+		target.addEventListener("change", () => {
+			if (!target.value) return;
+			selectMenuCallbacks.get(target)?.[parseInt(target.value, 10)]?.();
+			target.value = "";
+		});
+	}
+	selectMenuCallbacks.set(target, options.map(([, cb]) => cb));
 }
 
 export function elementVisible(e: HTMLElement) {

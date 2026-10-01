@@ -144,6 +144,36 @@
 							<button id="settings-misc-save" class="lineout">Save</button>
 						</div>
 					</details>
+					<details id="settings-illustrate" hidden>
+						<summary class="settings-label">
+							🖼 Illustrations
+						</summary>
+						<div class="list">
+							<div class="hint">Hidden feature: scene illustrations rendered by a local ComfyUI instance. Start ComfyUI with <code>--enable-cors-header</code> so the page can reach it. Prompts are customizable per chat in the Illustrate dialog.</div>
+							<label class="row-compact align-center">
+								<input type="checkbox" id="settings-illustrate-enabled" checked/>
+								<div>Show Illustrate in the chat menu</div>
+							</label>
+							<ram-labeled
+								legend="ComfyUI address"
+								id="settings-illustrate-url"
+								class="strip wide"
+								placeholder="http://127.0.0.1:8188"
+							></ram-labeled>
+							<div class="hint">Workflow in ComfyUI API format ("Save (API Format)" in ComfyUI). Put {{prompt}} where the positive prompt text goes and {{seed}} in place of the sampler seed.</div>
+							<ram-labeled
+								legend="Workflow template"
+								id="settings-illustrate-workflow"
+								class="strip wide"
+								rows="12"
+								multiline
+							></ram-labeled>
+							<div class="row">
+								<button id="settings-illustrate-reset" class="lineout fit float-end">reset workflow</button>
+								<button id="settings-illustrate-save" class="lineout fit">Save</button>
+							</div>
+						</div>
+					</details>
 					<div class="lineout fit pointer float-end">
 						If you have any questions, issues, or suggestions:
 						<ul>
@@ -561,6 +591,71 @@
 				<button id="play-rember-stop" class="lineout fit">stop</button>
 			</div>
 			<div id="play-rember-messages" class="list"></div>
+		</ram-modal>
+		<ram-modal id="play-illustrate" strong>
+			<div class="chat-provider-control row-compact">
+				<div>Provider:</div>
+				<select id="play-illustrate-provider-picker" class="lineout"></select>
+				<button id="play-illustrate-close" class="lineout">close</button>
+			</div>
+
+			<details>
+				<summary class="settings-label">
+					Prompts
+				</summary>
+				<div class="list">
+					<div class="hint">Step 1 asks the model to describe what is visible right now, from everything since the latest ⧖ rEmber summary (or the whole chat). Step 2 turns that description into an image prompt.</div>
+					<ram-labeled
+						legend="Scene summary prompt"
+						id="play-illustrate-summary-prompt"
+						class="strip wide"
+						rows="6"
+						multiline
+					></ram-labeled>
+					<ram-labeled
+						legend="Image prompt instructions"
+						id="play-illustrate-tags-prompt"
+						class="strip wide"
+						rows="6"
+						multiline
+					></ram-labeled>
+					<div class="row">
+						<button id="play-illustrate-reset" class="lineout fit float-end">reset prompts</button>
+						<button id="play-illustrate-save"  class="lineout fit">save settings</button>
+					</div>
+				</div>
+			</details>
+
+			<div class="row-wrap">
+				<button id="play-illustrate-summarize" class="lineout fit">1. summarize scene</button>
+				<button id="play-illustrate-compose"   class="lineout fit">2. compose prompt</button>
+				<button id="play-illustrate-render"    class="lineout fit">3. render</button>
+				<button id="play-illustrate-all"       class="lineout fit float-end">run all</button>
+				<button id="play-illustrate-stop"      class="lineout fit float-end" hidden>stop</button>
+			</div>
+			<div class="hint">Outputs can be edited before running the next step. The picture gets attached to the last message.</div>
+			<ram-labeled
+				legend="Scene summary"
+				id="play-illustrate-summary"
+				class="strip wide"
+				rows="6"
+				multiline
+			></ram-labeled>
+			<ram-labeled
+				legend="Image prompt"
+				id="play-illustrate-tags"
+				class="strip wide"
+				rows="4"
+				multiline
+			></ram-labeled>
+			<div id="play-illustrate-status" class="placeholder" hidden></div>
+			<div id="play-illustrate-result" class="list" hidden>
+				<img id="play-illustrate-preview" class="lineout">
+				<div class="row">
+					<div id="play-illustrate-result-caption" class="hint"></div>
+					<button id="play-illustrate-delete" class="lineout fit float-end">delete illustration</button>
+				</div>
+			</div>
 		</ram-modal>
 		<ram-modal id="help-modal">
 			<div id="help-message" class="md md-intro"></div>

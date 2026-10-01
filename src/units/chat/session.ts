@@ -1,5 +1,5 @@
 import { idb, listen } from "@root/persist";
-import { Chat, ChatContents, ChatMessage } from "@root/types";
+import { Chat, ChatContents, ChatMessage, Illustration } from "@root/types";
 import { toast } from "@units/toasts";
 import { activeJob } from "./generation";
 
@@ -163,6 +163,16 @@ export function setRember(session: ChatSession, mid: number, value: string | nul
 	if (!message) return false;
 	message.rember = value;
 	return true;
+}
+
+/** Attaches or removes an illustration. Returns the one it replaced so its media can be dropped. */
+export function setIllustration(session: ChatSession, mid: number, value: Illustration | null) {
+	const message = messageByID(session, mid);
+	if (!message) return null;
+	const previous = message.illustration ?? null;
+	if (value) message.illustration = value;
+	else delete message.illustration;
+	return previous;
 }
 
 /** Removes the message and everything after it. Returns the ids removed. */

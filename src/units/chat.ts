@@ -7,6 +7,8 @@ import { readActiveProviders, readProviders } from "./settings/providers";
 import { toast } from "./toasts";
 import { initChatEditor } from "./chat/editor";
 import { initRember } from "./chat/rember";
+import { initIllustrate } from "./chat/illustrate";
+import { isIllustrateEnabled } from "./settings/illustrate";
 import { initMessageList, renderMessages, sendMessage } from "./chat/messages";
 import { activeJob, cancelJob, onJobChange } from "./chat/generation";
 import { getSession, onSessionReplaced, openSession } from "./chat/session";
@@ -28,12 +30,13 @@ export function chatUnit() {
 	initMessageList();
 	const editor = initChatEditor();
 	const rember = initRember();
+	const illustrate = initIllustrate();
 
 	window.addEventListener("hashchange", update);
 	listen(u => {
 		if (u.storage !== "local") return;
-		if (u.key !== "providers" && u.key !== "activeProvider") return;
-		updateProviders();
+		if (u.key === "providers" || u.key === "activeProvider") updateProviders();
+		if (u.key === "cheats" || u.key === "illustrate") buildMenu();
 	});
 	onSessionReplaced(session => {
 		renderMessages(session);
@@ -60,16 +63,23 @@ export function chatUnit() {
 		}
 	});
 
-	setSelectMenu(menuButton, "☰", [
-		["Scenario card",   openScenarioIfExists],
-		["Edit definition", editor.open],
-		["⧖ rEmber",        rember.open],
-		["Export",          exportChat],
-		["Clone",           cloneChat]
-	]);
-
+	buildMenu();
 	update();
 	updateProviders();
+
+	function buildMenu() {
+		const entries: [string, () => void][] = [
+			["Scenario card",   openScenarioIfExists],
+			["Edit definition", editor.open],
+			["⧖ rEmber",        rember.open]
+		];
+		if (isIllustrateEnabled()) entries.push(["🖼 Illustrate", illustrate.open]);
+		entries.push(
+			["Export", exportChat],
+			["Clone",  cloneChat]
+		);
+		setSelectMenu(menuButton, "☰", entries);
+	}
 
 	async function send() {
 		const text = textarea.value.trim();
@@ -155,7 +165,8 @@ async function exportChat() {
 
 	const mediaIDs = [
 		chat.userPersona.picture,
-		chat.scenario.picture
+		chat.scenario.picture,
+		...contents.messages.map(m => m.illustration?.media ?? null)
 	].filter(id => id) as string[];
 	const encodedMedia = await asyncMap(mediaIDs,
 		async (id: string) => {

@@ -3,7 +3,7 @@ import { ChatMessage } from "@root/types";
 import { elementVisible, placeholder, renderMD } from "@root/utils";
 import { toast } from "@units/toasts";
 import { sirocco } from "rampike";
-import { emit, instantiate, pickRefs, tabGroups } from "./common";
+import { emit, instantiate, pickRefs, PictureSource, setPicture, tabGroups } from "./common";
 
 /*
 Renders one chat message. The view never mutates the message it was given:
@@ -37,12 +37,18 @@ const REFS = [
 	"avatar", "name", "status",
 	"reasoning", "rember", "swipes", "prev", "swipe-caption", "next",
 	"edit", "copy", "reroll", "delete", "save", "cancel",
-	"reasoning-preview", "reasoning-box", "text"
+	"reasoning-preview", "reasoning-box", "text", "illustration"
 ] as const;
 
 export type Pictures = [user: string | null, model: string | null];
 
-export function makeMessageView(msg: ChatMessage, [userPic, modelPic]: Pictures, isLast: boolean) {
+/** `media` resolves an illustration's media id to a picture; without it illustrations are not shown */
+export function makeMessageView(
+	msg: ChatMessage,
+	[userPic, modelPic]: Pictures,
+	isLast: boolean,
+	media?: (id: string) => PictureSource
+) {
 	const root = instantiate<HTMLDivElement>(template);
 	const r = pickRefs(root, REFS);
 	const tabs = tabGroups(root);
@@ -115,6 +121,24 @@ export function makeMessageView(msg: ChatMessage, [userPic, modelPic]: Pictures,
 		r.reasoning.hidden = !reasoning;
 		r["reasoning-box"].textContent = reasoning ?? "";
 		r["reasoning-box"].hidden = true;
+
+		refreshIllustration();
+	}
+	function refreshIllustration() {
+		const art = msg.illustration;
+		const img = r.illustration as HTMLImageElement;
+		img.hidden = !(art && media);
+		if (!art || !media) {
+			delete img.dataset.media;
+			img.removeAttribute("src");
+			return;
+		}
+		img.alt = art.prompt;
+		img.title = art.prompt;
+		if (img.dataset.media === art.media) return; // same picture, keep the loaded one
+		img.dataset.media = art.media;
+		img.removeAttribute("src");
+		setPicture(img, media(art.media));
 	}
 	function setIsLast(value: boolean) {
 		isLast = value;

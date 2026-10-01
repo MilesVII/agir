@@ -426,3 +426,14 @@ summary.settings-label {
 .toast button {
 	min-width: 6ch;
 }
+
+.message-illustration {
+	display: block;
+	max-width: min(100%, 512px);
+	margin-top: var(--dims-reg);
+	border-radius: var(--dims-reg);
+}
+#play-illustrate-preview {
+	max-width: min(100%, 512px);
+	align-self: center;
+}

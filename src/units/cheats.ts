@@ -3,7 +3,8 @@ import { toast } from "./toasts";
 
 let cheatLockCounter = 7;
 const cheatCodes: Record<string, any> = {
-	"ee7668710593603e1bf765b32d532ac6b3c5b6f9": gibbadge
+	"ee7668710593603e1bf765b32d532ac6b3c5b6f9": gibbadge,
+	"123b6c550235544d739e82064fe5648dd09c673f": unlockIllustrate
 };
 
 export function cheatsUnit() {
@@ -48,6 +49,10 @@ function gibbadge(text: string, type: string = "aurora") {
 	addCheats({
 		"badge": [text, type]
 	});
+}
+function unlockIllustrate() {
+	addCheats({ illustrate: true });
+	toast("🖼 illustrations unlocked, see settings", { timeoutMS: 5000 });
 }
 
 export function getCheats() {
