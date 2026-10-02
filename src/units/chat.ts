@@ -10,6 +10,7 @@ import { initRember } from "./chat/rember";
 import { initMessageList, renderMessages, sendMessage } from "./chat/messages";
 import { activeJob, cancelJob, onJobChange } from "./chat/generation";
 import { getSession, onSessionReplaced, openSession } from "./chat/session";
+import { loadMiscSettings } from "./settings/misc";
 
 export function chatUnit() {
 	const scroller       = document.querySelector<HTMLElement>        ("#play-messages")!;
@@ -59,6 +60,12 @@ export function chatUnit() {
 			e.returnValue = "";
 		}
 	});
+
+	const { contentWidthOverride } = loadMiscSettings();
+	if (contentWidthOverride)
+		scroller.parentElement!.style.setProperty("--content-width", `min(${contentWidthOverride}vw, calc(100vw - var(--min-content-pad)))`);
+	else
+		scroller.parentElement!.style.removeProperty("--content-width");
 
 	setSelectMenu(menuButton, "☰", [
 		["Scenario card",   openScenarioIfExists],

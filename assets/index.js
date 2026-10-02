@@ -3705,6 +3705,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
   function initMisc() {
     const tailInput = document.querySelector("#settings-options-tail");
     const remberStretchInput = document.querySelector("#settings-options-rember-stretch");
+    const cwo = document.querySelector("#settings-options-cwo");
     const miscSave = document.querySelector("#settings-misc-save");
     listen((u3) => {
       if (u3.storage !== "local") return;
@@ -3715,8 +3716,10 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     miscSave.addEventListener("click", () => {
       const settings = loadMiscSettings();
       const tail = parseInt(tailInput.value, 10);
+      const cw = parseFloat(cwo.value);
       settings.tail = isNaN(tail) ? 0 : tail;
       settings.remberStretch = remberStretchInput.checked;
+      settings.contentWidthOverride = isNaN(cw) ? 0 : cw;
       local.set("settings", JSON.stringify(settings));
       toast("settings updated");
     });
@@ -3724,11 +3727,13 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       const settings = loadMiscSettings();
       tailInput.value = String(settings.tail);
       remberStretchInput.checked = settings.remberStretch;
+      cwo.value = String(settings.contentWidthOverride);
     }
   }
   var DEFAULT_SETTINGS = {
     tail: 100,
-    remberStretch: true
+    remberStretch: true,
+    contentWidthOverride: 0
   };
   function loadMiscSettings() {
     const raw = local.get("settings");
@@ -4721,6 +4726,11 @@ ${selectedText(m3)}
         e.returnValue = "";
       }
     });
+    const { contentWidthOverride } = loadMiscSettings();
+    if (contentWidthOverride)
+      scroller.parentElement.style.setProperty("--content-width", `min(${contentWidthOverride}vw, calc(100vw - var(--min-content-pad)))`);
+    else
+      scroller.parentElement.style.removeProperty("--content-width");
     setSelectMenu(menuButton, "\u2630", [
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", editor.open],
