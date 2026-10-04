@@ -4764,6 +4764,11 @@ ${selectedText(m3)}
     }
     if (!chatId) return;
     if (activeJob() && getSession()?.chat.id === chatId) return;
+    if (getSession()?.chat.id !== chatId) {
+      renderMessages(null);
+      updateRemberCounter(null);
+      updateTitle(null);
+    }
     await openSession(chatId);
   }
   function updateProviders() {

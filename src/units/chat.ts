@@ -6,7 +6,7 @@ import { ActiveProviders } from "@root/types";
 import { readActiveProviders, readProviders } from "./settings/providers";
 import { toast } from "./toasts";
 import { initChatEditor } from "./chat/editor";
-import { initRember } from "./chat/rember";
+import { initRember, updateRemberCounter } from "./chat/rember";
 import { initMessageList, renderMessages, sendMessage } from "./chat/messages";
 import { activeJob, cancelJob, onJobChange } from "./chat/generation";
 import { getSession, onSessionReplaced, openSession } from "./chat/session";
@@ -98,6 +98,12 @@ async function update() {
 	// coming back to a chat that is still generating: keep the live session and its views
 	if (activeJob() && getSession()?.chat.id === chatId) return;
 
+	// clear the chat page before navigating
+	if (getSession()?.chat.id !== chatId) {
+		renderMessages(null);
+		updateRemberCounter(null);
+		updateTitle(null);
+	}
 	await openSession(chatId);
 }
 
