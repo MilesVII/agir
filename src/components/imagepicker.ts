@@ -1,4 +1,4 @@
-import { getBlobLink, upload } from "@root/persist";
+import { getBlobLink } from "@root/persist";
 import { placeholder } from "@root/utils";
 import { mudcrack } from "rampike";
 
@@ -44,11 +44,6 @@ class _RampikeImagePicker extends HTMLElement {
 		this.input.files = container.files;
 		this.setFile(file);
 	}
-	async valueHandle(): Promise<string | null> {
-		return typeof this.value === "string"
-			? this.value || null
-			: (await upload(this.value));
-	}
 	onDirty: (() => void) | null = null;
 
 	private revokeBlob: (() => void) | null = null;
@@ -89,7 +84,12 @@ class _RampikeImagePicker extends HTMLElement {
 			events: {
 				input: (_ev, el) => {
 					const file = el.files?.[0];
-					if (!file?.type.startsWith("image/")) return;
+					if (!file) return;
+					// some pickers hand over files without a type; let those through
+					if (file.type && !file.type.startsWith("image/")) {
+						el.value = "";
+						return;
+					}
 
 					this.setFile(file);
 				}

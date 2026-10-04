@@ -2974,12 +2974,18 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     storageListeners.forEach((l2) => l2(update4));
   }
   async function upload(blob) {
+    const bytes = await nothrowAsync(blob.arrayBuffer());
+    if (!bytes.success) {
+      toast("can't read the picture, it was not saved");
+      return null;
+    }
     const id = crypto.randomUUID();
-    await set("media", {
-      id,
-      media: blob,
-      mime: blob.type
-    });
+    const media = new Blob([bytes.value], { type: blob.type });
+    const stored = await set("media", { id, media, mime: media.type });
+    if (!stored.success) {
+      toast("can't save the picture");
+      return null;
+    }
     return id;
   }
   var map = /* @__PURE__ */ new Map();
@@ -3035,9 +3041,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       this.input.files = container.files;
       this.setFile(file);
     }
-    async valueHandle() {
-      return typeof this.value === "string" ? this.value || null : await upload(this.value);
-    }
     onDirty = null;
     revokeBlob = null;
     setFile(file) {
@@ -3075,7 +3078,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         events: {
           input: (_ev, el) => {
             const file = el.files?.[0];
-            if (!file?.type.startsWith("image/")) return;
+            if (!file) return;
+            if (file.type && !file.type.startsWith("image/")) {
+              el.value = "";
+              return;
+            }
             this.setFile(file);
           }
         }
@@ -5201,10 +5208,8 @@ ${card.value.card.description}`;
         target?.scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
-      const cardPicture = await cardIcon.valueHandle();
-      const chatPicture = await chatIcon.valueHandle();
-      if (cardPicture) optimize(cardPicture);
-      if (chatPicture) optimize(chatPicture);
+      const cardPicture = await storePicture(cardIcon);
+      const chatPicture = await storePicture(chatIcon);
       const tags = cardTags.value.split(",").map((t) => t.trim()).filter((t) => t);
       function author() {
         if (cardAuthorName.value.trim()) {
@@ -5308,17 +5313,12 @@ ${card.value.card.description}`;
       }
     };
   }
-  async function optimize(ref) {
-    const loaded = await idb.get("media", ref);
-    if (!loaded.success) return;
-    const [nb, changed] = await optimizeToWEBP(loaded.value.media);
-    if (!changed) return;
-    console.log(`optimized delta: ${nb.size - loaded.value.media.size} (negative means win)`);
-    await idb.set("media", {
-      id: loaded.value.id,
-      media: nb,
-      mime: nb.type
-    });
+  async function storePicture(picker) {
+    const value = picker.value;
+    if (typeof value === "string") return value || null;
+    const [optimized, changed] = await optimizeToWEBP(value);
+    if (changed) console.log(`optimized delta: ${optimized.size - value.size} (negative means win)`);
+    return await upload(optimized);
   }
 
   // src/views/scenario-card.html

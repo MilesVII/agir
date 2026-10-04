@@ -1,4 +1,4 @@
-import { idb } from "@root/persist";
+import { idb, upload } from "@root/persist";
 import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
 import { ScenarioCard } from "@root/types";
 import { RampikeImagePicker } from "@rampike/imagepicker";
@@ -93,7 +93,7 @@ export function scenarioUnit() {
 			[() => cardTitle.value, "Card name is required", cardTitle],
 			[() => definition.value, "Character definiton is required", definition],
 			[() => firstMessages.length > 0, "At least one non-empty opening message is required", firstMessage]
-		]
+		];
 		for (const [cb, msg, target] of checks) {
 			if (cb()) continue;
 
@@ -103,10 +103,8 @@ export function scenarioUnit() {
 			return;
 		}
 
-		const cardPicture = await cardIcon.valueHandle();
-		const chatPicture = await chatIcon.valueHandle();
-		if (cardPicture) optimize(cardPicture);
-		if (chatPicture) optimize(chatPicture);
+		const cardPicture = await storePicture(cardIcon);
+		const chatPicture = await storePicture(chatIcon);
 
 		const tags = cardTags.value
 			.split(",")
@@ -227,15 +225,11 @@ function initFirstMessages() {
 	};
 }
 
-async function optimize(ref: string) {
-	const loaded = await idb.get("media", ref);
-	if (!loaded.success) return;
-	const [nb, changed] = await optimizeToWEBP(loaded.value.media);
-	if (!changed) return;
-	console.log(`optimized delta: ${nb.size - loaded.value.media.size} (negative means win)`);
-	await idb.set("media", {
-		id: loaded.value.id,
-		media: nb,
-		mime: nb.type
-	});
+async function storePicture(picker: RampikeImagePicker): Promise<string | null> {
+	const value = picker.value;
+	if (typeof value === "string") return value || null;
+
+	const [optimized, changed] = await optimizeToWEBP(value);
+	if (changed) console.log(`optimized delta: ${optimized.size - value.size} (negative means win)`);
+	return await upload(optimized);
 }

@@ -1,6 +1,6 @@
 import { toast } from "@units/toasts";
 import { Chat, ChatContents, MediaEntry, Persona, Result, ScenarioCard } from "./types";
-import { revolvers } from "./utils";
+import { nothrowAsync, revolvers } from "./utils";
 
 type IDBStorageSchema = {
 	media: MediaEntry,
@@ -156,13 +156,19 @@ function localSet(key: LocalKey, value: string) {
 	storageListeners.forEach(l => l(update));
 }
 
-export async function upload(blob: Blob) {
+export async function upload(blob: Blob): Promise<string | null> {
+	const bytes = await nothrowAsync(blob.arrayBuffer());
+	if (!bytes.success) {
+		toast("can't read the picture, it was not saved");
+		return null;
+	}
 	const id = crypto.randomUUID();
-	await set("media", {
-		id,
-		media: blob,
-		mime: blob.type
-	});
+	const media = new Blob([bytes.value], { type: blob.type });
+	const stored = await set("media", { id, media, mime: media.type });
+	if (!stored.success) {
+		toast("can't save the picture");
+		return null;
+	}
 	return id;
 }
 const map = new Map<string, string>();
