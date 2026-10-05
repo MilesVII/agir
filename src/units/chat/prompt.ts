@@ -36,6 +36,8 @@ const SYSTEM_MACRO = "{{system}}";
 export type RoleplayOptions = {
 	tail: number,
 	remberStretch: boolean,
+	/** send OOC notes as "OOC: ..." user turns instead of mid-conversation system messages */
+	oocAsUser: boolean,
 	suffix?: string
 };
 
@@ -44,8 +46,10 @@ export type RoleplayOptions = {
  * with the latest rEmber summary inserted right before the message it is attached to.
  * A summary attached to message R describes everything before R.
  */
-export function roleplayPrompt(session: ChatSession, upTo: number, options: RoleplayOptions): PromptMessage[] {
-	const history = session.contents.messages.slice(0, upTo);
+export function roleplayPrompt(session: ChatSession, beforeMid: number, options: RoleplayOptions): PromptMessage[] {
+	const messages = session.contents.messages;
+	const upTo = messages.findIndex(m => m.id === beforeMid);
+	const history = upTo === -1 ? messages : messages.slice(0, upTo);
 	const remberAt = history.findLastIndex(m => m.rember);
 
 	let start = options.tail > 0 ? Math.max(0, history.length - options.tail) : 0;
@@ -58,7 +62,7 @@ export function roleplayPrompt(session: ChatSession, upTo: number, options: Role
 	for (let i = start; i < history.length; ++i) {
 		if (i === remberAt)
 			prompt.push(system(`# Roleplay state summary:\n${history[i].rember}`));
-		prompt.push(toPrompt(history[i]));
+		prompt.push(toPrompt(history[i], options.oocAsUser));
 	}
 	return prompt;
 }
@@ -66,6 +70,7 @@ export function roleplayPrompt(session: ChatSession, upTo: number, options: Role
 /**
  * Asks for a state summary of `scope`, continuing from `previousState` if there is one.
  * The scenario definition is available to the rEmber prompt via {{system}}.
+ * OOC notes are left out: they are instructions to the model, not roleplay state.
  */
 export function remberPrompt(
 	session: ChatSession,
@@ -79,6 +84,7 @@ export function remberPrompt(
 		system: ""
 	};
 	const history = scope
+		.filter(m => m.from !== "system")
 		.map(m => `## ${names[m.from]}:\n${selectedText(m)}\n\n`)
 		.join("\n");
 
@@ -104,7 +110,10 @@ function system(content: string): PromptMessage {
 	return { role: "system", content };
 }
 
-function toPrompt(message: ChatMessage): PromptMessage {
+const OOC_PREFIX = "OOC: ";
+function toPrompt(message: ChatMessage, oocAsUser: boolean): PromptMessage {
+	if (message.from === "system" && oocAsUser)
+		return { role: "user", content: OOC_PREFIX + selectedText(message) };
 	return {
 		role: message.from === "model" ? "assistant" : message.from,
 		content: selectedText(message)

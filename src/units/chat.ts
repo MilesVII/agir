@@ -7,7 +7,7 @@ import { readActiveProviders, readProviders } from "./settings/providers";
 import { toast } from "./toasts";
 import { initChatEditor } from "./chat/editor";
 import { initRember, updateRemberCounter } from "./chat/rember";
-import { initMessageList, renderMessages, sendMessage } from "./chat/messages";
+import { appendNote, initMessageList, renderMessages, sendMessage } from "./chat/messages";
 import { activeJob, cancelJob, onJobChange } from "./chat/generation";
 import { getSession, onSessionReplaced, openSession } from "./chat/session";
 import { loadMiscSettings } from "./settings/misc";
@@ -45,10 +45,9 @@ export function chatUnit() {
 		inputModes.tab = kind ? "pending" : "main";
 	});
 
-	sendButton.addEventListener("click", send);
+	initSendButton(sendButton, send, note);
 	stopButton.addEventListener("click", cancelJob);
 	remberCounter.addEventListener("click", rember.open);
-	scroller.addEventListener("message:rember", rember.open);
 	providerPicker.addEventListener("input", () => pickMainProvider(providerPicker.value));
 	previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
 	previewCloseButton.addEventListener("click", () => previewContainer.close());
@@ -86,6 +85,46 @@ export function chatUnit() {
 			textareaReconsider(textarea);
 		}
 	}
+	async function note() {
+		const text = textarea.value.trim();
+		if (!text) return;
+		if (!confirm("append as an OOC note without asking for a reply?")) return;
+		if (await appendNote(text)) {
+			textarea.value = "";
+			textareaReconsider(textarea);
+		}
+	}
+}
+
+const LONG_PRESS_MS = 600;
+/** Tap sends, holding the button down appends an OOC note instead */
+function initSendButton(button: HTMLElement, onTap: () => void, onHold: () => void) {
+	let timer: number | null = null;
+	let held = false;
+
+	const cancel = () => {
+		if (timer !== null) clearTimeout(timer);
+		timer = null;
+	};
+	button.addEventListener("pointerdown", () => {
+		held = false;
+		cancel();
+		timer = window.setTimeout(() => {
+			timer = null;
+			held = true;
+			onHold();
+		}, LONG_PRESS_MS);
+	});
+	for (const event of ["pointerup", "pointerleave", "pointercancel"] as const)
+		button.addEventListener(event, cancel);
+	button.addEventListener("click", () => {
+		if (held) {
+			held = false; // the click that ends a long press is not a tap
+			return;
+		}
+		onTap();
+	});
+	button.addEventListener("contextmenu", e => e.preventDefault()); // long press opens it on Android
 }
 
 async function update() {

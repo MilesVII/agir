@@ -85,7 +85,10 @@ export type Chat = {
 	memo?: string
 };
 
-/** Persisted chat record. `id` always equals the message's index in `ChatContents.messages`. */
+/**
+ * Persisted chat record. `id` is unique within the chat and stable; it is not an index.
+ * `from: "system"` marks an OOC note: an instruction to the model that is not part of the story.
+ */
 export type ChatMessage = {
 	id: number,
 	name: string,

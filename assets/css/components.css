@@ -323,14 +323,29 @@ summary.settings-label {
 	box-shadow: 0 0 var(--dims-smol) var(--color-base);
 }
 
-.rember-counter[data-run="true"] {
+.rember-counter[data-run="true"], .rember-glow {
 	text-shadow: 0 0 var(--dims-reg) var(--color-accent);
 }
 .chat-rember-view {
 	white-space: pre-wrap;
 }
-#play-rember-messages>*:not(:first-child) {
-	opacity: 60%;
+#play-rember-latest .chat-rember-view {
+	max-height: 40vh;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}
+/* OOC notes and rEmber summaries: shown verbatim, the model reads them as written */
+.system-message-text {
+	white-space: pre-wrap;
+	font-size: .9rem;
+}
+.system-message .message-name {
+	color: var(--color-subtext);
+}
+#chat-send-button {
+	-webkit-touch-callout: none;
+	user-select: none;
+	touch-action: manipulation;
 }
 #chat-menu-select {
 	width: 42px;

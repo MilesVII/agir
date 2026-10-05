@@ -3712,6 +3712,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
   function initMisc() {
     const tailInput = document.querySelector("#settings-options-tail");
     const remberStretchInput = document.querySelector("#settings-options-rember-stretch");
+    const oocAsUserInput = document.querySelector("#settings-options-ooc-user");
     const cwo = document.querySelector("#settings-options-cwo");
     const miscSave = document.querySelector("#settings-misc-save");
     listen((u3) => {
@@ -3726,6 +3727,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       const cw = parseFloat(cwo.value);
       settings.tail = isNaN(tail) ? 0 : tail;
       settings.remberStretch = remberStretchInput.checked;
+      settings.oocAsUser = oocAsUserInput.checked;
       settings.contentWidthOverride = isNaN(cw) ? 0 : cw;
       local.set("settings", JSON.stringify(settings));
       toast("settings updated");
@@ -3734,12 +3736,14 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       const settings = loadMiscSettings();
       tailInput.value = String(settings.tail);
       remberStretchInput.checked = settings.remberStretch;
+      oocAsUserInput.checked = settings.oocAsUser;
       cwo.value = String(settings.contentWidthOverride);
     }
   }
   var DEFAULT_SETTINGS = {
     tail: 100,
     remberStretch: true,
+    oocAsUser: false,
     contentWidthOverride: 0
   };
   function loadMiscSettings() {
@@ -4026,24 +4030,39 @@ Status ${response.status}${metaWrapped}`
   function messageByID(session, mid) {
     return session.contents.messages.find((m3) => m3.id === mid) ?? null;
   }
-  function lastMessage(session) {
-    return session.contents.messages.at(-1) ?? null;
+  function lastModelMessage(session) {
+    return session.contents.messages.findLast((m3) => m3.from === "model") ?? null;
   }
   function selectedText(message) {
     return message.swipes[message.selectedSwipe] ?? message.swipes[0] ?? "";
   }
+  var NAMES_BY_ROLE = {
+    system: "OOC"
+  };
   function addMessage(session, from, text2) {
     const messages = session.contents.messages;
+    const names = {
+      user: session.chat.userPersona.name,
+      model: session.chat.scenario.name,
+      system: NAMES_BY_ROLE.system
+    };
     const message = {
-      id: messages.length,
+      id: messages.reduce((max, m3) => Math.max(max, m3.id), -1) + 1,
       from,
-      name: from === "user" ? session.chat.userPersona.name : session.chat.scenario.name,
+      name: names[from],
       rember: null,
       selectedSwipe: 0,
       swipes: [text2]
     };
     messages.push(message);
     return message;
+  }
+  function removeMessage(session, mid) {
+    const messages = session.contents.messages;
+    const index = messages.findIndex((m3) => m3.id === mid);
+    if (index < 0 || messages[index].from !== "system") return false;
+    messages.splice(index, 1);
+    return true;
   }
   function pushSwipe(session, mid, text2, reasoning) {
     const message = messageByID(session, mid);
@@ -4155,8 +4174,10 @@ Status ${response.status}${metaWrapped}`
     ].join("\n")
   };
   var SYSTEM_MACRO = "{{system}}";
-  function roleplayPrompt(session, upTo, options) {
-    const history = session.contents.messages.slice(0, upTo);
+  function roleplayPrompt(session, beforeMid, options) {
+    const messages = session.contents.messages;
+    const upTo = messages.findIndex((m3) => m3.id === beforeMid);
+    const history = upTo === -1 ? messages : messages.slice(0, upTo);
     const remberAt = history.findLastIndex((m3) => m3.rember);
     let start2 = options.tail > 0 ? Math.max(0, history.length - options.tail) : 0;
     if (options.remberStretch && remberAt !== -1) start2 = Math.min(start2, remberAt);
@@ -4169,7 +4190,7 @@ ${options.suffix}` : definition)
       if (i === remberAt)
         prompt2.push(system(`# Roleplay state summary:
 ${history[i].rember}`));
-      prompt2.push(toPrompt(history[i]));
+      prompt2.push(toPrompt(history[i], options.oocAsUser));
     }
     return prompt2;
   }
@@ -4179,7 +4200,7 @@ ${history[i].rember}`));
       model: session.chat.scenario.name,
       system: ""
     };
-    const history = scope.map((m3) => `## ${names[m3.from]}:
+    const history = scope.filter((m3) => m3.from !== "system").map((m3) => `## ${names[m3.from]}:
 ${selectedText(m3)}
 
 `).join("\n");
@@ -4197,7 +4218,10 @@ ${selectedText(m3)}
   function system(content) {
     return { role: "system", content };
   }
-  function toPrompt(message) {
+  var OOC_PREFIX = "OOC: ";
+  function toPrompt(message, oocAsUser) {
+    if (message.from === "system" && oocAsUser)
+      return { role: "user", content: OOC_PREFIX + selectedText(message) };
     return {
       role: message.from === "model" ? "assistant" : message.from,
       content: selectedText(message)
@@ -4205,7 +4229,7 @@ ${selectedText(m3)}
   }
 
   // src/views/message.html
-  var message_default = '<div class="message">\n	<img data-ref="avatar">\n	<div>\n		<div class="row">\n			<div data-ref="name"   class="message-name"></div>\n			<div data-ref="status" class="message-status" hidden></div>\n			<div class="message-controls-scroller row">\n				<div class="virtual" data-tab="main">\n					<button data-ref="reasoning" class="strip ghost pointer message-control" title="show reasoning" hidden>R</button>\n					<button data-ref="rember"    class="strip ghost pointer message-control" title="open rember" hidden>\u29D6</button>\n					<div data-ref="swipes" class="row-compact no-shrink" hidden>\n						<button data-ref="prev" class="strip ghost pointer message-control" title="prev swipe">&lt;</button>\n						<span   data-ref="swipe-caption"></span>\n						<button data-ref="next" class="strip ghost pointer message-control" title="next swipe">&gt;</button>\n					</div>\n					<button data-ref="edit"  class="strip ghost pointer message-control" title="edit message">\u270E</button>\n					<button data-ref="copy"  class="strip ghost pointer message-control" title="copy message">\u29C9</button>\n					<button data-ref="reroll" class="strip ghost pointer message-control" title="reroll this message" hidden>\u21BA</button>\n					<button data-ref="delete" class="strip ghost pointer message-control" title="delete message along with following" hidden>\u2716</button>\n				</div>\n				<div class="virtual" data-tab="editing" hidden>\n					<button data-ref="save"   class="strip ghost pointer message-control" title="save">\u2714</button>\n					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n				</div>\n			</div>\n		</div>\n		<div data-ref="reasoning-preview" class="lineout message-reasoning-preview" hidden></div>\n		<div data-ref="reasoning-box" class="lineout message-think-box" hidden></div>\n		<div data-ref="text" class="message-text edible md"></div>\n	</div>\n</div>\n';
+  var message_default = '<div class="message">\n	<img data-ref="avatar">\n	<div>\n		<div class="row">\n			<div data-ref="name"   class="message-name"></div>\n			<div data-ref="status" class="message-status" hidden></div>\n			<div class="message-controls-scroller row">\n				<div class="virtual" data-tab="main">\n					<button data-ref="reasoning" class="strip ghost pointer message-control" title="show reasoning" hidden>R</button>\n					<button data-ref="rember"    class="strip ghost pointer message-control rember-glow" title="open rember" hidden>\u29D6</button>\n					<div data-ref="swipes" class="row-compact no-shrink" hidden>\n						<button data-ref="prev" class="strip ghost pointer message-control" title="prev swipe">&lt;</button>\n						<span   data-ref="swipe-caption"></span>\n						<button data-ref="next" class="strip ghost pointer message-control" title="next swipe">&gt;</button>\n					</div>\n					<button data-ref="edit"  class="strip ghost pointer message-control" title="edit message">\u270E</button>\n					<button data-ref="copy"  class="strip ghost pointer message-control" title="copy message">\u29C9</button>\n					<button data-ref="reroll" class="strip ghost pointer message-control" title="reroll this message" hidden>\u21BA</button>\n					<button data-ref="delete" class="strip ghost pointer message-control" title="delete message along with following" hidden>\u2716</button>\n				</div>\n				<div class="virtual" data-tab="editing" hidden>\n					<button data-ref="save"   class="strip ghost pointer message-control" title="save">\u2714</button>\n					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n				</div>\n			</div>\n		</div>\n		<div data-ref="reasoning-preview" class="lineout message-reasoning-preview" hidden></div>\n		<div data-ref="reasoning-box" class="lineout message-think-box" hidden></div>\n		<div data-ref="text" class="message-text edible md"></div>\n	</div>\n</div>\n';
 
   // src/views/message.ts
   var STATUS = {
@@ -4350,8 +4374,94 @@ ${selectedText(m3)}
     }, "controls");
   }
 
+  // src/views/system-message.html
+  var system_message_default = '<div class="message system-message">\n	<img data-ref="avatar">\n	<div>\n		<div class="row">\n			<div data-ref="name" class="message-name"></div>\n			<div class="message-controls-scroller row">\n				<div class="virtual" data-tab="main">\n					<button data-ref="edit"   class="strip ghost pointer message-control" title="edit">\u270E</button>\n					<button data-ref="copy"   class="strip ghost pointer message-control" title="copy">\u29C9</button>\n					<button data-ref="delete" class="strip ghost pointer message-control" title="delete">\u2716</button>\n				</div>\n				<div class="virtual" data-tab="editing" hidden>\n					<button data-ref="save"   class="strip ghost pointer message-control" title="save">\u2714</button>\n					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n				</div>\n			</div>\n		</div>\n		<div data-ref="text" class="message-text edible system-message-text"></div>\n	</div>\n</div>\n';
+
+  // src/views/system-message.ts
+  var REMBER_KEY_SUFFIX = "-r";
+  function systemViewKey(mid, rember) {
+    return rember ? `${mid}${REMBER_KEY_SUFFIX}` : String(mid);
+  }
+  function makeSystemView(options) {
+    const { mid, rember, read } = options;
+    const root = instantiate(system_message_default);
+    const r = pickRefs(root, ["avatar", "name", "edit", "copy", "delete", "save", "cancel", "text"]);
+    const tabs = tabGroups(root);
+    root.dataset.mid = systemViewKey(mid, rember);
+    root.classList.toggle("rember-message", rember);
+    root.hidden = !!options.hidden;
+    r.avatar.src = placeholder(options.icon);
+    r.avatar.title = rember ? `rEmber summary for mid #${mid}` : `mid #${mid}`;
+    r.name.textContent = options.name;
+    let streamNode = null;
+    r.edit.addEventListener("click", () => {
+      r.text.setAttribute("contenteditable", "true");
+      r.text.textContent = read();
+      r.text.focus();
+      tabs.pick("editing");
+    });
+    r.save.addEventListener("click", () => {
+      const text2 = r.text.innerText;
+      stopEditing();
+      emit(root, "system:edit", { mid, rember, text: text2 });
+    });
+    r.cancel.addEventListener("click", () => {
+      stopEditing();
+      refresh();
+    });
+    r.copy.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(read());
+      toast("copied to clipboard", { timeoutMS: 3200 });
+    });
+    r.delete.addEventListener("click", () => emit(root, "system:delete", { mid, rember }));
+    function stopEditing() {
+      r.text.removeAttribute("contenteditable");
+      tabs.pick("main");
+    }
+    function refresh() {
+      streamNode = null;
+      r.text.textContent = read();
+    }
+    function startStreaming() {
+      r.text.removeAttribute("contenteditable");
+      r.text.textContent = "";
+      streamNode = document.createTextNode("");
+      r.text.append(streamNode);
+      tabs.pick("streaming");
+    }
+    function appendChunk(chunk) {
+      if (!streamNode) startStreaming();
+      streamNode.appendData(chunk);
+    }
+    function endStreaming() {
+      refresh();
+      tabs.pick("main");
+    }
+    function show() {
+      root.hidden = false;
+    }
+    function toggle() {
+      root.hidden = !root.hidden;
+    }
+    refresh();
+    tabs.pick("main");
+    return M(root, {
+      mid,
+      rember,
+      refresh,
+      startStreaming,
+      appendChunk,
+      endStreaming,
+      show,
+      toggle
+    }, "controls");
+  }
+
   // src/units/chat/messages.ts
   var BUSY_TOAST = "please wait until message generation is over";
+  var OOC_NAME = "OOC";
+  var REMBER_NAME = "rEmber";
+  var REMBER_ICON = "assets/gfx/rember.png";
   function listElement() {
     return document.querySelector("#play-messages");
   }
@@ -4371,6 +4481,22 @@ ${selectedText(m3)}
     });
     list.addEventListener("message:reroll", ({ detail }) => generate(detail.mid));
     list.addEventListener("message:delete", ({ detail }) => deleteFrom(detail.mid));
+    list.addEventListener("message:rember", ({ detail }) => {
+      const session = getSession();
+      if (!session) return;
+      getSystemView(session.chat.id, detail.mid, true)?.controls.toggle();
+    });
+    list.addEventListener("system:edit", ({ detail }) => {
+      const session = getSession();
+      if (!session) return;
+      const changed = detail.rember ? setRember(session, detail.mid, detail.text) : setNoteText(session, detail.mid, detail.text);
+      if (changed) commitContents(session);
+      getSystemView(session.chat.id, detail.mid, detail.rember)?.controls.refresh();
+    });
+    list.addEventListener("system:delete", ({ detail }) => {
+      if (detail.rember) deleteRember(detail.mid);
+      else deleteNote(detail.mid);
+    });
   }
   async function renderMessages(session) {
     const list = listElement();
@@ -4379,15 +4505,60 @@ ${selectedText(m3)}
     if (!session) return;
     const pictures = await loadPictures(session.chat);
     if (getSession() !== session) return;
-    const messages = session.contents.messages;
+    const last = lastModelMessage(session);
     list.dataset.chat = session.chat.id;
-    list.append(...messages.map((m3, ix) => makeMessageView(m3, pictures, ix === messages.length - 1)));
+    list.append(...session.contents.messages.flatMap((m3) => [
+      ...m3.rember ? [remberView(m3, true)] : [],
+      m3.from === "system" ? noteView(m3) : makeMessageView(m3, pictures, m3 === last)
+    ]));
     list.scrollTop = list.scrollHeight;
+  }
+  function remberView(message, hidden) {
+    return makeSystemView({
+      mid: message.id,
+      rember: true,
+      name: REMBER_NAME,
+      icon: REMBER_ICON,
+      read: () => message.rember ?? "",
+      hidden
+    });
+  }
+  function noteView(message) {
+    return makeSystemView({
+      mid: message.id,
+      rember: false,
+      name: message.name || OOC_NAME,
+      icon: null,
+      read: () => selectedText(message)
+    });
   }
   function getMessageView(chatId, mid) {
     const list = listElement();
     if (list.dataset.chat !== chatId) return null;
-    return list.querySelector(`.message[data-mid="${mid}"]`);
+    return list.querySelector(`.message:not(.system-message)[data-mid="${mid}"]`);
+  }
+  function getSystemView(chatId, mid, rember) {
+    const list = listElement();
+    if (list.dataset.chat !== chatId) return null;
+    return list.querySelector(`.system-message[data-mid="${systemViewKey(mid, rember)}"]`);
+  }
+  function ensureRemberView(chatId, mid) {
+    const session = getSession();
+    const message = session && messageByID(session, mid);
+    if (!session || session.chat.id !== chatId || !message) return null;
+    const existing = getSystemView(chatId, mid, true);
+    if (existing) {
+      existing.controls.show();
+      return existing;
+    }
+    const anchor = getMessageView(chatId, mid);
+    if (!anchor) return null;
+    const view = remberView(message, false);
+    anchor.before(view);
+    return view;
+  }
+  function scrollToMessage(chatId, mid) {
+    getMessageView(chatId, mid)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   async function sendMessage(text2) {
     const session = getSession();
@@ -4396,7 +4567,7 @@ ${selectedText(m3)}
       toast(BUSY_TOAST);
       return false;
     }
-    const previous = lastMessage(session);
+    const previous = lastModelMessage(session);
     const request = addMessage(session, "user", text2);
     const reply = addMessage(session, "model", "");
     if (!await commit(session)) return false;
@@ -4409,6 +4580,20 @@ ${selectedText(m3)}
     );
     list.scrollTop = list.scrollHeight;
     generate(reply.id);
+    return true;
+  }
+  async function appendNote(text2) {
+    const session = getSession();
+    if (!session) return false;
+    if (activeJob()) {
+      toast(BUSY_TOAST);
+      return false;
+    }
+    const note = addMessage(session, "system", text2);
+    if (!await commit(session)) return false;
+    const list = listElement();
+    list.append(noteView(note));
+    list.scrollTop = list.scrollHeight;
     return true;
   }
   async function generate(mid) {
@@ -4432,6 +4617,7 @@ ${selectedText(m3)}
     const prompt2 = roleplayPrompt(session, mid, {
       tail: settings.tail,
       remberStretch: settings.remberStretch,
+      oocAsUser: settings.oocAsUser,
       suffix: provider.suffix
     });
     view.controls.startStreaming();
@@ -4463,9 +4649,39 @@ ${selectedText(m3)}
     const removed = truncateFrom(session, mid);
     if (removed.length === 0) return;
     await commit(session);
-    removed.forEach((id) => getMessageView(session.chat.id, id)?.remove());
-    const last = lastMessage(session);
-    if (last) getMessageView(session.chat.id, last.id)?.controls.setIsLast(true);
+    const chatId = session.chat.id;
+    removed.forEach((id) => {
+      getMessageView(chatId, id)?.remove();
+      getSystemView(chatId, id, false)?.remove();
+      getSystemView(chatId, id, true)?.remove();
+    });
+    const last = lastModelMessage(session);
+    if (last) getMessageView(chatId, last.id)?.controls.setIsLast(true);
+  }
+  async function deleteNote(mid) {
+    const session = getSession();
+    if (!session) return;
+    if (activeJob()) {
+      toast(BUSY_TOAST);
+      return;
+    }
+    if (!confirm("the note will be deleted")) return;
+    if (!removeMessage(session, mid)) return;
+    await commit(session);
+    getSystemView(session.chat.id, mid, false)?.remove();
+  }
+  async function deleteRember(mid) {
+    const session = getSession();
+    if (!session) return;
+    if (!confirm(`the rEmber summary attached to message #${mid} will be removed`)) return;
+    if (setRember(session, mid, null)) await commitContents(session);
+    getSystemView(session.chat.id, mid, true)?.remove();
+    getMessageView(session.chat.id, mid)?.controls.refresh();
+  }
+  function setNoteText(session, mid, text2) {
+    const note = messageByID(session, mid);
+    if (!note) return false;
+    return setSwipeText(session, mid, note.selectedSwipe, text2);
   }
   async function loadPictures(chat) {
     const [user, model] = await Promise.all([
@@ -4479,98 +4695,39 @@ ${selectedText(m3)}
     return providers.find((p2) => p2.isActive) ?? providers[0] ?? null;
   }
 
-  // src/views/rember.html
-  var rember_default = '<div class="lineout list">\n	<div class="row">\n		<span data-ref="caption" class="hint"></span>\n		<div class="row-compact float-end">\n			<div class="virtual" data-tab="main">\n				<button data-ref="edit" class="strip ghost pointer message-control" title="edit">\u270E</button>\n				<button data-ref="remove" class="strip ghost pointer message-control" title="remove">\u2716</button>\n			</div>\n			<div class="virtual" data-tab="editing" hidden>\n				<button data-ref="save" class="strip ghost pointer message-control" title="save">\u2714</button>\n				<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">\u2718</button>\n			</div>\n		</div>\n	</div>\n	<div data-ref="text" class="chat-rember-view edible"></div>\n</div>\n';
-
-  // src/views/rember.ts
-  var REFS2 = ["caption", "edit", "remove", "save", "cancel", "text"];
-  function makeRemberView(mid, contents = "") {
-    const root = instantiate(rember_default);
-    const r = pickRefs(root, REFS2);
-    const tabs = tabGroups(root);
-    root.dataset.mid = String(mid);
-    root.title = String(mid);
-    r.caption.textContent = `#${mid}`;
-    r.text.textContent = contents;
-    let editPocket = "";
-    r.edit.addEventListener("click", () => {
-      editPocket = r.text.textContent ?? "";
-      r.text.setAttribute("contenteditable", "");
-      r.text.focus();
-      tabs.pick("editing");
-    });
-    r.save.addEventListener("click", () => {
-      stopEditing();
-      emit(root, "rember:edit", { mid, text: r.text.innerText });
-    });
-    r.cancel.addEventListener("click", () => {
-      stopEditing();
-      r.text.textContent = editPocket;
-    });
-    r.remove.addEventListener("click", () => {
-      if (!confirm(`the rEmber state for message #${mid} will be removed`)) return;
-      emit(root, "rember:remove", { mid });
-    });
-    function stopEditing() {
-      r.text.removeAttribute("contenteditable");
-      tabs.pick("main");
-    }
-    function appendChunk(chunk) {
-      r.text.append(chunk);
-    }
-    function setContents(value) {
-      r.text.textContent = value;
-      tabs.pick("main");
-    }
-    function hideControls() {
-      tabs.pick("streaming");
-    }
-    tabs.pick("main");
-    return M(root, {
-      mid,
-      appendChunk,
-      setContents,
-      hideControls
-    }, "controls");
-  }
-
   // src/units/chat/rember.ts
   function initRember() {
     const modal = document.querySelector("#play-rember");
     const providerPicker = document.querySelector("#play-rember-provider-picker");
     const strideInput = document.querySelector("#play-rember-stride");
     const promptInput = document.querySelector("#play-rember-prompt");
-    const list = document.querySelector("#play-rember-messages");
+    const latest = {
+      container: document.querySelector("#play-rember-latest"),
+      caption: document.querySelector("#play-rember-latest-caption"),
+      text: document.querySelector("#play-rember-latest-text")
+    };
     const buttons = {
       one: document.querySelector("#play-rember-add-one"),
-      stop: document.querySelector("#play-rember-stop"),
       save: document.querySelector("#play-rember-save"),
       reset: document.querySelector("#play-rember-reset"),
       close: document.querySelector("#play-rember-modal-close")
     };
+    let latestMid = null;
     buttons.one.addEventListener("click", runOne);
-    buttons.stop.addEventListener("click", cancelJob);
     buttons.save.addEventListener("click", saveSettings);
     buttons.reset.addEventListener("click", resetPrompt);
     buttons.close.addEventListener("click", () => modal.close());
-    buttons.stop.hidden = true;
+    latest.container.addEventListener("click", () => {
+      const session = getSession();
+      if (!session || latestMid === null) return;
+      modal.close();
+      ensureRemberView(session.chat.id, latestMid);
+      scrollToMessage(session.chat.id, latestMid);
+    });
     providerPicker.addEventListener("input", () => {
       const actives = readActiveProviders();
       actives.rember = providerPicker.value;
       local.set("activeProvider", JSON.stringify(actives));
-    });
-    list.addEventListener("rember:edit", ({ detail }) => {
-      const session = getSession();
-      if (!session) return;
-      if (setRember(session, detail.mid, detail.text)) commitContents(session);
-      getMessageView(session.chat.id, detail.mid)?.controls.refresh();
-    });
-    list.addEventListener("rember:remove", ({ detail, target }) => {
-      const session = getSession();
-      if (!session) return;
-      if (setRember(session, detail.mid, null)) commitContents(session);
-      getMessageView(session.chat.id, detail.mid)?.controls.refresh();
-      target.closest("[data-mid]")?.remove();
     });
     listen((u3) => {
       if (u3.storage !== "local" || u3.key !== "activeProvider") return;
@@ -4590,9 +4747,11 @@ ${selectedText(m3)}
       const settings = settingsOf(session);
       strideInput.value = String(settings.stride);
       promptInput.value = settings.prompt;
-      list.innerHTML = "";
-      const views = session.contents.messages.filter((m3) => m3.rember).map((m3) => makeRemberView(m3.id, m3.rember)).toReversed();
-      list.append(...views);
+      const message = session.contents.messages.findLast((m3) => m3.rember);
+      latestMid = message?.id ?? null;
+      latest.container.hidden = !message;
+      latest.caption.textContent = message ? `latest summary, attached to message #${message.id}` : "";
+      latest.text.textContent = message?.rember ?? "";
     }
     async function runOne() {
       const session = getSession();
@@ -4608,29 +4767,28 @@ ${selectedText(m3)}
         toast("nothing left to summarize");
         return;
       }
-      const view = makeRemberView(plan.at);
-      view.controls.hideControls();
-      list.prepend(view);
-      buttons.one.hidden = true;
-      buttons.stop.hidden = false;
+      const chatId = session.chat.id;
+      const hadSummary = !!messageByID(session, plan.at)?.rember;
+      modal.close();
+      ensureRemberView(chatId, plan.at)?.controls.startStreaming();
+      scrollToMessage(chatId, plan.at);
       const result = await runJob(
         "rember",
         provider,
         remberPrompt(session, settings, plan.scope, plan.previousState),
-        { onChunk: (chunk) => view.controls.appendChunk(chunk) }
+        { onChunk: (chunk) => getSystemView(chatId, plan.at, true)?.controls.appendChunk(chunk) }
       );
-      buttons.one.hidden = false;
-      buttons.stop.hidden = true;
       if (!result.success) {
         toast(result.error);
-        view.remove();
+        const view = getSystemView(chatId, plan.at, true);
+        if (hadSummary) view?.controls.endStreaming();
+        else view?.remove();
         return;
       }
-      const summary = result.value.trim();
-      setRember(session, plan.at, summary);
+      setRember(session, plan.at, result.value.trim());
       await commitContents(session);
-      view.controls.setContents(summary);
-      getMessageView(session.chat.id, plan.at)?.controls.refresh();
+      getSystemView(chatId, plan.at, true)?.controls.endStreaming();
+      getMessageView(chatId, plan.at)?.controls.refresh();
     }
     async function saveSettings() {
       const session = getSession();
@@ -4664,25 +4822,26 @@ ${selectedText(m3)}
     return session.chat.rember ?? REMBER_DEFAULTS;
   }
   function planRember(messages, stride) {
-    const candidates = messages.slice(0, -2);
-    const lastAt = candidates.findLastIndex((m3) => m3.rember);
+    const lastModel = messages.findLastIndex((m3) => m3.from === "model");
+    const story = messages.slice(0, Math.max(0, lastModel - 1)).filter((m3) => m3.from !== "system");
+    const lastAt = story.findLastIndex((m3) => m3.rember);
     const start2 = lastAt === -1 ? 0 : lastAt;
-    const at = Math.min(candidates.length - 1, start2 + stride * 2);
+    const at = Math.min(story.length - 1, start2 + stride * 2);
     if (at <= start2) return null;
     return {
-      at,
-      scope: candidates.slice(start2, at),
-      previousState: lastAt === -1 ? null : candidates[lastAt].rember
+      at: story[at].id,
+      scope: story.slice(start2, at),
+      previousState: lastAt === -1 ? null : story[lastAt].rember
     };
   }
   function updateRemberCounter(session = getSession()) {
     const counter = document.querySelector("#chat-rember-counter");
     counter.hidden = true;
     if (!session) return;
-    const messages = session.contents.messages;
-    const lastRembered = messages.findLastIndex((m3) => m3.rember);
+    const story = session.contents.messages.filter((m3) => m3.from !== "system");
+    const lastRembered = story.findLastIndex((m3) => m3.rember);
     if (lastRembered === -1) return;
-    const delta = messages.length - 1 - lastRembered;
+    const delta = story.length - 1 - lastRembered;
     counter.textContent = `\u29D6${delta}`;
     counter.dataset.run = delta > settingsOf(session).stride * 2 ? "true" : "false";
     counter.hidden = false;
@@ -4719,10 +4878,9 @@ ${selectedText(m3)}
       if (inputModes.tab === "disabled") return;
       inputModes.tab = kind ? "pending" : "main";
     });
-    sendButton.addEventListener("click", send);
+    initSendButton(sendButton, send, note);
     stopButton.addEventListener("click", cancelJob);
     remberCounter.addEventListener("click", rember.open);
-    scroller.addEventListener("message:rember", rember.open);
     providerPicker.addEventListener("input", () => pickMainProvider(providerPicker.value));
     previewEditButton.addEventListener("click", () => window.open(cardPreviewRelay.url));
     previewCloseButton.addEventListener("click", () => previewContainer.close());
@@ -4755,6 +4913,43 @@ ${selectedText(m3)}
         textareaReconsider(textarea);
       }
     }
+    async function note() {
+      const text2 = textarea.value.trim();
+      if (!text2) return;
+      if (!confirm("append as an OOC note without asking for a reply?")) return;
+      if (await appendNote(text2)) {
+        textarea.value = "";
+        textareaReconsider(textarea);
+      }
+    }
+  }
+  var LONG_PRESS_MS = 600;
+  function initSendButton(button, onTap, onHold) {
+    let timer = null;
+    let held = false;
+    const cancel = () => {
+      if (timer !== null) clearTimeout(timer);
+      timer = null;
+    };
+    button.addEventListener("pointerdown", () => {
+      held = false;
+      cancel();
+      timer = window.setTimeout(() => {
+        timer = null;
+        held = true;
+        onHold();
+      }, LONG_PRESS_MS);
+    });
+    for (const event of ["pointerup", "pointerleave", "pointercancel"])
+      button.addEventListener(event, cancel);
+    button.addEventListener("click", () => {
+      if (held) {
+        held = false;
+        return;
+      }
+      onTap();
+    });
+    button.addEventListener("contextmenu", (e) => e.preventDefault());
   }
   async function update() {
     const [page, chatId] = getRoute();

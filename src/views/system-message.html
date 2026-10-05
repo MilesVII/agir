@@ -1,0 +1,20 @@
+<div class="message system-message">
+	<img data-ref="avatar">
+	<div>
+		<div class="row">
+			<div data-ref="name" class="message-name"></div>
+			<div class="message-controls-scroller row">
+				<div class="virtual" data-tab="main">
+					<button data-ref="edit"   class="strip ghost pointer message-control" title="edit">✎</button>
+					<button data-ref="copy"   class="strip ghost pointer message-control" title="copy">⧉</button>
+					<button data-ref="delete" class="strip ghost pointer message-control" title="delete">✖</button>
+				</div>
+				<div class="virtual" data-tab="editing" hidden>
+					<button data-ref="save"   class="strip ghost pointer message-control" title="save">✔</button>
+					<button data-ref="cancel" class="strip ghost pointer message-control" title="cancel">✘</button>
+				</div>
+			</div>
+		</div>
+		<div data-ref="text" class="message-text edible system-message-text"></div>
+	</div>
+</div>

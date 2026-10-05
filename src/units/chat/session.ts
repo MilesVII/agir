@@ -107,22 +107,43 @@ export function messageByID(session: ChatSession, mid: number) {
 export function lastMessage(session: ChatSession) {
 	return session.contents.messages.at(-1) ?? null;
 }
+/** The reply that can still be rerolled or swiped: the last model turn, whatever follows it */
+export function lastModelMessage(session: ChatSession) {
+	return session.contents.messages.findLast(m => m.from === "model") ?? null;
+}
 export function selectedText(message: ChatMessage) {
 	return message.swipes[message.selectedSwipe] ?? message.swipes[0] ?? "";
 }
 
-export function addMessage(session: ChatSession, from: "user" | "model", text: string): ChatMessage {
+const NAMES_BY_ROLE = {
+	system: "OOC"
+};
+export function addMessage(session: ChatSession, from: ChatMessage["from"], text: string): ChatMessage {
 	const messages = session.contents.messages;
+	const names: Record<ChatMessage["from"], string> = {
+		user: session.chat.userPersona.name,
+		model: session.chat.scenario.name,
+		system: NAMES_BY_ROLE.system
+	};
 	const message: ChatMessage = {
-		id: messages.length,
+		id: messages.reduce((max, m) => Math.max(max, m.id), -1) + 1,
 		from,
-		name: from === "user" ? session.chat.userPersona.name : session.chat.scenario.name,
+		name: names[from],
 		rember: null,
 		selectedSwipe: 0,
 		swipes: [text]
 	};
 	messages.push(message);
 	return message;
+}
+
+/** Removes a single message, keeping everything after it. Only OOC notes can go on their own. */
+export function removeMessage(session: ChatSession, mid: number) {
+	const messages = session.contents.messages;
+	const index = messages.findIndex(m => m.id === mid);
+	if (index < 0 || messages[index].from !== "system") return false;
+	messages.splice(index, 1);
+	return true;
 }
 
 /** Appends a new swipe and selects it. Blank swipes left by aborted generations are dropped first. */

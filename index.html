@@ -141,6 +141,11 @@
 								<div>Let ⧖ rEmber summary extend the tail</div>
 							</label>
 							<div class="hint">When enabled, the tail is stretched back to the message the latest summary is attached to. When disabled, the summary is only sent while that message is still inside the tail, possibly losing it.</div>
+							<label class="row-compact align-center">
+								<input type="checkbox" id="settings-options-ooc-user"/>
+								<div>Send OOC notes as user turns</div>
+							</label>
+							<div class="hint">OOC notes (hold the send button to append one) are sent as system messages by default. Some local chat templates only accept a system message at the very start; enable this to send notes as user turns prefixed with "OOC:" instead.</div>
 							<ram-labeled
 								legend="Content width override"
 								id="settings-options-cwo"
@@ -564,9 +569,12 @@
 			</details>
 			<div class="row">
 				<button id="play-rember-add-one" class="lineout fit">add one</button>
-				<button id="play-rember-stop" class="lineout fit">stop</button>
 			</div>
-			<div id="play-rember-messages" class="list"></div>
+			<div class="hint">Summaries live in the chat, right above the message they are attached to. Use the ⧖ button on that message to show or hide one, edit it in place, or remove it.</div>
+			<div id="play-rember-latest" class="lineout list pointer" hidden>
+				<span id="play-rember-latest-caption" class="hint"></span>
+				<div id="play-rember-latest-text" class="chat-rember-view"></div>
+			</div>
 		</ram-modal>
 		<ram-modal id="help-modal">
 			<div id="help-message" class="md md-intro"></div>
