@@ -1,8 +1,8 @@
-import template from "./system-message.html";
+import html from "./system-message.html";
 import { placeholder } from "@root/utils";
 import { toast } from "@units/toasts";
-import { sirocco } from "rampike";
-import { emit, instantiate, pickRefs, tabGroups } from "./common";
+import { htmlTemplate, sirocco, sprout } from "rampike";
+import { emit, tabGroups } from "./common";
 
 /*
 A message that instructs the model rather than telling the story: an OOC note (a `system`
@@ -39,16 +39,29 @@ export function systemViewKey(mid: number, rember: boolean) {
 	return rember ? `${mid}${REMBER_KEY_SUFFIX}` : String(mid);
 }
 
+const template = htmlTemplate(html);
+const REFS = {
+	root:   HTMLDivElement,
+	avatar: HTMLImageElement,
+	name:   HTMLElement,
+	edit:   HTMLButtonElement,
+	copy:   HTMLButtonElement,
+	delete: HTMLButtonElement,
+	save:   HTMLButtonElement,
+	cancel: HTMLButtonElement,
+	text:   HTMLElement
+};
+
 export function makeSystemView(options: SystemViewOptions) {
 	const { mid, rember, read } = options;
-	const root = instantiate<HTMLDivElement>(template);
-	const r = pickRefs(root, ["avatar", "name", "edit", "copy", "delete", "save", "cancel", "text"]);
+	const { refs: r } = sprout(template, REFS);
+	const root = r.root;
 	const tabs = tabGroups(root);
 
 	root.dataset.mid = systemViewKey(mid, rember);
 	root.classList.toggle("rember-message", rember);
 	root.hidden = !!options.hidden;
-	(r.avatar as HTMLImageElement).src = placeholder(options.icon);
+	r.avatar.src = placeholder(options.icon);
 	r.avatar.title = rember ? `rEmber summary for mid #${mid}` : `mid #${mid}`;
 	r.name.textContent = options.name;
 

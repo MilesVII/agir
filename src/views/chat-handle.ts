@@ -1,7 +1,8 @@
-import template from "./chat-handle.html";
+import html from "./chat-handle.html";
 import { Chat, Folder } from "@root/types";
 import { placeholder, setSelectMenu } from "@root/utils";
-import { instantiate, pickRefs, PictureSource, setPicture } from "./common";
+import { htmlTemplate, sprout } from "rampike";
+import { PictureSource, setPicture } from "./common";
 
 export type ChatHandlePictures = {
 	scenario: PictureSource,
@@ -15,6 +16,19 @@ export type ChatHandleHandlers = {
 	newFolder: () => void
 };
 
+const template = htmlTemplate(html);
+const REFS = {
+	icon:        HTMLImageElement,
+	"user-icon": HTMLImageElement,
+	title:       HTMLElement,
+	"user-name": HTMLElement,
+	messages:    HTMLElement,
+	memo:        HTMLButtonElement,
+	play:        HTMLButtonElement,
+	delete:      HTMLButtonElement,
+	folder:      HTMLSelectElement
+};
+
 /** One chat in the main chat list */
 export function makeChatHandleView(
 	handle: Chat,
@@ -22,11 +36,10 @@ export function makeChatHandleView(
 	folderOptions: string[],
 	handlers: ChatHandleHandlers
 ) {
-	const root = instantiate(template);
-	const r = pickRefs(root, ["icon", "title", "user-icon", "user-name", "messages", "memo", "play", "folder", "delete"]);
+	const { root, refs: r } = sprout(template, REFS);
 
-	(r.icon as HTMLImageElement).src = placeholder(null);
-	(r["user-icon"] as HTMLImageElement).src = placeholder(null);
+	r.icon.src = placeholder(null);
+	r["user-icon"].src = placeholder(null);
 	setPicture(r.icon, pictures.scenario);
 	setPicture(r["user-icon"], pictures.user);
 
@@ -41,7 +54,7 @@ export function makeChatHandleView(
 	r.memo.addEventListener("click", handlers.setMemo);
 	r.delete.addEventListener("click", handlers.delete);
 	setSelectMenu(
-		r.folder as HTMLSelectElement,
+		r.folder,
 		handle.folder ?? "-folder-",
 		[
 			["unassigned", () => handlers.assignFolder(null)],

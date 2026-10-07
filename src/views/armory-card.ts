@@ -1,7 +1,6 @@
-import template from "./armory-card.html";
+import html from "./armory-card.html";
 import { placeholder } from "@root/utils";
-import { sirocco } from "rampike";
-import { instantiate, pickRefs } from "./common";
+import { htmlTemplate, sirocco, sprout } from "rampike";
 
 export type ArmoryCardData = {
 	icon: string | null,
@@ -12,24 +11,31 @@ export type ArmoryCardData = {
 };
 export type ArmoryCardState = "ready" | "downloading" | "done";
 
+const template = htmlTemplate(html);
+const REFS = {
+	icon: HTMLImageElement,
+	summary: HTMLElement,
+	download: HTMLButtonElement,
+	progress: HTMLProgressElement,
+	status: HTMLElement
+};
+
 /** One scenario offered by an armory. The unit drives the download through `controls`. */
 export function makeArmoryCardView(data: ArmoryCardData, onDownload: () => void) {
-	const root = instantiate(template);
-	const r = pickRefs(root, ["icon", "summary", "download", "progress", "status"]);
-	const progress = r.progress as HTMLProgressElement;
+	const { root, refs: r } = sprout(template, REFS);
 
-	(r.icon as HTMLImageElement).src = placeholder(data.icon);
+	r.icon.src = placeholder(data.icon);
 	r.summary.textContent = data.summary;
 	r.download.textContent = data.downloadCaption;
 	r.download.addEventListener("click", onDownload);
 
 	function setState(state: ArmoryCardState) {
 		r.download.hidden = state !== "ready";
-		progress.hidden   = state !== "downloading";
+		r.progress.hidden = state !== "downloading";
 		r.status.hidden   = state !== "done";
 	}
 	function setProgress(fraction: number) {
-		progress.value = fraction * 100;
+		r.progress.value = fraction * 100;
 	}
 
 	setState(data.downloadable ? "ready" : "done");

@@ -1,15 +1,17 @@
-import template from "./armory-item.html";
-import { instantiate, pickRefs } from "./common";
+import html from "./armory-item.html";
+import { htmlTemplate, sprout } from "rampike";
 
 export type ArmoryItemHandlers = {
 	open: () => void,
 	delete: () => void
 };
 
+const template = htmlTemplate(html);
+const REFS = ["name", "open", "delete"] as const;
+
 /** One row in the list of added armories */
 export function makeArmoryItemView(name: string, handlers: ArmoryItemHandlers) {
-	const root = instantiate(template);
-	const r = pickRefs(root, ["name", "open", "delete"]);
+	const { root, refs: r } = sprout(template, REFS);
 
 	r.name.textContent = name;
 	r.open.addEventListener("click", handlers.open);

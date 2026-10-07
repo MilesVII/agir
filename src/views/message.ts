@@ -1,9 +1,9 @@
-import template from "./message.html";
+import html from "./message.html";
 import { ChatMessage } from "@root/types";
 import { elementVisible, placeholder, renderMD } from "@root/utils";
 import { toast } from "@units/toasts";
-import { sirocco } from "rampike";
-import { emit, instantiate, pickRefs, tabGroups } from "./common";
+import { htmlTemplate, sirocco, sprout } from "rampike";
+import { emit, tabGroups } from "./common";
 
 /*
 Renders one chat message. The view never mutates the message it was given:
@@ -33,22 +33,38 @@ const STATUS = {
 	REASONING: "thinking..."
 };
 
-const REFS = [
-	"avatar", "name", "status",
-	"reasoning", "rember", "swipes", "prev", "swipe-caption", "next",
-	"edit", "copy", "reroll", "delete", "save", "cancel",
-	"reasoning-preview", "reasoning-box", "text"
-] as const;
+const template = htmlTemplate(html);
+const REFS = {
+	root:                HTMLDivElement,
+	avatar:              HTMLImageElement,
+	name:                HTMLElement,
+	status:              HTMLElement,
+	reasoning:           HTMLButtonElement,
+	rember:              HTMLButtonElement,
+	swipes:              HTMLElement,
+	prev:                HTMLButtonElement,
+	"swipe-caption":     HTMLElement,
+	next:                HTMLButtonElement,
+	edit:                HTMLButtonElement,
+	copy:                HTMLButtonElement,
+	reroll:              HTMLButtonElement,
+	delete:              HTMLButtonElement,
+	save:                HTMLButtonElement,
+	cancel:              HTMLButtonElement,
+	"reasoning-preview": HTMLElement,
+	"reasoning-box":     HTMLElement,
+	text:                HTMLElement
+};
 
 export type Pictures = [user: string | null, model: string | null];
 
 export function makeMessageView(msg: ChatMessage, [userPic, modelPic]: Pictures, isLast: boolean) {
-	const root = instantiate<HTMLDivElement>(template);
-	const r = pickRefs(root, REFS);
+	const { refs: r } = sprout(template, REFS);
+	const root = r.root;
 	const tabs = tabGroups(root);
 
 	root.dataset.mid = String(msg.id);
-	(r.avatar as HTMLImageElement).src = placeholder(msg.from === "user" ? userPic : modelPic);
+	r.avatar.src = placeholder(msg.from === "user" ? userPic : modelPic);
 	r.avatar.title = `mid #${msg.id}`;
 	r.name.textContent = msg.name;
 	r.delete.hidden = msg.from !== "user";

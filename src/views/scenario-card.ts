@@ -1,8 +1,8 @@
-import template from "./scenario-card.html";
+import html from "./scenario-card.html";
 import { ScenarioCard } from "@root/types";
 import { neatNumber, placeholder, renderMD } from "@root/utils";
-import { mudcrack } from "rampike";
-import { instantiate, pickRefs, PictureSource, setPicture } from "./common";
+import { htmlTemplate, mudcrack, sprout } from "rampike";
+import { PictureSource, setPicture } from "./common";
 
 export type ScenarioCardHandlers = {
 	play: () => void,
@@ -11,19 +11,33 @@ export type ScenarioCardHandlers = {
 	edit: () => void
 };
 
+const template = htmlTemplate(html);
+const REFS = {
+	icon:          HTMLImageElement,
+	title:         HTMLElement,
+	download:      HTMLButtonElement,
+	delete:        HTMLButtonElement,
+	edit:          HTMLButtonElement,
+	play:          HTMLButtonElement,
+	"author-link": HTMLAnchorElement,
+	author:        HTMLElement,
+	tokens:        HTMLElement,
+	description:   HTMLElement,
+	tags:          HTMLElement
+};
+
 /** One scenario card in the library grid */
 export function makeScenarioCardView(item: ScenarioCard, picture: PictureSource, handlers: ScenarioCardHandlers) {
-	const root = instantiate(template);
-	const r = pickRefs(root, ["icon", "title", "download", "delete", "edit", "play", "author-link", "author", "tokens", "description", "tags"]);
+	const { root, refs: r } = sprout(template, REFS);
 
-	(r.icon as HTMLImageElement).src = placeholder(null);
+	r.icon.src = placeholder(null);
 	setPicture(r.icon, picture);
 	r.title.textContent = item.card.title;
 
 	const author = item.card.author;
 	if (author?.url) {
 		r["author-link"].textContent = author.name;
-		r["author-link"].setAttribute("href", author.url);
+		r["author-link"].href = author.url;
 		r["author-link"].hidden = false;
 	} else {
 		r.author.textContent = author?.name ?? "";

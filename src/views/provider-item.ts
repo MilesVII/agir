@@ -1,5 +1,5 @@
-import template from "./provider-item.html";
-import { instantiate, pickRefs } from "./common";
+import html from "./provider-item.html";
+import { htmlTemplate, sprout } from "rampike";
 
 export type ProviderItemHandlers = {
 	edit: () => void,
@@ -7,10 +7,12 @@ export type ProviderItemHandlers = {
 	delete: () => void
 };
 
+const template = htmlTemplate(html);
+const REFS = ["name", "edit", "copy", "delete"] as const;
+
 /** One row in the LLM providers list */
 export function makeProviderItemView(name: string, handlers: ProviderItemHandlers) {
-	const root = instantiate(template);
-	const r = pickRefs(root, ["name", "edit", "copy", "delete"]);
+	const { root, refs: r } = sprout(template, REFS);
 
 	r.name.textContent = name;
 	r.edit.addEventListener("click", handlers.edit);
