@@ -6,10 +6,12 @@ import { idb } from "@root/persist";
 const HASH_IMPORT_ROUTE = "#hash-import.";
 
 export function hashListenerUnit() {
-	window.addEventListener("hashchange", () => {
+	const check = () => {
 		if (!window.location.hash.startsWith(HASH_IMPORT_ROUTE)) return;
 		importFromHash();
-	})
+	};
+	window.addEventListener("hashchange", check);
+	check();
 }
 
 async function importFromHash() {

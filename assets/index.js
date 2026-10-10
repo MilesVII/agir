@@ -6107,10 +6107,12 @@ ${scenario}
   // src/units/library/hash.ts
   var HASH_IMPORT_ROUTE = "#hash-import.";
   function hashListenerUnit() {
-    window.addEventListener("hashchange", () => {
+    const check = () => {
       if (!window.location.hash.startsWith(HASH_IMPORT_ROUTE)) return;
       importFromHash();
-    });
+    };
+    window.addEventListener("hashchange", check);
+    check();
   }
   async function importFromHash() {
     const data = window.location.hash.slice(HASH_IMPORT_ROUTE.length);
