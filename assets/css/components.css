@@ -404,6 +404,9 @@ summary.settings-label {
 	scrollbar-width: thin;
 }
 
+#library-armory-add-button {
+	width: 56px;
+}
 .armory-item > img {
 	border-radius: var(--dims-smol);
 	object-fit: cover;

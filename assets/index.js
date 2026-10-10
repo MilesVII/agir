@@ -5821,7 +5821,7 @@ ${scenario}
   }
 
   // src/views/armory-item.html
-  var armory_item_default = '<div class="lineout row-compact baseline">\n	<div data-ref="name"></div>\n	<button class="lineout float-end" data-ref="delete">\u2716</button>\n	<button class="lineout" data-ref="open">open</button>\n</div>\n';
+  var armory_item_default = '<div class="row-compact baseline">\n	<div class="lineout wide pointer">\n		<div data-ref="name"></div>\n	</div>\n	<button class="lineout float-end" data-ref="delete">\u2716</button>\n	<button class="lineout" data-ref="open">open</button>\n</div>\n';
 
   // src/views/armory-item.ts
   var template7 = R(armory_item_default);
