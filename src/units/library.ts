@@ -13,6 +13,7 @@ import { startArmory } from "./library/armory";
 import { DatacatCard, importDatacatJSON } from "./library/datacat";
 import { RampikePagination } from "@rampike/pagination";
 import { filterBySearch } from "./library/search";
+import { hashListenerUnit } from "./library/hash";
 
 const CARDS_PER_PAGE = 16;
 let openerRelay: {
@@ -20,6 +21,8 @@ let openerRelay: {
 } | null = null;
 
 export function libraryUnit() {
+	hashListenerUnit();
+
 	const startButton        = document.querySelector<HTMLButtonElement>("#library-start-button")!;
 	const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
 	const startImportButton  = document.querySelector<RampikeFilePicker>("#library-start-import")!;
