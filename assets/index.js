@@ -5726,100 +5726,6 @@ ${card.value.card.description}`;
     };
   }
 
-  // src/units/library/dl.ts
-  var parser2 = new DOMParser();
-  var definitionTemplate2 = {
-    characters: [
-      "# Characters",
-      "## {{char}} "
-    ].join("\n"),
-    userPersona: [
-      "## {{user}}",
-      "{{persona}}"
-    ].join("\n"),
-    instructions: [
-      "# Instructions",
-      "The user is {{user}}, all other roles are played by you"
-    ].join("\n")
-  };
-  async function downloadScenarioCard(url) {
-    url = url.toLowerCase().replace("janitorai.com/", "jannyai.com/");
-    const response = await fetch(`https://fenrir.milesseventh.workers.dev/steel/${encodeURIComponent(url)}`);
-    if (!response.ok) {
-      if (response.status === 404)
-        toast("the character is not found on jannyai.com.\ntry downloading the JSON via https://datacat.run and importing the file");
-      else
-        toast("network error");
-      return null;
-    }
-    const raw = await response.text();
-    const dom = parser2.parseFromString(raw, "text/html");
-    const pivot = dom.querySelector("h1");
-    if (!pivot) {
-      toast("can't find title in downloaded page");
-      return null;
-    }
-    const [title, description, tagsContainer] = Array.from(pivot.parentElement.children);
-    const tags = Array.from(tagsContainer.querySelectorAll("li")).map((e) => e.innerText);
-    let personality = "";
-    let scenario = "";
-    let firstMessage = "";
-    const definitionContainer = dom.querySelector("details ul");
-    definitionContainer.querySelectorAll("li").forEach((e) => {
-      const caption = e.querySelector("span");
-      const captionText = caption.innerText.toLocaleLowerCase().trim();
-      caption.remove();
-      if (captionText.includes("personality")) personality = fix2(e.innerText.trim());
-      if (captionText.includes("scenario")) scenario = fix2(e.innerText.trim());
-      if (captionText.includes("first")) firstMessage = fix2(e.innerText.trim());
-    });
-    function fix2(raw2) {
-      return raw2.replace(/(?<!\{)\{[^}]*\}(?!\})/g, (v2) => `{${v2.toLowerCase()}}`).replace(/^#+/gm, (v2) => `##${v2}`);
-    }
-    let definition = `${definitionTemplate2.characters}
-${personality}
-
-${definitionTemplate2.userPersona}
-
-`;
-    if (scenario) definition = definition.concat(`# Scenario
-${scenario}
-
-`);
-    definition = definition.concat(`${definitionTemplate2.instructions}`);
-    const authorName = Array.from(dom.querySelectorAll("a")).find((e) => e.innerText.trim().startsWith("@"))?.innerText.trim().slice(1);
-    let picture = null;
-    const pictureContainer = dom.querySelector("img.w-full");
-    if (pictureContainer) {
-      const response2 = await fetch(pictureContainer.src);
-      if (response2.ok) {
-        const blob = await response2.blob();
-        picture = await upload(blob);
-      }
-    }
-    return {
-      card: {
-        author: {
-          name: authorName || "unknown",
-          url
-        },
-        title: title.innerText,
-        description: description.innerHTML,
-        tags,
-        picture
-      },
-      chat: {
-        definition,
-        initials: [firstMessage],
-        name: "",
-        picture: null,
-        tokenCount: estimateTokenCount(definition)
-      },
-      id: crypto.randomUUID(),
-      lastUpdate: Date.now()
-    };
-  }
-
   // src/views/armory-item.html
   var armory_item_default = '<div class="row-compact baseline">\n	<div class="lineout wide pointer">\n		<div data-ref="name"></div>\n	</div>\n	<button class="lineout float-end" data-ref="delete">\u2716</button>\n	<button class="lineout" data-ref="open">open</button>\n</div>\n';
 
@@ -5998,7 +5904,7 @@ ${scenario}
   }
 
   // src/units/library/datacat.ts
-  var definitionTemplate3 = {
+  var definitionTemplate2 = {
     characters: [
       "# Characters",
       "## {{char}} "
@@ -6022,12 +5928,12 @@ ${scenario}
       url: null
     };
     const definition = [
-      ...definitionTemplate3.characters,
+      ...definitionTemplate2.characters,
       fix(definitionSource.trim()),
       "",
-      ...definitionTemplate3.userPersona,
+      ...definitionTemplate2.userPersona,
       "",
-      ...definitionTemplate3.instructions,
+      ...definitionTemplate2.instructions,
       fix(parsed.data.scenario ?? "")
     ].join("\n").trim();
     const converted = {
@@ -6175,24 +6081,16 @@ ${scenario}
       }
     });
     downloadButton.addEventListener("click", async () => {
-      const url = prompt("Enter the link to a character page on janitorai.com")?.trim();
-      if (!url) return;
-      const card = await downloadScenarioCard(url);
-      if (card) {
-        await idb.set("scenarios", card);
-        toast(
-          "scenario downloaded!\ndon't forget to add the character name and check the definition",
-          {
-            actions: [
-              ["ok", (close) => close()],
-              ["open", (close) => {
-                close();
-                window.open(`#scenario-editor.${card.id}`);
-              }]
-            ]
-          }
-        );
-      }
+      alert([
+        "Apologies, download is not available. jannyai.com",
+        " started using Cloudflare's bot protection and",
+        " can't be accessed automatically anymore.\n\n",
+        "You still can import JSON files downloaded from",
+        " https://datacat.run/ \n\n",
+        "There's a chance a better integration will be",
+        " implemented soon"
+      ].join(""));
+      return;
     });
     armoryButton.addEventListener("click", startArmory);
     search.open.addEventListener("click", () => {

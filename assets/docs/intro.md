@@ -7,7 +7,7 @@ Hi! It seems like it's your first time using Ägir
 - Since it doesn't communicate with anything by default, you need to obtain character cards manually. This can be done via:
 	- Using **Armories** -- decentralized repositories. Ägir has one added by default, which offers a few scenarios you can use to test it
 	- **Importing** JSON files, either made with Ägir or downloaded from [datacat.run](https://datacat.run) (recommended)
-	- **Downloading** characters via jannyai -- you can just paste a link
+	- ~~**Downloading** characters via jannyai -- you can just paste a link~~ jannyai started using Cloudflare protection and is not accessible automatically anymore, sorry
 	- or, of course, **Creating** scenarios from scratch
 - Other than that, core concepts are pretty similar to other platforms -- you pick scenarios, play as personas, and an LLM responds in an interactive chat.
 

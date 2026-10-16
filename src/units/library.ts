@@ -69,24 +69,34 @@ export function libraryUnit() {
 	});
 
 	downloadButton.addEventListener("click", async () => {
-		const url = prompt("Enter the link to a character page on janitorai.com")?.trim();
-		if (!url) return;
-		const card = await downloadScenarioCard(url);
-		if (card) {
-			await idb.set("scenarios", card);
-			toast(
-				"scenario downloaded!\ndon't forget to add the character name and check the definition",
-				{
-					actions: [
-						["ok", close => close()],
-						["open", close => {
-							close();
-							window.open(`#scenario-editor.${card.id}`);
-						}]
-					]
-				}
-			);
-		}
+		alert([
+			"Apologies, download is not available. jannyai.com",
+			" started using Cloudflare's bot protection and",
+			" can't be accessed automatically anymore.\n\n",
+			"You still can import JSON files downloaded from",
+			" https://datacat.run/ \n\n",
+			"There's a chance a better integration will be",
+			" implemented soon"
+		].join(""));
+		return;
+		// const url = prompt("Enter the link to a character page on janitorai.com")?.trim();
+		// if (!url) return;
+		// const card = await downloadScenarioCard(url);
+		// if (card) {
+		// 	await idb.set("scenarios", card);
+		// 	toast(
+		// 		"scenario downloaded!\ndon't forget to add the character name and check the definition",
+		// 		{
+		// 			actions: [
+		// 				["ok", close => close()],
+		// 				["open", close => {
+		// 					close();
+		// 					window.open(`#scenario-editor.${card.id}`);
+		// 				}]
+		// 			]
+		// 		}
+		// 	);
+		// }
 	});
 	armoryButton.addEventListener("click", startArmory);
 
