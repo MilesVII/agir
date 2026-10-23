@@ -7,6 +7,7 @@ import { readActiveProviders, readProviders } from "./settings/providers";
 import { toast } from "./toasts";
 import { initChatEditor } from "./chat/editor";
 import { initRember, updateRemberCounter } from "./chat/rember";
+import { initLorebooks } from "./chat/lorebooks";
 import { appendNote, initMessageList, renderMessages, sendMessage } from "./chat/messages";
 import { activeJob, cancelJob, onJobChange } from "./chat/generation";
 import { getSession, onSessionReplaced, openSession } from "./chat/session";
@@ -29,6 +30,7 @@ export function chatUnit() {
 	initMessageList();
 	const editor = initChatEditor();
 	const rember = initRember();
+	const lore = initLorebooks();
 
 	window.addEventListener("hashchange", update);
 	listen(u => {
@@ -70,6 +72,7 @@ export function chatUnit() {
 		["Scenario card",   openScenarioIfExists],
 		["Edit definition", editor.open],
 		["⧖ rEmber",        rember.open],
+		["🕮 Lorebooks",    lore.open],
 		["Export",          exportChat],
 		["Clone",           cloneChat]
 	]);

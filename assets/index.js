@@ -2016,9 +2016,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const getChildNodes = lookupGetter(ElementPrototype, "childNodes");
     const getParentNode = lookupGetter(ElementPrototype, "parentNode");
     if (typeof HTMLTemplateElement === "function") {
-      const template9 = document2.createElement("template");
-      if (template9.content && template9.content.ownerDocument) {
-        document2 = template9.content.ownerDocument;
+      const template10 = document2.createElement("template");
+      if (template10.content && template10.content.ownerDocument) {
+        document2 = template10.content.ownerDocument;
       }
     }
     let trustedTypesPolicy;
@@ -2366,8 +2366,8 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       if (FORCE_BODY) {
         dirty = "<remove></remove>" + dirty;
       } else {
-        const matches = stringMatch(dirty, /^[\r\n\t ]+/);
-        leadingWhitespace = matches && matches[0];
+        const matches2 = stringMatch(dirty, /^[\r\n\t ]+/);
+        leadingWhitespace = matches2 && matches2[0];
       }
       if (PARSER_MEDIA_TYPE === "application/xhtml+xml" && NAMESPACE === HTML_NAMESPACE) {
         dirty = '<html xmlns="http://www.w3.org/1999/xhtml"><head></head><body>' + dirty + "</body></html>";
@@ -2913,6 +2913,10 @@ Please report this to https://github.com/markedjs/marked.`, e) {
   }
   function clamp(v2, min, max) {
     return Math.min(Math.max(v2, min), max);
+  }
+  async function sha1Hex(text2) {
+    const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text2));
+    return Array.from(new Uint8Array(digest), (b2) => b2.toString(16).padStart(2, "0")).join("");
   }
 
   // src/persist.ts
@@ -3589,8 +3593,8 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
   }
   function selectorItem(name) {
-    const template9 = document.querySelector("#template-theme-selector");
-    const button = k(template9);
+    const template10 = document.querySelector("#template-theme-selector");
+    const button = k(template10);
     const themeClassName = `theme-${name}`;
     button.classList.add(themeClassName);
     button.addEventListener("click", () => switchTheme(themeClassName));
@@ -4205,17 +4209,22 @@ Status ${response.status}${metaWrapped}`
     let start2 = options.tail > 0 ? Math.max(0, history.length - options.tail) : 0;
     if (options.remberStretch && remberAt !== -1) start2 = Math.min(start2, remberAt);
     const definition = session.chat.scenario.definition;
-    const prompt2 = [
-      system(options.suffix ? `${definition}
-${options.suffix}` : definition)
-    ];
+    const lore = options.lore;
+    const prompt2 = [];
+    if (lore?.before.length) prompt2.push(system(lore.before.join("\n\n")));
+    prompt2.push(system(options.suffix ? `${definition}
+${options.suffix}` : definition));
+    if (lore?.after.length) prompt2.push(system(lore.after.join("\n\n")));
+    const turns = [];
     for (let i = start2; i < history.length; ++i) {
       if (i === remberAt)
-        prompt2.push(system(`# Roleplay state summary:
+        turns.push(system(`# Roleplay state summary:
 ${history[i].rember}`));
-      prompt2.push(toPrompt(history[i], options.oocAsUser));
+      turns.push(toPrompt(history[i], options.oocAsUser));
     }
-    return prompt2;
+    for (const { depth, role, content } of [...lore?.atDepth ?? []].sort((a, b2) => b2.depth - a.depth))
+      turns.splice(Math.max(0, turns.length - depth), 0, { role, content });
+    return [...prompt2, ...turns];
   }
   function remberPrompt(session, settings, scope, previousState) {
     const names = {
@@ -4249,6 +4258,159 @@ ${selectedText(m2)}
       role: message.from === "model" ? "assistant" : message.from,
       content: selectedText(message)
     };
+  }
+
+  // src/units/chat/macros.ts
+  var PRON_MACROS = {
+    "{{sub}}": "subjective",
+    "{{he}}": "subjective",
+    "{{she}}": "subjective",
+    "{{they}}": "subjective",
+    "{{obj}}": "objective",
+    "{{them}}": "objective",
+    "{{poss}}": "possessiveAdj",
+    "{{their}}": "possessiveAdj",
+    "{{poss_p}}": "possessivePro",
+    "{{theirs}}": "possessivePro",
+    "{{ref}}": "reflexive",
+    "{{themselves}}": "reflexive"
+  };
+  var CHAR_NAME_MACRO = "{{char}}";
+  var USER_NAME_MACRO = "{{user}}";
+  var PERSONA_MACRO = "{{persona}}";
+  function runMacros(template10, context) {
+    for (const [from, toKey] of Object.entries(PRON_MACROS)) {
+      template10 = template10.replaceAll(from, context.pronouns[toKey]);
+    }
+    template10 = template10.replaceAll(CHAR_NAME_MACRO, context.charName);
+    template10 = template10.replaceAll(USER_NAME_MACRO, context.userName);
+    template10 = template10.replaceAll(PERSONA_MACRO, context.persona);
+    return template10;
+  }
+  function macroContext(chat) {
+    return {
+      pronouns: chat.userPersona.pronouns,
+      charName: chat.scenario.name,
+      userName: chat.userPersona.name,
+      persona: chat.userPersona.description
+    };
+  }
+
+  // src/units/chat/lore.ts
+  var LORE_DEFAULTS = {
+    scanDepth: 2,
+    tokenBudget: 2048
+  };
+  var MAX_RECURSION = 10;
+  function loreSettingsOf(session) {
+    return session.chat.lore ?? LORE_DEFAULTS;
+  }
+  function activateLore(session, beforeMid) {
+    const books = (session.chat.lorebooks ?? []).filter((b2) => b2.enabled);
+    if (books.length === 0) return null;
+    const settings = loreSettingsOf(session);
+    const messages = session.contents.messages;
+    const upTo = messages.findIndex((m2) => m2.id === beforeMid);
+    const history = (upTo === -1 ? messages : messages.slice(0, upTo)).filter((m2) => m2.from !== "system");
+    const summary = history.findLast((m2) => m2.rember)?.rember ?? "";
+    const macros = macroContext(session.chat);
+    const buffers = /* @__PURE__ */ new Map();
+    const buffer = (depth) => {
+      let text2 = buffers.get(depth);
+      if (text2 === void 0) {
+        text2 = [...history.slice(-Math.max(1, depth)).map(selectedText), summary].join("\n");
+        buffers.set(depth, text2);
+      }
+      return text2;
+    };
+    const expand = (c2) => runMacros(c2.entry.content, macros);
+    const candidates = books.flatMap(
+      (book) => book.entries.filter((e) => e.enabled).map((entry) => ({ book, entry }))
+    );
+    const activated = /* @__PURE__ */ new Map();
+    for (const c2 of candidates) {
+      if (c2.entry.constant) {
+        activated.set(c2, expand(c2));
+        continue;
+      }
+      const depth = c2.entry.scanDepth ?? c2.book.scanDepth ?? settings.scanDepth;
+      if (matches(c2, buffer(depth))) activated.set(c2, expand(c2));
+    }
+    let fresh = [...activated.keys()];
+    for (let pass = 0; pass < MAX_RECURSION && fresh.length > 0; ++pass) {
+      const text2 = fresh.filter((c2) => c2.book.recursive && !c2.entry.preventRecursion).map((c2) => activated.get(c2)).join("\n");
+      if (!text2) break;
+      fresh = candidates.filter(
+        (c2) => !activated.has(c2) && c2.book.recursive && !c2.entry.excludeRecursion && matches(c2, text2)
+      );
+      fresh.forEach((c2) => activated.set(c2, expand(c2)));
+    }
+    const kept = [];
+    const bookTokens = /* @__PURE__ */ new Map();
+    let tokens = 0;
+    let dropped = 0;
+    for (const c2 of [...activated.keys()].sort((a, b2) => b2.entry.order - a.entry.order)) {
+      const content = activated.get(c2);
+      const cost = estimateTokenCount(content);
+      const bookTotal = (bookTokens.get(c2.book.id) ?? 0) + cost;
+      const overBudget = tokens + cost > settings.tokenBudget || c2.book.tokenBudget !== null && bookTotal > c2.book.tokenBudget;
+      if (overBudget && !c2.entry.constant) {
+        ++dropped;
+        continue;
+      }
+      tokens += cost;
+      bookTokens.set(c2.book.id, bookTotal);
+      kept.push({ book: c2.book.name, entry: c2.entry, content, tokens: cost });
+    }
+    kept.sort((a, b2) => a.entry.order - b2.entry.order);
+    return {
+      before: kept.filter((k3) => k3.entry.position === "before").map((k3) => k3.content),
+      after: kept.filter((k3) => k3.entry.position === "after").map((k3) => k3.content),
+      atDepth: kept.filter((k3) => k3.entry.position === "depth").map((k3) => ({ depth: k3.entry.depth, role: k3.entry.role, content: k3.content })),
+      activated: kept,
+      dropped,
+      tokens
+    };
+  }
+  function matches({ book, entry }, text2) {
+    const caseSensitive = entry.caseSensitive ?? book.caseSensitive;
+    const wholeWords = entry.wholeWords ?? book.wholeWords;
+    const hit = (key) => keyPattern(key, caseSensitive, wholeWords).test(text2);
+    if (!entry.keys.some(hit)) return false;
+    if (entry.secondaryKeys.length === 0) return true;
+    const any = entry.secondaryKeys.some(hit);
+    const all = entry.secondaryKeys.every(hit);
+    switch (entry.logic) {
+      case "andAny":
+        return any;
+      case "andAll":
+        return all;
+      case "notAny":
+        return !any;
+      case "notAll":
+        return !all;
+    }
+  }
+  var patterns = /* @__PURE__ */ new Map();
+  function keyPattern(key, caseSensitive, wholeWords) {
+    const flags = "u" + (caseSensitive ? "" : "i");
+    const cacheKey = `${flags}/${wholeWords}/${key}`;
+    let pattern = patterns.get(cacheKey);
+    if (!pattern) {
+      const escaped = key.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      pattern = new RegExp(wholeWords ? `(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])` : escaped, flags);
+      patterns.set(cacheKey, pattern);
+    }
+    return pattern;
+  }
+  var last = null;
+  var listeners2 = [];
+  function reportLore(activation) {
+    last = activation;
+    listeners2.forEach((l) => l(activation));
+  }
+  function onLore(listener) {
+    listeners2.push(listener);
   }
 
   // src/views/message.html
@@ -4542,11 +4704,11 @@ ${selectedText(m2)}
     if (!session) return;
     const pictures = await loadPictures(session.chat);
     if (getSession() !== session) return;
-    const last = lastModelMessage(session);
+    const last2 = lastModelMessage(session);
     list.dataset.chat = session.chat.id;
     list.append(...session.contents.messages.flatMap((m2) => [
       ...m2.rember ? [remberView(m2, true)] : [],
-      m2.from === "system" ? noteView(m2) : makeMessageView(m2, pictures, m2 === last)
+      m2.from === "system" ? noteView(m2) : makeMessageView(m2, pictures, m2 === last2)
     ]));
     list.scrollTop = list.scrollHeight;
   }
@@ -4651,11 +4813,14 @@ ${selectedText(m2)}
     if (!view) return;
     const chatId = session.chat.id;
     const settings = loadMiscSettings();
+    const lore = activateLore(session, mid);
+    reportLore(lore);
     const prompt2 = roleplayPrompt(session, mid, {
       tail: settings.tail,
       remberStretch: settings.remberStretch,
       oocAsUser: settings.oocAsUser,
-      suffix: provider.suffix
+      suffix: provider.suffix,
+      lore
     });
     view.controls.startStreaming();
     let reasoning = "";
@@ -4692,8 +4857,8 @@ ${selectedText(m2)}
       getSystemView(chatId, id, false)?.remove();
       getSystemView(chatId, id, true)?.remove();
     });
-    const last = lastModelMessage(session);
-    if (last) getMessageView(chatId, last.id)?.controls.setIsLast(true);
+    const last2 = lastModelMessage(session);
+    if (last2) getMessageView(chatId, last2.id)?.controls.setIsLast(true);
   }
   async function deleteNote(mid) {
     const session = getSession();
@@ -4884,6 +5049,272 @@ ${selectedText(m2)}
     counter.hidden = false;
   }
 
+  // src/units/library/lorebook.ts
+  var ST_LOGIC = ["andAny", "notAll", "notAny", "andAll"];
+  var ST_ROLE = ["system", "user", "assistant"];
+  var ST_DEPTH = 4;
+  var ST_ORDER = 100;
+  var BOOK_DEFAULTS = {
+    recursive: true,
+    caseSensitive: false,
+    wholeWords: true
+  };
+  function stPosition(code, fallback) {
+    if (code === void 0 || code === null) return fallback;
+    if (code === 0) return "before";
+    if (code === 4) return "depth";
+    return "after";
+  }
+  function stLogic(code) {
+    return ST_LOGIC[code ?? 0] ?? "andAny";
+  }
+  function stRole(code) {
+    return ST_ROLE[code ?? 0] ?? "system";
+  }
+  async function fromCharacterBook(book, fallbackName) {
+    const entries2 = (book.entries ?? []).map((e, ix) => {
+      const ext = e.extensions ?? {};
+      const keys = e.keys ?? [];
+      return {
+        id: e.id ?? ix,
+        name: e.name || e.comment || keys[0] || `#${ix}`,
+        keys,
+        secondaryKeys: e.selective ? e.secondary_keys ?? [] : [],
+        logic: stLogic(ext.selectiveLogic ?? ext.selective_logic),
+        content: e.content ?? "",
+        enabled: e.enabled !== false,
+        constant: !!e.constant,
+        order: e.insertion_order ?? ST_ORDER,
+        position: stPosition(ext.position, e.position === "after_char" ? "after" : "before"),
+        depth: ext.depth ?? ST_DEPTH,
+        role: stRole(ext.role),
+        caseSensitive: e.case_sensitive ?? null,
+        wholeWords: ext.match_whole_words ?? ext.matchWholeWords ?? null,
+        excludeRecursion: !!(ext.exclude_recursion ?? ext.excludeRecursion),
+        preventRecursion: !!(ext.prevent_recursion ?? ext.preventRecursion),
+        scanDepth: ext.scan_depth ?? ext.scanDepth ?? null
+      };
+    });
+    return await finalize({
+      name: book.name || fallbackName,
+      scanDepth: book.scan_depth ?? null,
+      tokenBudget: book.token_budget ?? null,
+      recursive: book.recursive_scanning ?? BOOK_DEFAULTS.recursive
+    }, entries2);
+  }
+  async function fromWorldInfo(info, fallbackName) {
+    const raw = Array.isArray(info.entries) ? info.entries : Object.values(info.entries ?? {});
+    const entries2 = raw.map((e, ix) => {
+      const keys = e.key ?? [];
+      return {
+        id: e.uid ?? ix,
+        name: e.comment || keys[0] || `#${ix}`,
+        keys,
+        secondaryKeys: e.selective ? e.keysecondary ?? [] : [],
+        logic: stLogic(e.selectiveLogic),
+        content: e.content ?? "",
+        enabled: !e.disable,
+        constant: !!e.constant,
+        order: e.order ?? ST_ORDER,
+        position: stPosition(e.position, "before"),
+        depth: e.depth ?? ST_DEPTH,
+        role: stRole(e.role),
+        caseSensitive: e.caseSensitive ?? null,
+        wholeWords: e.matchWholeWords ?? null,
+        excludeRecursion: !!e.excludeRecursion,
+        preventRecursion: !!e.preventRecursion,
+        scanDepth: e.scanDepth ?? null
+      };
+    });
+    return await finalize({
+      name: info.name || fallbackName,
+      scanDepth: null,
+      tokenBudget: null,
+      recursive: BOOK_DEFAULTS.recursive
+    }, entries2);
+  }
+  async function finalize(book, entries2) {
+    const fingerprint = JSON.stringify(entries2.map((e) => [e.keys, e.secondaryKeys, e.content]));
+    return {
+      id: await sha1Hex(fingerprint),
+      enabled: true,
+      caseSensitive: BOOK_DEFAULTS.caseSensitive,
+      wholeWords: BOOK_DEFAULTS.wholeWords,
+      ...book,
+      entries: entries2
+    };
+  }
+  async function parseLorebookFile(file) {
+    const text2 = await nothrowAsync(file.text());
+    if (!text2.success) return { success: false, error: "can't read the file" };
+    const parsed = nothrow(() => JSON.parse(text2.value));
+    if (!parsed.success) return { success: false, error: "the file is not valid JSON" };
+    const name = file.name.replace(/\.json$/i, "").replace(/_?sillytavern_lorebook$/i, "");
+    const json = parsed.value;
+    if (json?.data?.character_book?.entries)
+      return { success: true, value: await fromCharacterBook(json.data.character_book, json.data.name ?? name) };
+    if (json?.entries) {
+      const items = Array.isArray(json.entries) ? json.entries : Object.values(json.entries);
+      const first = items[0];
+      if (!first) return { success: false, error: "the lorebook has no entries" };
+      if ("keys" in first) return { success: true, value: await fromCharacterBook(json, name) };
+      if ("key" in first) return { success: true, value: await fromWorldInfo(json, name) };
+    }
+    return { success: false, error: "this doesn't look like a lorebook" };
+  }
+
+  // src/views/lorebook-item.html
+  var lorebook_item_default = '<div class="lineout row-compact align-center">\n	<input type="checkbox" data-ref="enabled" title="enabled">\n	<div class="list wide">\n		<div data-ref="name"></div>\n		<div class="hint" data-ref="details"></div>\n	</div>\n	<button class="lineout" data-ref="remove" title="remove">\u2716</button>\n</div>\n';
+
+  // src/views/lorebook-item.ts
+  var template5 = R(lorebook_item_default);
+  var REFS5 = {
+    enabled: HTMLInputElement,
+    name: HTMLElement,
+    details: HTMLElement,
+    remove: HTMLButtonElement
+  };
+  function makeLorebookItemView(book, handlers) {
+    const { root, refs: r } = h(template5, REFS5);
+    const enabledEntries = book.entries.filter((e) => e.enabled).length;
+    const constant = book.entries.filter((e) => e.constant).length;
+    r.name.textContent = book.name;
+    r.details.textContent = [
+      `${enabledEntries} of ${book.entries.length} entries enabled`,
+      constant ? `${constant} constant` : null,
+      book.recursive ? "recursive" : null,
+      `#${book.id.slice(0, 8)}`
+    ].filter((p2) => p2).join(" \xB7 ");
+    r.enabled.checked = book.enabled;
+    r.enabled.addEventListener("change", () => handlers.toggle(r.enabled.checked));
+    r.remove.addEventListener("click", handlers.remove);
+    return root;
+  }
+
+  // src/units/chat/lorebooks.ts
+  function initLorebooks() {
+    const modal = document.querySelector("#play-lore");
+    const counter = document.querySelector("#chat-lore-counter");
+    const list = document.querySelector("#play-lore-list");
+    const status = document.querySelector("#play-lore-status");
+    const importer = document.querySelector("#play-lore-import");
+    const scanDepth = document.querySelector("#play-lore-scan-depth");
+    const budget = document.querySelector("#play-lore-budget");
+    const buttons = {
+      copy: document.querySelector("#play-lore-copy"),
+      save: document.querySelector("#play-lore-save"),
+      close: document.querySelector("#play-lore-close")
+    };
+    let last2 = null;
+    counter.addEventListener("click", open2);
+    buttons.close.addEventListener("click", () => modal.close());
+    buttons.copy.addEventListener("click", copyFromCard);
+    buttons.save.addEventListener("click", saveSettings);
+    importer.addEventListener("input", async () => {
+      const file = importer.input.files?.[0];
+      importer.input.value = "";
+      if (!file) return;
+      const parsed = await parseLorebookFile(file);
+      if (!parsed.success) {
+        toast(parsed.error);
+        return;
+      }
+      await attach([parsed.value]);
+    });
+    onSessionReplaced((session) => {
+      last2 = null;
+      updateCounter(session);
+    });
+    onLore((activation) => {
+      last2 = activation;
+      updateCounter(getSession());
+      if (modal.dialog.open) showStatus();
+    });
+    function updateCounter(session) {
+      const books = session?.chat.lorebooks ?? [];
+      counter.hidden = books.length === 0;
+      counter.textContent = last2 ? `\u{1F56E}${last2.activated.length}` : "\u{1F56E}";
+      counter.dataset.run = last2 && last2.activated.length > 0 ? "true" : "false";
+    }
+    function fill(session) {
+      const settings = loreSettingsOf(session);
+      scanDepth.value = String(settings.scanDepth);
+      budget.value = String(settings.tokenBudget);
+      list.innerHTML = "";
+      const books = session.chat.lorebooks ?? [];
+      if (books.length === 0) list.append(placeholderView("No lorebooks attached"));
+      list.append(...books.map((book) => makeLorebookItemView(book, {
+        toggle: async (enabled) => {
+          book.enabled = enabled;
+          await commitChat(session);
+          updateCounter(session);
+        },
+        remove: async () => {
+          if (!confirm(`"${book.name}" will be detached from this chat`)) return;
+          session.chat.lorebooks = books.filter((b2) => b2 !== book);
+          await commitChat(session);
+          fill(session);
+          updateCounter(session);
+        }
+      })));
+      showStatus();
+    }
+    function showStatus() {
+      if (!last2) {
+        status.textContent = "nothing was sent yet";
+        return;
+      }
+      const names = last2.activated.map((a) => a.entry.name).join(", ");
+      const dropped = last2.dropped ? `, ${last2.dropped} dropped over budget` : "";
+      status.textContent = last2.activated.length ? `last prompt: ${last2.activated.length} entries, ~${last2.tokens} tokens${dropped}: ${names}` : `last prompt: no entries fired${dropped}`;
+    }
+    async function attach(books) {
+      const session = getSession();
+      if (!session) return;
+      const present = new Set((session.chat.lorebooks ?? []).map((b2) => b2.id));
+      const fresh = books.filter((b2) => !present.has(b2.id));
+      if (fresh.length === 0) {
+        toast("already attached");
+        return;
+      }
+      session.chat.lorebooks = [...session.chat.lorebooks ?? [], ...fresh];
+      await commitChat(session);
+      fill(session);
+      updateCounter(session);
+    }
+    async function copyFromCard() {
+      const session = getSession();
+      if (!session) return;
+      const card = await idb.get("scenarios", session.chat.scenario.id);
+      const books = card.success ? card.value?.lorebooks ?? [] : [];
+      if (books.length === 0) {
+        toast("the scenario card has no lorebooks");
+        return;
+      }
+      await attach(books);
+    }
+    async function saveSettings() {
+      const session = getSession();
+      if (!session) return;
+      const depth = parseInt(scanDepth.value, 10);
+      const tokens = parseInt(budget.value, 10);
+      session.chat.lore = {
+        scanDepth: isNaN(depth) ? LORE_DEFAULTS.scanDepth : Math.max(1, depth),
+        tokenBudget: isNaN(tokens) ? LORE_DEFAULTS.tokenBudget : Math.max(0, tokens)
+      };
+      await commitChat(session);
+      const details = scanDepth.closest("details");
+      if (details) details.open = false;
+    }
+    function open2() {
+      const session = getSession();
+      if (!session) return;
+      fill(session);
+      modal.open();
+    }
+    return { open: open2 };
+  }
+
   // src/units/chat.ts
   function chatUnit() {
     const scroller = document.querySelector("#play-messages");
@@ -4901,6 +5332,7 @@ ${selectedText(m2)}
     initMessageList();
     const editor = initChatEditor();
     const rember = initRember();
+    const lore = initLorebooks();
     window.addEventListener("hashchange", update);
     listen((u3) => {
       if (u3.storage !== "local") return;
@@ -4937,6 +5369,7 @@ ${selectedText(m2)}
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", editor.open],
       ["\u29D6 rEmber", rember.open],
+      ["\u{1F56E} Lorebooks", lore.open],
       ["Export", exportChat],
       ["Clone", cloneChat]
     ]);
@@ -5157,8 +5590,8 @@ ${card.value.card.description}`;
   var chat_handle_default = '<div class="lineout row main-chats-item">\n	<img class="pointer" data-ref="icon">\n	<div class="list wide">\n		<h2 class="pointer" data-ref="title"></h2>\n		<div class="row-compact main-chats-item-user">\n			<img data-ref="user-icon">\n			<div data-ref="user-name"></div>\n		</div>\n		<div class="hint" data-ref="messages"></div>\n		<button class="lineout fit reset-text" data-ref="memo"></button>\n	</div>\n	<div class="list main-chats-item-actions">\n		<button class="lineout" data-ref="play">play</button>\n		<select class="lineout center-text pointer" data-ref="folder"></select>\n		<button class="lineout" data-ref="delete">delete</button>\n	</div>\n</div>\n';
 
   // src/views/chat-handle.ts
-  var template5 = R(chat_handle_default);
-  var REFS5 = {
+  var template6 = R(chat_handle_default);
+  var REFS6 = {
     icon: HTMLImageElement,
     "user-icon": HTMLImageElement,
     title: HTMLElement,
@@ -5170,7 +5603,7 @@ ${card.value.card.description}`;
     folder: HTMLSelectElement
   };
   function makeChatHandleView(handle, pictures, folderOptions, handlers) {
-    const { root, refs: r } = h(template5, REFS5);
+    const { root, refs: r } = h(template6, REFS6);
     r.icon.src = placeholder(null);
     r["user-icon"].src = placeholder(null);
     setPicture(r.icon, pictures.scenario);
@@ -5401,9 +5834,41 @@ ${card.value.card.description}`;
     const previewButton = document.querySelector("#scenario-preview-button");
     const submitButton = document.querySelector("#scenario-submit-button");
     const firstMessage = document.querySelector("#scenario-messages");
+    const lorebookList = document.querySelector("#scenario-lorebooks");
+    const lorebookImport = document.querySelector("#scenario-lorebook-import");
     makeResizable(cardDescription);
     makeResizable(definition);
     const messagesControl = initFirstMessages();
+    let lorebooks = [];
+    lorebookImport.addEventListener("input", async () => {
+      const file = lorebookImport.input.files?.[0];
+      lorebookImport.input.value = "";
+      if (!file) return;
+      const parsed = await parseLorebookFile(file);
+      if (!parsed.success) {
+        toast(parsed.error);
+        return;
+      }
+      if (lorebooks.some((b2) => b2.id === parsed.value.id)) {
+        toast("this lorebook is already attached");
+        return;
+      }
+      lorebooks.push(parsed.value);
+      renderLorebooks();
+    });
+    function renderLorebooks() {
+      lorebookList.innerHTML = "";
+      if (lorebooks.length === 0) lorebookList.append(placeholderView("No lorebooks attached"));
+      lorebookList.append(...lorebooks.map((book) => makeLorebookItemView(book, {
+        toggle: (enabled) => {
+          book.enabled = enabled;
+        },
+        remove: () => {
+          lorebooks = lorebooks.filter((b2) => b2 !== book);
+          renderLorebooks();
+        }
+      })));
+    }
     window.addEventListener("hashchange", load2);
     load2();
     async function load2() {
@@ -5425,6 +5890,7 @@ ${card.value.card.description}`;
         characterName.value = scenario.value.chat.name;
         definition.value = scenario.value.chat.definition;
         messagesControl.set(scenario.value.chat.initials);
+        lorebooks = scenario.value.lorebooks ?? [];
       } else {
         cardIcon.usePlaceholder();
         cardTitle.value = "";
@@ -5436,7 +5902,9 @@ ${card.value.card.description}`;
         characterName.value = "";
         definition.value = definitionTemplate;
         messagesControl.set([""]);
+        lorebooks = [];
       }
+      renderLorebooks();
       textareaReconsider(cardDescription);
       textareaReconsider(definition);
       textareaReconsider(cardTags);
@@ -5484,7 +5952,8 @@ ${card.value.card.description}`;
           definition: definition.value,
           initials: firstMessages,
           tokenCount: estimateTokenCount(definition.value)
-        }
+        },
+        lorebooks
       };
       if (!payload.chat.definition.includes("{{persona}}")) {
         toast([
@@ -5573,8 +6042,8 @@ ${card.value.card.description}`;
   var scenario_card_default = '<div class="scenario-card lineout">\n	<div class="scenario-card-icon-container">\n		<img class="pointer" data-ref="icon">\n	</div>\n	<div class="list grow">\n		<div class="row-compact">\n			<h6 class="pointer" data-ref="title"></h6>\n			<button class="strip ghost pointer" data-ref="download">\u2913</button>\n			<button class="strip ghost pointer" data-ref="delete">\u2716</button>\n			<button class="strip ghost pointer" data-ref="edit">\u270E</button>\n			<button class="lineout" data-ref="play">play</button>\n		</div>\n		<div class="row baseline">\n			<a data-ref="author-link" hidden></a>\n			<span data-ref="author" hidden></span>\n			<div class="hint float-end" data-ref="tokens"></div>\n		</div>\n		<hr>\n		<div class="scenario-card-description md" data-ref="description"></div>\n		<div class="scenario-card-tags" data-ref="tags"></div>\n	</div>\n</div>\n';
 
   // src/views/scenario-card.ts
-  var template6 = R(scenario_card_default);
-  var REFS6 = {
+  var template7 = R(scenario_card_default);
+  var REFS7 = {
     icon: HTMLImageElement,
     title: HTMLElement,
     download: HTMLButtonElement,
@@ -5588,7 +6057,7 @@ ${card.value.card.description}`;
     tags: HTMLElement
   };
   function makeScenarioCardView(item, picture, handlers) {
-    const { root, refs: r } = h(template6, REFS6);
+    const { root, refs: r } = h(template7, REFS7);
     r.icon.src = placeholder(null);
     setPicture(r.icon, picture);
     r.title.textContent = item.card.title;
@@ -5617,23 +6086,6 @@ ${card.value.card.description}`;
   }
 
   // src/units/chat/start.ts
-  var PRON_MACROS = {
-    "{{sub}}": "subjective",
-    "{{he}}": "subjective",
-    "{{she}}": "subjective",
-    "{{they}}": "subjective",
-    "{{obj}}": "objective",
-    "{{them}}": "objective",
-    "{{poss}}": "possessiveAdj",
-    "{{their}}": "possessiveAdj",
-    "{{poss_p}}": "possessivePro",
-    "{{theirs}}": "possessivePro",
-    "{{ref}}": "reflexive",
-    "{{themselves}}": "reflexive"
-  };
-  var CHAR_NAME_MACRO = "{{char}}";
-  var USER_NAME_MACRO = "{{user}}";
-  var PERSONA_MACRO = "{{persona}}";
   async function start(personaId, scenarioId, messages) {
     const [persona, scenario] = await Promise.all([
       idb.get("personas", personaId),
@@ -5658,7 +6110,9 @@ ${card.value.card.description}`;
         userPersona: persona.value,
         messageChunks: [],
         rember: REMBER_DEFAULTS,
-        folder: null
+        folder: null,
+        lorebooks: scenario.value.lorebooks ?? [],
+        lore: LORE_DEFAULTS
       }),
       idb.set("chatContents", {
         id: chatId,
@@ -5674,30 +6128,21 @@ ${card.value.card.description}`;
     ]);
     window.location.hash = `play.${chatId}`;
   }
-  function macros(template9, pronouns, charName, userName, persona) {
-    for (const [from, toKey] of Object.entries(PRON_MACROS)) {
-      template9 = template9.replaceAll(from, pronouns[toKey]);
-    }
-    template9 = template9.replaceAll(CHAR_NAME_MACRO, charName);
-    template9 = template9.replaceAll(USER_NAME_MACRO, userName);
-    template9 = template9.replaceAll(PERSONA_MACRO, persona);
-    return template9;
-  }
   function prepareScenario(origin, persona) {
-    const runMacros = (template9) => macros(
-      template9,
-      persona.pronouns,
-      origin.chat.name,
-      persona.name,
-      persona.description
-    );
-    const definition = runMacros(origin.chat.definition);
+    const context = {
+      pronouns: persona.pronouns,
+      charName: origin.chat.name,
+      userName: persona.name,
+      persona: persona.description
+    };
+    const expand = (template10) => runMacros(template10, context);
+    const definition = expand(origin.chat.definition);
     return {
       id: origin.id,
       picture: origin.chat.picture || origin.card.picture,
       name: origin.chat.name || origin.card.title,
       definition,
-      initials: origin.chat.initials.map(runMacros),
+      initials: origin.chat.initials.map(expand),
       tokenCount: estimateTokenCount(definition)
     };
   }
@@ -5730,10 +6175,10 @@ ${card.value.card.description}`;
   var armory_item_default = '<div class="row-compact baseline">\n	<div class="lineout wide pointer">\n		<div data-ref="name"></div>\n	</div>\n	<button class="lineout float-end" data-ref="delete">\u2716</button>\n	<button class="lineout" data-ref="open">open</button>\n</div>\n';
 
   // src/views/armory-item.ts
-  var template7 = R(armory_item_default);
-  var REFS7 = ["name", "open", "delete"];
+  var template8 = R(armory_item_default);
+  var REFS8 = ["name", "open", "delete"];
   function makeArmoryItemView(name, handlers) {
-    const { root, refs: r } = h(template7, REFS7);
+    const { root, refs: r } = h(template8, REFS8);
     r.name.textContent = name;
     r.open.addEventListener("click", handlers.open);
     r.delete.addEventListener("click", handlers.delete);
@@ -5744,8 +6189,8 @@ ${card.value.card.description}`;
   var armory_card_default = '<div class="lineout row armory-item">\n	<img data-ref="icon">\n	<div class="list wide">\n		<div class="armory-item-summary" data-ref="summary"></div>\n		<div class="row-compact float-bottom">\n			<button class="lineout float-end" data-ref="download"></button>\n		</div>\n		<progress max="100" value="0" data-ref="progress" hidden></progress>\n		<div class="placeholder fit float-end" data-ref="status" hidden>scenario downloaded</div>\n	</div>\n</div>\n';
 
   // src/views/armory-card.ts
-  var template8 = R(armory_card_default);
-  var REFS8 = {
+  var template9 = R(armory_card_default);
+  var REFS9 = {
     icon: HTMLImageElement,
     summary: HTMLElement,
     download: HTMLButtonElement,
@@ -5753,7 +6198,7 @@ ${card.value.card.description}`;
     status: HTMLElement
   };
   function makeArmoryCardView(data, onDownload) {
-    const { root, refs: r } = h(template8, REFS8);
+    const { root, refs: r } = h(template9, REFS9);
     r.icon.src = placeholder(data.icon);
     r.summary.textContent = data.summary;
     r.download.textContent = data.downloadCaption;
@@ -5936,9 +6381,11 @@ ${card.value.card.description}`;
       ...definitionTemplate2.instructions,
       fix(parsed.data.scenario ?? "")
     ].join("\n").trim();
+    const book = parsed.data.character_book?.entries?.length ? await fromCharacterBook(parsed.data.character_book, parsed.data.name) : null;
     const converted = {
       id: crypto.randomUUID(),
       lastUpdate: Date.now(),
+      lorebooks: book ? [book] : [],
       card: {
         author,
         description: parsed.metadata.raw_description_html ?? parsed.data.description,

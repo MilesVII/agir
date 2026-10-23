@@ -204,3 +204,8 @@ export function unique<T>(a: T[]): T[] {
 export function clamp(v: number, min: number, max: number) {
 	return Math.min(Math.max(v, min), max);
 }
+
+export async function sha1Hex(text: string) {
+	const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(text));
+	return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+}

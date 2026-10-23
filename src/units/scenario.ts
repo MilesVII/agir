@@ -1,6 +1,10 @@
 import { idb, upload } from "@root/persist";
 import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
-import { ScenarioCard } from "@root/types";
+import { Lorebook, ScenarioCard } from "@root/types";
+import { RampikeFilePicker } from "@rampike/filepicker";
+import { parseLorebookFile } from "./library/lorebook";
+import { makeLorebookItemView } from "@views/lorebook-item";
+import { placeholderView } from "@views/common";
 import { RampikeImagePicker } from "@rampike/imagepicker";
 import { toast } from "./toasts";
 import { estimateTokenCount } from "tokenx";
@@ -36,9 +40,41 @@ export function scenarioUnit() {
 	const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
 	const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
 	const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
+	const lorebookList     = document.querySelector<HTMLElement>        ("#scenario-lorebooks")!;
+	const lorebookImport   = document.querySelector<RampikeFilePicker>  ("#scenario-lorebook-import")!;
 	makeResizable(cardDescription);
 	makeResizable(definition);
 	const messagesControl = initFirstMessages();
+	/** books attached to the card being edited */
+	let lorebooks: Lorebook[] = [];
+
+	lorebookImport.addEventListener("input", async () => {
+		const file = lorebookImport.input.files?.[0];
+		lorebookImport.input.value = "";
+		if (!file) return;
+		const parsed = await parseLorebookFile(file);
+		if (!parsed.success) {
+			toast(parsed.error);
+			return;
+		}
+		if (lorebooks.some(b => b.id === parsed.value.id)) {
+			toast("this lorebook is already attached");
+			return;
+		}
+		lorebooks.push(parsed.value);
+		renderLorebooks();
+	});
+	function renderLorebooks() {
+		lorebookList.innerHTML = "";
+		if (lorebooks.length === 0) lorebookList.append(placeholderView("No lorebooks attached"));
+		lorebookList.append(...lorebooks.map(book => makeLorebookItemView(book, {
+			toggle: enabled => { book.enabled = enabled; },
+			remove: () => {
+				lorebooks = lorebooks.filter(b => b !== book);
+				renderLorebooks();
+			}
+		})));
+	}
 
 	window.addEventListener("hashchange", load);
 	load();
@@ -65,6 +101,7 @@ export function scenarioUnit() {
 			definition.value       = scenario.value.chat.definition;
 
 			messagesControl.set(scenario.value.chat.initials);
+			lorebooks = scenario.value.lorebooks ?? [];
 		} else {
 			cardIcon.usePlaceholder();
 			cardTitle.value = "";
@@ -78,7 +115,9 @@ export function scenarioUnit() {
 			definition.value = definitionTemplate;
 
 			messagesControl.set([""]);
+			lorebooks = [];
 		}
+		renderLorebooks();
 		textareaReconsider(cardDescription);
 		textareaReconsider(definition);
 		textareaReconsider(cardTags);
@@ -137,7 +176,8 @@ export function scenarioUnit() {
 				definition: definition.value,
 				initials: firstMessages,
 				tokenCount: estimateTokenCount(definition.value)
-			}
+			},
+			lorebooks
 		};
 
 		if (!payload.chat.definition.includes("{{persona}}")) {

@@ -270,6 +270,16 @@
 						rows="1"
 					></ram-labeled>
 					<div class="list">
+						<div class="row baseline">
+							<div>Lorebooks</div>
+							<ram-file-picker id="scenario-lorebook-import" accept=".json" class="float-end">
+								<div class="lineout fit pointer">import</div>
+							</ram-file-picker>
+						</div>
+						<div class="hint">SillyTavern world info exports and Character Card V2 lorebooks. Attached books are copied into every new chat started from this card.</div>
+						<div id="scenario-lorebooks" class="list"></div>
+					</div>
+					<div class="list">
 						<hr/>
 						<div class="hint">Character definiton below</div>
 					</div>
@@ -342,6 +352,7 @@
 							<button class="lineout fit" data-to="chats">back</button>
 							<div class="chat-provider-control row-compact">
 								<button id="chat-rember-counter" class="lineout rember-counter" hidden>⧖</button>
+								<button id="chat-lore-counter" class="lineout rember-counter" title="lorebook entries sent with the last prompt" hidden>🕮</button>
 								<div>Provider:</div>
 								<select id="chat-provider-picker" class="lineout"></select>
 								<select id="chat-menu-select" class="lineout"></select>
@@ -531,6 +542,44 @@
 				multiline
 				rows="1"
 			></ram-labeled>
+		</ram-modal>
+		<ram-modal id="play-lore">
+			<div class="chat-provider-control row-compact">
+				<div>🕮 Lorebooks</div>
+				<button id="play-lore-close" class="lineout">close</button>
+			</div>
+			<details>
+				<summary class="settings-label">
+					Settings
+				</summary>
+				<div class="list">
+					<div class="hint">Keys are looked for in the last N story messages and the latest ⧖ rEmber summary. OOC notes are not scanned.</div>
+					<ram-labeled
+						legend="Scan depth (messages)"
+						id="play-lore-scan-depth"
+						class="strip wide"
+						placeholder="2"
+					></ram-labeled>
+					<div class="hint">Fired entries are added to the prompt until this many tokens are used; entries with a higher order go first.</div>
+					<ram-labeled
+						legend="Token budget"
+						id="play-lore-budget"
+						class="strip wide"
+						placeholder="2048"
+					></ram-labeled>
+					<div class="row">
+						<button id="play-lore-save" class="lineout fit float-end">save settings</button>
+					</div>
+				</div>
+			</details>
+			<div class="row">
+				<ram-file-picker id="play-lore-import" accept=".json">
+					<div class="lineout fit pointer">import</div>
+				</ram-file-picker>
+				<button id="play-lore-copy" class="lineout fit">copy from card</button>
+			</div>
+			<div id="play-lore-list" class="list"></div>
+			<div id="play-lore-status" class="hint"></div>
 		</ram-modal>
 		<ram-modal id="play-rember" strong>
 			<div class="chat-provider-control row-compact">

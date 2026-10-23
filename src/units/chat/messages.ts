@@ -5,6 +5,7 @@ import { readProviders } from "@units/settings/providers";
 import { toast } from "@units/toasts";
 import { activeJob, runJob } from "./generation";
 import { roleplayPrompt } from "./prompt";
+import { activateLore, reportLore } from "./lore";
 import {
 	ChatSession, addMessage, commit, commitContents, getSession, lastModelMessage, messageByID,
 	pushSwipe, removeMessage, selectSwipe, selectedText, setRember, setSwipeText, truncateFrom
@@ -209,11 +210,14 @@ async function generate(mid: number) {
 
 	const chatId = session.chat.id;
 	const settings = loadMiscSettings();
+	const lore = activateLore(session, mid);
+	reportLore(lore);
 	const prompt = roleplayPrompt(session, mid, {
 		tail: settings.tail,
 		remberStretch: settings.remberStretch,
 		oocAsUser: settings.oocAsUser,
-		suffix: provider.suffix
+		suffix: provider.suffix,
+		lore
 	});
 
 	// views are looked up per chunk: the list may be re-rendered mid-stream

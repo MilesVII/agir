@@ -68,7 +68,54 @@ export type ScenarioCard = {
 		definition: string,
 		initials: string[],
 		tokenCount: number
-	}
+	},
+	/** copied into every chat started from the card */
+	lorebooks?: Lorebook[]
+};
+
+/** How secondary keys refine a primary key match (SillyTavern's selective logic) */
+export type LoreLogic = "andAny" | "notAll" | "notAny" | "andAll";
+/** Where fired content lands: around the definition, or `depth` messages from the end of the chat */
+export type LorePosition = "before" | "after" | "depth";
+export type LorebookEntry = {
+	id: number,
+	name: string,
+	keys: string[],
+	secondaryKeys: string[],
+	logic: LoreLogic,
+	content: string,
+	enabled: boolean,
+	constant: boolean,
+	order: number,
+	position: LorePosition,
+	depth: number,
+	role: PromptRole,
+	/** null: use the book's setting */
+	caseSensitive: boolean | null,
+	wholeWords: boolean | null,
+	/** can't be fired by other entries' content */
+	excludeRecursion: boolean,
+	/** its content doesn't fire other entries */
+	preventRecursion: boolean,
+	scanDepth: number | null
+};
+export type Lorebook = {
+	/** hash of keys and contents: same book, same id */
+	id: string,
+	name: string,
+	enabled: boolean,
+	scanDepth: number | null,
+	tokenBudget: number | null,
+	recursive: boolean,
+	caseSensitive: boolean,
+	wholeWords: boolean,
+	entries: LorebookEntry[]
+};
+/** Per-chat lore activation settings */
+export type LoreSettings = {
+	/** story messages scanned for keys */
+	scanDepth: number,
+	tokenBudget: number
 };
 
 export type Chat = {
@@ -82,7 +129,9 @@ export type Chat = {
 	messageChunks: string[],
 	rember: RemberSettings,
 	folder: Folder,
-	memo?: string
+	memo?: string,
+	lorebooks?: Lorebook[],
+	lore?: LoreSettings
 };
 
 /**

@@ -1,29 +1,9 @@
 import { idb } from "@root/persist";
-import { Chat, ChatMessage, Persona, Pronouns, ScenarioCard } from "@root/types";
+import { Chat, ChatMessage, Persona, ScenarioCard } from "@root/types";
 import { REMBER_DEFAULTS } from "./prompt";
+import { LORE_DEFAULTS } from "./lore";
+import { runMacros } from "./macros";
 import { estimateTokenCount } from "tokenx";
-
-const PRON_MACROS: Record<string, keyof Pronouns> = {
-	"{{sub}}":     "subjective",
-	"{{he}}":      "subjective",
-	"{{she}}":     "subjective",
-	"{{they}}":    "subjective",
-
-	"{{obj}}":     "objective",
-	"{{them}}":    "objective",
-
-	"{{poss}}":    "possessiveAdj",
-	"{{their}}":   "possessiveAdj",
-
-	"{{poss_p}}":  "possessivePro",
-	"{{theirs}}":  "possessivePro",
-
-	"{{ref}}":     "reflexive",
-	"{{themselves}}":"reflexive"
-};
-const CHAR_NAME_MACRO = "{{char}}";
-const USER_NAME_MACRO = "{{user}}";
-const PERSONA_MACRO = "{{persona}}";
 
 export async function start(personaId: string, scenarioId: string, messages?: ChatMessage[]) {
 	const [persona, scenario] = await Promise.all([
@@ -51,7 +31,9 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 			userPersona: persona.value,
 			messageChunks: [],
 			rember: REMBER_DEFAULTS,
-			folder: null
+			folder: null,
+			lorebooks: scenario.value.lorebooks ?? [],
+			lore: LORE_DEFAULTS
 		}),
 		idb.set("chatContents", {
 			id: chatId,
@@ -69,32 +51,23 @@ export async function start(personaId: string, scenarioId: string, messages?: Ch
 	window.location.hash = `play.${chatId}`;
 }
 
-function macros(template: string, pronouns: Pronouns, charName: string, userName: string, persona: string) {
-	for (const [from, toKey] of Object.entries(PRON_MACROS)) {
-		template = template.replaceAll(from, pronouns[toKey]);
-	}
-	template = template.replaceAll(CHAR_NAME_MACRO, charName);
-	template = template.replaceAll(USER_NAME_MACRO, userName);
-	template = template.replaceAll(PERSONA_MACRO, persona);
-	return template;
-}
-
 function prepareScenario(origin: ScenarioCard, persona: Persona): Chat["scenario"] {
-	const runMacros = (template: string) => macros(
-		template,
-		persona.pronouns,
-		origin.chat.name, persona.name,
-		persona.description
-	);
+	const context = {
+		pronouns: persona.pronouns,
+		charName: origin.chat.name,
+		userName: persona.name,
+		persona: persona.description
+	};
+	const expand = (template: string) => runMacros(template, context);
 
-	const definition = runMacros(origin.chat.definition);
+	const definition = expand(origin.chat.definition);
 
 	return {
 		id: origin.id,
 		picture: origin.chat.picture || origin.card.picture,
 		name: origin.chat.name || origin.card.title,
 		definition,
-		initials: origin.chat.initials.map(runMacros),
+		initials: origin.chat.initials.map(expand),
 		tokenCount: estimateTokenCount(definition)
 	};
 }
