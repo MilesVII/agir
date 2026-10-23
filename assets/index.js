@@ -5164,7 +5164,7 @@ ${selectedText(m2)}
   }
 
   // src/views/lorebook-item.html
-  var lorebook_item_default = '<div class="lineout row-compact align-center">\n	<input type="checkbox" data-ref="enabled" title="enabled">\n	<div class="list wide">\n		<div data-ref="name"></div>\n		<div class="hint" data-ref="details"></div>\n	</div>\n	<button class="lineout" data-ref="remove" title="remove">\u2716</button>\n</div>\n';
+  var lorebook_item_default = '<label class="lineout pointer row-compact align-center">\n	<input type="checkbox" data-ref="enabled" title="enabled">\n	<div class="list wide">\n		<div data-ref="name"></div>\n		<div class="hint" data-ref="details"></div>\n	</div>\n	<button class="lineout" data-ref="remove" title="remove">\u2716</button>\n</label>\n';
 
   // src/views/lorebook-item.ts
   var template5 = R(lorebook_item_default);
