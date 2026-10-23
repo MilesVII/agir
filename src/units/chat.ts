@@ -72,7 +72,7 @@ export function chatUnit() {
 		["Scenario card",   openScenarioIfExists],
 		["Edit definition", editor.open],
 		["⧖ rEmber",        rember.open],
-		["📖 Lorebooks",    lore.open],
+		["🕮 Lorebooks",    lore.open],
 		["Export",          exportChat],
 		["Clone",           cloneChat]
 	]);

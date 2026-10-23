@@ -10,7 +10,7 @@ import { LORE_DEFAULTS, LoreActivation, loreSettingsOf, onLore } from "./lore";
 import { ChatSession, commitChat, getSession, onSessionReplaced } from "./session";
 
 /*
-📖 Lorebooks of the open chat: attach (import a file or copy from the scenario card),
+🕮 Lorebooks of the open chat: attach (import a file or copy from the scenario card),
 enable, remove, tune scan depth and token budget, and see what fired on the last prompt.
 */
 
@@ -59,7 +59,7 @@ export function initLorebooks() {
 	function updateCounter(session: ChatSession | null) {
 		const books = session?.chat.lorebooks ?? [];
 		counter.hidden = books.length === 0;
-		counter.textContent = last ? `📖${last.activated.length}` : "📖";
+		counter.textContent = last ? `🕮${last.activated.length}` : "🕮";
 		counter.dataset.run = last && last.activated.length > 0 ? "true" : "false";
 	}
 

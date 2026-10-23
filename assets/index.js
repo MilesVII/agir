@@ -5233,7 +5233,7 @@ ${selectedText(m2)}
     function updateCounter(session) {
       const books = session?.chat.lorebooks ?? [];
       counter.hidden = books.length === 0;
-      counter.textContent = last2 ? `\u{1F4D6}${last2.activated.length}` : "\u{1F4D6}";
+      counter.textContent = last2 ? `\u{1F56E}${last2.activated.length}` : "\u{1F56E}";
       counter.dataset.run = last2 && last2.activated.length > 0 ? "true" : "false";
     }
     function fill(session) {
@@ -5369,7 +5369,7 @@ ${selectedText(m2)}
       ["Scenario card", openScenarioIfExists],
       ["Edit definition", editor.open],
       ["\u29D6 rEmber", rember.open],
-      ["\u{1F4D6} Lorebooks", lore.open],
+      ["\u{1F56E} Lorebooks", lore.open],
       ["Export", exportChat],
       ["Clone", cloneChat]
     ]);
