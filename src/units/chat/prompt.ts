@@ -1,5 +1,6 @@
 import { ChatMessage, PromptMessage, RemberSettings } from "@root/types";
 import { ChatSession, selectedText } from "./session";
+import { LoreActivation } from "./lore";
 
 /*
 Pure prompt builders: session in, PromptMessage[] out. No DOM, no idb, no network.
@@ -38,7 +39,9 @@ export type RoleplayOptions = {
 	remberStretch: boolean,
 	/** send OOC notes as "OOC: ..." user turns instead of mid-conversation system messages */
 	oocAsUser: boolean,
-	suffix?: string
+	suffix?: string,
+	/** fired lorebook entries, see lore.ts */
+	lore?: LoreActivation | null
 };
 
 /**
@@ -56,15 +59,23 @@ export function roleplayPrompt(session: ChatSession, beforeMid: number, options:
 	if (options.remberStretch && remberAt !== -1) start = Math.min(start, remberAt);
 
 	const definition = session.chat.scenario.definition;
-	const prompt: PromptMessage[] = [
-		system(options.suffix ? `${definition}\n${options.suffix}` : definition)
-	];
+	const lore = options.lore;
+	const prompt: PromptMessage[] = [];
+	if (lore?.before.length) prompt.push(system(lore.before.join("\n\n")));
+	prompt.push(system(options.suffix ? `${definition}\n${options.suffix}` : definition));
+	if (lore?.after.length) prompt.push(system(lore.after.join("\n\n")));
+
+	const turns: PromptMessage[] = [];
 	for (let i = start; i < history.length; ++i) {
 		if (i === remberAt)
-			prompt.push(system(`# Roleplay state summary:\n${history[i].rember}`));
-		prompt.push(toPrompt(history[i], options.oocAsUser));
+			turns.push(system(`# Roleplay state summary:\n${history[i].rember}`));
+		turns.push(toPrompt(history[i], options.oocAsUser));
 	}
-	return prompt;
+	// lore at depth N sits N turns from the end; deepest first keeps the offsets right
+	for (const { depth, role, content } of [...(lore?.atDepth ?? [])].sort((a, b) => b.depth - a.depth))
+		turns.splice(Math.max(0, turns.length - depth), 0, { role, content });
+
+	return [...prompt, ...turns];
 }
 
 /**

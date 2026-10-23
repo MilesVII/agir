@@ -2,6 +2,7 @@ import { upload } from "@root/persist";
 import { ScenarioCard } from "@root/types";
 import { nothrowAsync } from "@root/utils";
 import { estimateTokenCount } from "tokenx";
+import { CharacterBook, fromCharacterBook } from "./lorebook";
 
 export type DatacatCard = {
 	data: {
@@ -16,7 +17,8 @@ export type DatacatCard = {
 		mes_example: string, // examples
 		// personality: "", // skipped?
 		// system_prompt: "",
-		alternate_greetings: string[]
+		alternate_greetings: string[],
+		character_book?: CharacterBook
 	},
 	spec: "chara_card_v2",
 	metadata: {
@@ -69,9 +71,14 @@ export async function importDatacatJSON(parsed: DatacatCard) {
 		fix(parsed.data.scenario ?? "")
 	].join("\n").trim();
 
+	const book = parsed.data.character_book?.entries?.length
+		? await fromCharacterBook(parsed.data.character_book, parsed.data.name)
+		: null;
+
 	const converted: ScenarioCard = {
 		id: crypto.randomUUID(),
 		lastUpdate: Date.now(),
+		lorebooks: book ? [book] : [],
 		card: {
 			author,
 			description: parsed.metadata.raw_description_html ?? parsed.data.description,
