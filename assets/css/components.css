@@ -232,6 +232,7 @@ summary.settings-label {
 .scenario-card > .list {
 	flex-grow: 1;
 	min-height: 0;
+	min-width: 0; /* imported HTML descriptions must not stretch the card to their intrinsic width */
 }
 .scenario-card h6 {
 	font: var(--font-bold);
@@ -246,7 +247,11 @@ summary.settings-label {
 }
 .scenario-card-description {
 	flex-grow: 1;
-	overflow-y: auto;
+	overflow: auto;
+}
+/* card descriptions come from the wild: keep their painting (giant box-shadows, rotated bits) inside the box */
+.scenario-card-description, #library-start-description, #play-card-preview {
+	contain: paint;
 }
 .scenario-card-tags {
 	display: flex;
