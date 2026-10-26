@@ -26,6 +26,27 @@ const PRON_MACROS: Record<string, keyof Pronouns> = {
 const CHAR_NAME_MACRO = "{{char}}";
 const USER_NAME_MACRO = "{{user}}";
 const PERSONA_MACRO = "{{persona}}";
+const MACROS_MACRO = "{{macros}}";
+
+const MACROS =
+`# Macros
+## Names
+{{char}}
+    Character name
+{{user}}
+    User's persona name
+
+## User's persona pronouns:
+{{sub}} or {{they}}
+    subjective (he/she/they)
+{{obj}} or {{them}}
+    objective (him/her/them)
+{{poss}} or {{their}}
+    possessive (his/her/their)
+{{poss_p}} or {{theirs}}
+    possessive pronoun (his/hers/theirs)
+{{ref}} or {{themselves}}
+    reflexive (himself/herself/themselves)`;
 
 export type MacroContext = {
 	pronouns: Pronouns,
@@ -41,6 +62,7 @@ export function runMacros(template: string, context: MacroContext) {
 	template = template.replaceAll(CHAR_NAME_MACRO, context.charName);
 	template = template.replaceAll(USER_NAME_MACRO, context.userName);
 	template = template.replaceAll(PERSONA_MACRO, context.persona);
+	template = template.replaceAll(MACROS_MACRO, MACROS);
 	return template;
 }
 

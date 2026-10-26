@@ -4278,6 +4278,25 @@ ${selectedText(m2)}
   var CHAR_NAME_MACRO = "{{char}}";
   var USER_NAME_MACRO = "{{user}}";
   var PERSONA_MACRO = "{{persona}}";
+  var MACROS_MACRO = "{{macros}}";
+  var MACROS = `# Macros
+## Names
+{{char}}
+    Character name
+{{user}}
+    User's persona name
+
+## User's persona pronouns:
+{{sub}} or {{they}}
+    subjective (he/she/they)
+{{obj}} or {{them}}
+    objective (him/her/them)
+{{poss}} or {{their}}
+    possessive (his/her/their)
+{{poss_p}} or {{theirs}}
+    possessive pronoun (his/hers/theirs)
+{{ref}} or {{themselves}}
+    reflexive (himself/herself/themselves)`;
   function runMacros(template10, context) {
     for (const [from, toKey] of Object.entries(PRON_MACROS)) {
       template10 = template10.replaceAll(from, context.pronouns[toKey]);
@@ -4285,6 +4304,7 @@ ${selectedText(m2)}
     template10 = template10.replaceAll(CHAR_NAME_MACRO, context.charName);
     template10 = template10.replaceAll(USER_NAME_MACRO, context.userName);
     template10 = template10.replaceAll(PERSONA_MACRO, context.persona);
+    template10 = template10.replaceAll(MACROS_MACRO, MACROS);
     return template10;
   }
   function macroContext(chat) {
