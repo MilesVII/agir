@@ -48,6 +48,8 @@ export function scenarioUnit() {
 	const messagesControl = initFirstMessages();
 	/** books attached to the card being edited */
 	let lorebooks: Lorebook[] = [];
+	/** the card as it was loaded, so fields this form doesn't know about survive a save */
+	let loaded: ScenarioCard | null = null;
 
 	lorebookImport.addEventListener("input", async () => {
 		const file = lorebookImport.input.files?.[0];
@@ -87,10 +89,12 @@ export function scenarioUnit() {
 		chatIcon.usePlaceholder();
 		document.body.scrollTo({ behavior: "instant", top: 0 });
 		cloneButton.hidden = !path[1]; // a card that was never saved has nothing to clone
+		loaded = null;
 
 		if (path[1]) {
 			const scenario = await idb.get("scenarios", path[1]);
-			if (!scenario.success) return;
+			if (!scenario.success || !scenario.value) return;
+			loaded = scenario.value;
 			cardIcon.value        = scenario.value.card.picture ?? "";
 			cardTitle.value       = scenario.value.card.title;
 			cardAuthorName.value  = scenario.value.card.author?.name ?? "";
@@ -181,6 +185,7 @@ export function scenarioUnit() {
 		}
 
 		const payload: ScenarioCard = {
+			...loaded,
 			id,
 			lastUpdate: Date.now(),
 			card: {

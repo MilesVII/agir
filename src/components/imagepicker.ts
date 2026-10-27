@@ -5,7 +5,7 @@ import { mudcrack } from "rampike";
 
 // value, placeholder, accept
 class _RampikeImagePicker extends HTMLElement {
-	/** A freshly picked picture as an in-memory blob, or the media id of a stored one, or "" */
+	/** A freshly picked picture as an in-memory blob, or the media id or URL of a stored one, or "" */
 	get value(): Blob | string {
 		return this.picked ?? this.getAttribute("value") ?? "";
 	}

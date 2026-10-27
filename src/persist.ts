@@ -171,13 +171,32 @@ export async function upload(blob: Blob): Promise<string | null> {
 	}
 	return id;
 }
+/** A picture ref that points at the web instead of a stored media entry */
+export function isRemoteRef(imageRef: string) {
+	return /^https?:\/\//i.test(imageRef);
+}
+/**
+ * The picture's bytes: a stored media entry if there is one (backups embed remote pictures
+ * under their URL), otherwise a remote ref is fetched
+ */
+export async function getMedia(imageRef: string): Promise<MediaEntry | null> {
+	const stored = await get("media", imageRef);
+	if (stored.success && stored.value) return stored.value;
+	if (!isRemoteRef(imageRef)) return null;
+
+	const response = await nothrowAsync(fetch(imageRef));
+	if (!response.success || !response.value.ok) return null;
+	const media = await nothrowAsync(response.value.blob());
+	if (!media.success) return null;
+	return { id: imageRef, media: media.value, mime: media.value.type };
+}
 const map = new Map<string, string>();
 export async function getBlobLink(imageRef: string) {
 	if (map.has(imageRef)) {
 		return map.get(imageRef)!;
 	}
 	const blob = await get("media", imageRef);
-	if (!blob.success || !blob.value) return null;
+	if (!blob.success || !blob.value) return isRemoteRef(imageRef) ? imageRef : null;
 
 	const link = URL.createObjectURL(blob.value.media);
 	map.set(imageRef, link);

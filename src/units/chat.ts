@@ -1,7 +1,7 @@
 import { asyncMap, b64Encoder, download, getRoute, makeResizable, renderMD, setSelectMenu, setSelectOptions, textareaReconsider, updateTitle } from "@root/utils";
 import { RampikeTabs } from "@rampike/tabs";
 import { RampikeModal } from "@rampike/modal";
-import { idb, listen, local } from "@root/persist";
+import { getMedia, idb, listen, local } from "@root/persist";
 import { ActiveProviders } from "@root/types";
 import { readActiveProviders, readProviders } from "./settings/providers";
 import { toast } from "./toasts";
@@ -214,11 +214,12 @@ async function exportChat() {
 	].filter(id => id) as string[];
 	const encodedMedia = await asyncMap(mediaIDs,
 		async (id: string) => {
-			const picture = await idb.get("media", id);
-			if (!picture.success) return null;
+			// remote pictures are embedded under their URL, which the ref keeps pointing at
+			const picture = await getMedia(id);
+			if (!picture) return null;
 			return {
-				...picture.value,
-				media: await b64Encoder.encode(picture.value.media)
+				...picture,
+				media: await b64Encoder.encode(picture.media)
 			};
 		}
 	);

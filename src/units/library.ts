@@ -1,4 +1,4 @@
-import { getBlobLink, idb, listen, upload } from "@root/persist";
+import { getBlobLink, getMedia, idb, isRemoteRef, listen, upload } from "@root/persist";
 import { b64Encoder, download, renderMD, setSelectOptions } from "@root/utils";
 import { placeholderView } from "@views/common";
 import { makeScenarioCardView } from "@views/scenario-card";
@@ -162,15 +162,15 @@ function scenarioCardView(item: ScenarioCard) {
 }
 
 async function downloadScenario(card: ScenarioCard) {
-	const payload = { ...card };
+	const payload = { ...card, card: { ...card.card }, chat: { ...card.chat } };
 
 	async function encoded(value: string | null) {
 		if (!value) return null;
-		const icon = await idb.get("media", value)
-		if (icon.success)
-			return await b64Encoder.encode(icon.value.media);
-		else
-			return null;
+		const icon = await getMedia(value);
+		if (icon)
+			return await b64Encoder.encode(icon.media);
+		// a remote picture that can't be fetched (offline, CORS) is still worth keeping as a link
+		return isRemoteRef(value) ? value : null;
 	}
 
 	payload.card.picture = await encoded(card.card.picture);
@@ -191,6 +191,7 @@ export async function importScenario(file: Blob) {
 	if ("id" in parsed){
 		async function decode(b64: string | null) {
 			if (!b64) return null;
+			if (isRemoteRef(b64)) return b64;
 			const file = await b64Encoder.decode(b64);
 			const media = await upload(file);
 			return media;
