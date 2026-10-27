@@ -4705,49 +4705,62 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     const saveButton = document.querySelector("#settings-backup-save");
     const importPicker = document.querySelector("#settings-backup-import");
     const cleanupButton = document.querySelector("#settings-media-clean");
-    saveButton.addEventListener("click", backup);
+    const partialList = document.querySelector("#settings-backup-partial-list");
+    const savePartialButton = document.querySelector("#settings-backup-partial");
+    const { backupCall: runPartial } = initPartial(partialList);
+    saveButton.addEventListener("click", () => backup());
     importPicker.addEventListener("input", () => restore(importPicker));
     cleanupButton.addEventListener("click", mediaCleanup);
+    savePartialButton.addEventListener("click", () => runPartial());
   }
-  async function backup() {
+  var ALL_STORES = [
+    "chatContents",
+    "chats",
+    "personas",
+    "scenarios",
+    "media"
+  ];
+  async function backup(backupKeys = ALL_STORES, settings = true) {
+    if (backupKeys.length === 0 && !settings) {
+      toast("nothing selected");
+      return;
+    }
     const closeToast = toast("on it, please wait...");
-    const [
-      chatContents,
-      chats,
-      personas,
-      scenarios,
-      media
-    ] = await Promise.all([
-      idb.getAll("chatContents"),
-      idb.getAll("chats"),
-      idb.getAll("personas"),
-      idb.getAll("scenarios"),
-      idb.getAll("media")
-    ]);
-    const localData = {
-      providers: local.get("providers"),
-      activeProvider: local.get("activeProvider"),
-      settings: local.get("settings"),
-      theme: local.get("theme")
-    };
-    const validOnly = (() => {
-      const results = Object.entries({ chatContents, chats, personas, scenarios });
-      return Object.fromEntries(
-        results.filter(([k3, v2]) => v2.success).map(([k3, v2]) => [k3, v2.value])
-      );
-    })();
-    if (media.success) {
-      validOnly.media = media.value;
-      for (const m2 of validOnly.media) {
+    const idbBackupEntries = await Promise.all(
+      backupKeys.map(
+        async (k3) => [k3, await idb.getAll(k3)]
+      )
+    );
+    const idbBackup = Object.fromEntries(
+      idbBackupEntries.filter(([k3, v2]) => {
+        if (!v2.success) {
+          toast(`failed to read ${k3}; skipped`);
+        }
+        return v2.success;
+      }).map(([k3, v2]) => [k3, v2.success ? v2.value : []])
+    );
+    if ("media" in idbBackup) {
+      for (const m2 of idbBackup.media) {
         m2.media = await b64Encoder.encode(m2.media);
       }
     }
-    const payload = JSON.stringify({
-      idb: validOnly,
-      local: localData
-    });
+    const backup2 = {
+      idb: idbBackup,
+      local: {}
+    };
+    if (settings) {
+      const localData = {
+        providers: local.get("providers"),
+        activeProvider: local.get("activeProvider"),
+        settings: local.get("settings"),
+        theme: local.get("theme")
+      };
+      backup2.local = localData;
+    }
+    const payload = JSON.stringify(backup2);
     closeToast();
-    download(payload, `${(/* @__PURE__ */ new Date()).toLocaleString()}.aegir.backup.json`);
+    const isFull = ALL_STORES.length === backupKeys.length && settings;
+    download(payload, `${(/* @__PURE__ */ new Date()).toLocaleString()}${isFull ? "" : "_PARTIAL"}.aegir.backup.json`);
   }
   async function restore(picker) {
     const file = picker.input.files?.[0];
@@ -4825,6 +4838,51 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     } else {
       toast("no unused media found");
     }
+  }
+  function initPartial(list) {
+    function checkbox(caption) {
+      const cb = E({
+        tagName: "input",
+        attributes: {
+          type: "checkbox",
+          checked: "true"
+        }
+      });
+      const e = E({
+        tagName: "label",
+        className: "row-compact align-center",
+        contents: [
+          cb,
+          E({
+            tagName: "div",
+            contents: caption
+          })
+        ]
+      });
+      return [e, () => cb.checked];
+    }
+    list.innerHTML = "";
+    const items = {
+      chats: checkbox("Chats"),
+      media: checkbox("Media"),
+      personas: checkbox("Personas"),
+      scenarios: checkbox("Scenario library"),
+      settings: checkbox("Settings")
+    };
+    list.append(...Object.values(items).map(([e]) => e));
+    return {
+      backupCall: () => {
+        const stores = [];
+        if (items.chats[1]()) {
+          stores.push("chats");
+          stores.push("chatContents");
+        }
+        if (items.media[1]()) stores.push("media");
+        if (items.personas[1]()) stores.push("personas");
+        if (items.scenarios[1]()) stores.push("scenarios");
+        return backup(stores, items.settings[1]());
+      }
+    };
   }
 
   // src/units/settings/misc.ts

@@ -81,12 +81,21 @@
 						<summary class="settings-label">
 							Backup & Sync
 						</summary>
-						<div class="row-wrap">
-							<button id="settings-backup-save" class="lineout fit">Save all</button>
-							<ram-file-picker id="settings-backup-import" accept=".aegir.backup.json">
-								<div class="lineout pointer fit">Restore</div>
-							</ram-file-picker>
-							<button id="settings-media-clean" class="lineout fit">Delete unused media</button>
+						<div class="list">
+
+							<div class="row-wrap">
+								<button id="settings-backup-save" class="lineout fit">Save all</button>
+								<ram-file-picker id="settings-backup-import" accept=".aegir.backup.json">
+									<div class="lineout pointer fit">Restore</div>
+								</ram-file-picker>
+								<button id="settings-media-clean" class="lineout fit">Delete unused media</button>
+							</div>
+
+							<fieldset class="fit">
+								<legend>partial backup</legend>
+								<div id="settings-backup-partial-list" class="list"></div>
+								<button id="settings-backup-partial" class="lineout fit">Save a partial backup</button>
+							</fieldset>
 						</div>
 					</details>
 					<details>
