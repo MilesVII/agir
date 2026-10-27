@@ -1,13 +1,16 @@
 import { getBlobLink } from "@root/persist";
-import { placeholder } from "@root/utils";
+import { nothrowAsync, placeholder } from "@root/utils";
+import { toast } from "@units/toasts";
 import { mudcrack } from "rampike";
 
 // value, placeholder, accept
 class _RampikeImagePicker extends HTMLElement {
-	get value(): File | string {
-		return this.file ?? this.getAttribute("value") ?? "";
+	/** A freshly picked picture as an in-memory blob, or the media id of a stored one, or "" */
+	get value(): Blob | string {
+		return this.picked ?? this.getAttribute("value") ?? "";
 	}
 	set value(v: string) {
+		this.picked = null;
 		this.setAttribute("value", v);
 		this.input.value = "";
 		if (v) {
@@ -20,9 +23,6 @@ class _RampikeImagePicker extends HTMLElement {
 	get input() {
 		return this.querySelector<HTMLInputElement>(`input[type="file"]`)!;
 	}
-	get file() {
-		return this.input.files?.[0];
-	}
 	set image(v: string) {
 		const img = this.querySelector<HTMLImageElement>(`img`)!;
 		this.revokeBlob?.();
@@ -34,27 +34,39 @@ class _RampikeImagePicker extends HTMLElement {
 	}
 
 	usePlaceholder() {
+		this.picked = null;
 		this.image = placeholder(this.getAttribute("placeholder"));
 		this.input.value = "";
 		this.setAttribute("value", "");
 	}
 	paste(file: File) {
-		const container = new DataTransfer();
-		container.items.add(file);
-		this.input.files = container.files;
 		this.setFile(file);
 	}
 	onDirty: (() => void) | null = null;
 
+	/**
+	 * Picked files are copied into memory right away: a File from an <input> is only a handle,
+	 * and picker apps on Android drop their temporary copy soon after, which makes the handle
+	 * unreadable by the time the form is saved.
+	 */
+	private picked: Blob | null = null;
 	private revokeBlob: (() => void) | null = null;
-	private setFile(file: File) {
-		const link = URL.createObjectURL(file);
+	private async setFile(file: File) {
+		const bytes = await nothrowAsync(file.arrayBuffer());
+		this.input.value = "";
+		if (!bytes.success) {
+			toast("can't read the picture, try picking it again");
+			return;
+		}
+		this.picked = new Blob([bytes.value], { type: file.type });
+		this.setAttribute("value", "");
+
+		const link = URL.createObjectURL(this.picked);
 		this.image = link;
 		this.revokeBlob = () => {
 			URL.revokeObjectURL(link);
 			this.revokeBlob = null;
 		}
-		this.setAttribute("value", "");
 	}
 	private clearButton: HTMLButtonElement;
 
@@ -119,7 +131,7 @@ class _RampikeImagePicker extends HTMLElement {
 						if (!type) continue;
 
 						const file = await item.getType(type);
-						this.paste(new File([file], "pasted"));
+						this.paste(new File([file], "pasted", { type }));
 						return;
 					}
 				}

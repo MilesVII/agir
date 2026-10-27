@@ -1,5 +1,5 @@
 import { idb, upload } from "@root/persist";
-import { getRoute, makeResizable, renderMD, textareaReconsider } from "@root/utils";
+import { getRoute, makeResizable, nothrowAsync, renderMD, textareaReconsider } from "@root/utils";
 import { Lorebook, ScenarioCard } from "@root/types";
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { parseLorebookFile } from "./library/lorebook";
@@ -39,6 +39,7 @@ export function scenarioUnit() {
 	const definition       = document.querySelector<HTMLTextAreaElement>("#scenario-definition")!;
 	const previewButton    = document.querySelector<HTMLButtonElement>  ("#scenario-preview-button")!;
 	const submitButton     = document.querySelector<HTMLButtonElement>  ("#scenario-submit-button")!;
+	const cloneButton      = document.querySelector<HTMLButtonElement>  ("#scenario-clone-button")!;
 	const firstMessage     = document.querySelector<HTMLTextAreaElement>("#scenario-messages")!;
 	const lorebookList     = document.querySelector<HTMLElement>        ("#scenario-lorebooks")!;
 	const lorebookImport   = document.querySelector<RampikeFilePicker>  ("#scenario-lorebook-import")!;
@@ -85,6 +86,7 @@ export function scenarioUnit() {
 		cardIcon.usePlaceholder();
 		chatIcon.usePlaceholder();
 		document.body.scrollTo({ behavior: "instant", top: 0 });
+		cloneButton.hidden = !path[1]; // a card that was never saved has nothing to clone
 
 		if (path[1]) {
 			const scenario = await idb.get("scenarios", path[1]);
@@ -125,6 +127,25 @@ export function scenarioUnit() {
 	}
 
 	submitButton.addEventListener("click", async () => {
+		const payload = await buildPayload(getRoute()[1] ?? crypto.randomUUID());
+		if (!payload) return;
+
+		await idb.set("scenarios", payload);
+		window.location.hash = "library";
+	});
+	/** Saves what the form holds as a new card and switches the editor to it */
+	cloneButton.addEventListener("click", async () => {
+		const payload = await buildPayload(crypto.randomUUID());
+		if (!payload) return;
+		payload.card.title += " (copy)";
+
+		await idb.set("scenarios", payload);
+		toast("scenario cloned, you are now editing the copy");
+		window.location.hash = `scenario-editor.${payload.id}`;
+	});
+
+	/** Validates the form and collects it into a card with the given id, storing freshly picked pictures */
+	async function buildPayload(id: string): Promise<ScenarioCard | null> {
 		const firstMessages = messagesControl.get();
 
 		type Check = [cb: () => any, msg: string, target?: HTMLElement];
@@ -139,7 +160,7 @@ export function scenarioUnit() {
 			toast(msg);
 			target?.focus({ preventScroll: true });
 			target?.scrollIntoView({ behavior: "smooth", block: "center" });
-			return;
+			return null;
 		}
 
 		const cardPicture = await storePicture(cardIcon);
@@ -159,7 +180,6 @@ export function scenarioUnit() {
 			} else return null;
 		}
 
-		const id = getRoute()[1] ?? crypto.randomUUID();
 		const payload: ScenarioCard = {
 			id,
 			lastUpdate: Date.now(),
@@ -189,9 +209,8 @@ export function scenarioUnit() {
 			].join(""));
 		}
 
-		await idb.set("scenarios", payload);
-		window.location.hash = "library";
-	});
+		return payload;
+	}
 
 	previewClose.addEventListener("click", () => previewModal.close());
 	previewButton.addEventListener("click", () => {
@@ -269,7 +288,12 @@ async function storePicture(picker: RampikeImagePicker): Promise<string | null> 
 	const value = picker.value;
 	if (typeof value === "string") return value || null;
 
-	const [optimized, changed] = await optimizeToWEBP(value);
-	if (changed) console.log(`optimized delta: ${optimized.size - value.size} (negative means win)`);
-	return await upload(optimized);
+	const optimized = await nothrowAsync(optimizeToWEBP(value));
+	if (!optimized.success) {
+		toast("can't process the picture, the card is saved without it");
+		return null;
+	}
+	const [picture, changed] = optimized.value;
+	if (changed) console.log(`optimized delta: ${picture.size - value.size} (negative means win)`);
+	return await upload(picture);
 }

@@ -3042,10 +3042,12 @@ Please report this to https://github.com/markedjs/marked.`, e) {
 
   // src/components/imagepicker.ts
   var _RampikeImagePicker = class extends HTMLElement {
+    /** A freshly picked picture as an in-memory blob, or the media id of a stored one, or "" */
     get value() {
-      return this.file ?? this.getAttribute("value") ?? "";
+      return this.picked ?? this.getAttribute("value") ?? "";
     }
     set value(v2) {
+      this.picked = null;
       this.setAttribute("value", v2);
       this.input.value = "";
       if (v2) {
@@ -3058,9 +3060,6 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     get input() {
       return this.querySelector(`input[type="file"]`);
     }
-    get file() {
-      return this.input.files?.[0];
-    }
     set image(v2) {
       const img = this.querySelector(`img`);
       this.revokeBlob?.();
@@ -3071,26 +3070,37 @@ Please report this to https://github.com/markedjs/marked.`, e) {
       }, 0);
     }
     usePlaceholder() {
+      this.picked = null;
       this.image = placeholder(this.getAttribute("placeholder"));
       this.input.value = "";
       this.setAttribute("value", "");
     }
     paste(file) {
-      const container = new DataTransfer();
-      container.items.add(file);
-      this.input.files = container.files;
       this.setFile(file);
     }
     onDirty = null;
+    /**
+     * Picked files are copied into memory right away: a File from an <input> is only a handle,
+     * and picker apps on Android drop their temporary copy soon after, which makes the handle
+     * unreadable by the time the form is saved.
+     */
+    picked = null;
     revokeBlob = null;
-    setFile(file) {
-      const link = URL.createObjectURL(file);
+    async setFile(file) {
+      const bytes = await nothrowAsync(file.arrayBuffer());
+      this.input.value = "";
+      if (!bytes.success) {
+        toast("can't read the picture, try picking it again");
+        return;
+      }
+      this.picked = new Blob([bytes.value], { type: file.type });
+      this.setAttribute("value", "");
+      const link = URL.createObjectURL(this.picked);
       this.image = link;
       this.revokeBlob = () => {
         URL.revokeObjectURL(link);
         this.revokeBlob = null;
       };
-      this.setAttribute("value", "");
     }
     clearButton;
     constructor() {
@@ -3149,7 +3159,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
               const type = item.types.find((t) => t.startsWith("image/"));
               if (!type) continue;
               const file = await item.getType(type);
-              this.paste(new File([file], "pasted"));
+              this.paste(new File([file], "pasted", { type }));
               return;
             }
           }
@@ -5853,6 +5863,7 @@ ${card.value.card.description}`;
     const definition = document.querySelector("#scenario-definition");
     const previewButton = document.querySelector("#scenario-preview-button");
     const submitButton = document.querySelector("#scenario-submit-button");
+    const cloneButton = document.querySelector("#scenario-clone-button");
     const firstMessage = document.querySelector("#scenario-messages");
     const lorebookList = document.querySelector("#scenario-lorebooks");
     const lorebookImport = document.querySelector("#scenario-lorebook-import");
@@ -5897,6 +5908,7 @@ ${card.value.card.description}`;
       cardIcon.usePlaceholder();
       chatIcon.usePlaceholder();
       document.body.scrollTo({ behavior: "instant", top: 0 });
+      cloneButton.hidden = !path[1];
       if (path[1]) {
         const scenario = await idb.get("scenarios", path[1]);
         if (!scenario.success) return;
@@ -5931,6 +5943,20 @@ ${card.value.card.description}`;
       textareaReconsider(firstMessage);
     }
     submitButton.addEventListener("click", async () => {
+      const payload = await buildPayload(getRoute()[1] ?? crypto.randomUUID());
+      if (!payload) return;
+      await idb.set("scenarios", payload);
+      window.location.hash = "library";
+    });
+    cloneButton.addEventListener("click", async () => {
+      const payload = await buildPayload(crypto.randomUUID());
+      if (!payload) return;
+      payload.card.title += " (copy)";
+      await idb.set("scenarios", payload);
+      toast("scenario cloned, you are now editing the copy");
+      window.location.hash = `scenario-editor.${payload.id}`;
+    });
+    async function buildPayload(id) {
       const firstMessages = messagesControl.get();
       const checks = [
         [() => cardTitle.value, "Card name is required", cardTitle],
@@ -5942,7 +5968,7 @@ ${card.value.card.description}`;
         toast(msg);
         target?.focus({ preventScroll: true });
         target?.scrollIntoView({ behavior: "smooth", block: "center" });
-        return;
+        return null;
       }
       const cardPicture = await storePicture(cardIcon);
       const chatPicture = await storePicture(chatIcon);
@@ -5955,7 +5981,6 @@ ${card.value.card.description}`;
           };
         } else return null;
       }
-      const id = getRoute()[1] ?? crypto.randomUUID();
       const payload = {
         id,
         lastUpdate: Date.now(),
@@ -5983,9 +6008,8 @@ ${card.value.card.description}`;
           " user's persona"
         ].join(""));
       }
-      await idb.set("scenarios", payload);
-      window.location.hash = "library";
-    });
+      return payload;
+    }
     previewClose.addEventListener("click", () => previewModal.close());
     previewButton.addEventListener("click", () => {
       const content = cardDescription.value;
@@ -6053,9 +6077,14 @@ ${card.value.card.description}`;
   async function storePicture(picker) {
     const value = picker.value;
     if (typeof value === "string") return value || null;
-    const [optimized, changed] = await optimizeToWEBP(value);
-    if (changed) console.log(`optimized delta: ${optimized.size - value.size} (negative means win)`);
-    return await upload(optimized);
+    const optimized = await nothrowAsync(optimizeToWEBP(value));
+    if (!optimized.success) {
+      toast("can't process the picture, the card is saved without it");
+      return null;
+    }
+    const [picture, changed] = optimized.value;
+    if (changed) console.log(`optimized delta: ${picture.size - value.size} (negative means win)`);
+    return await upload(picture);
   }
 
   // src/views/scenario-card.html
