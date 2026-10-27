@@ -107,3 +107,7 @@
 	max-width: 100%;
 	overflow-x: auto;
 }
+
+.reduced-font {
+	font: var(--font-16);
+}
