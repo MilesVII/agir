@@ -42,11 +42,12 @@ export type Provider = {
 	reasoning: string
 };
 export type ProviderMap = Record<string, Provider>;
-export type ProviderMapWithActive = Record<string, Provider & { isActive: boolean, remberActive: boolean }>;
+export type ProviderMapWithActive = Record<string, Provider & { isActive: boolean, remberActive: boolean, proofreadActive: boolean }>;
 
 export type ActiveProviders = {
 	main:   string | null,
-	rember: string | null
+	rember: string | null,
+	proofread?: string | null
 };
 
 export type ScenarioCard = {

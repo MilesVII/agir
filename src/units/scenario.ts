@@ -1,4 +1,5 @@
 import { idb, upload } from "@root/persist";
+import { initProofread } from "./scenario/proofread";
 import { getRoute, makeResizable, nothrowAsync, renderMD, textareaReconsider } from "@root/utils";
 import { Lorebook, ScenarioCard } from "@root/types";
 import { RampikeFilePicker } from "@rampike/filepicker";
@@ -46,6 +47,11 @@ export function scenarioUnit() {
 	makeResizable(cardDescription);
 	makeResizable(definition);
 	const messagesControl = initFirstMessages();
+	initProofread(() => ({
+		name: characterName.value,
+		definition: definition.value,
+		openings: messagesControl.get()
+	}));
 	/** books attached to the card being edited */
 	let lorebooks: Lorebook[] = [];
 	/** the card as it was loaded, so fields this form doesn't know about survive a save */

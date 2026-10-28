@@ -201,8 +201,9 @@ export function readProviders(): ProviderMapWithActive {
 
 	const ActiveProviders = readActiveProviders();
 	for (const e in providers.value) {
-		providers.value[e].isActive     = e === ActiveProviders.main;
-		providers.value[e].remberActive = e === ActiveProviders.rember;
+		providers.value[e].isActive        = e === ActiveProviders.main;
+		providers.value[e].remberActive    = e === ActiveProviders.rember;
+		providers.value[e].proofreadActive = e === ActiveProviders.proofread;
 	}
 
 	return providers.value;

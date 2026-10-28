@@ -161,6 +161,16 @@
 								class="strip wide"
 								placeholder="0"
 							></ram-labeled>
+							<div class="hint">Default system prompt of the scenario editor's proofread section.</div>
+							<ram-labeled
+								legend="Proofread prompt"
+								id="settings-options-proofread"
+								class="strip wide reduced-font"
+								placeholder=""
+								multiline
+								rows="1"
+							></ram-labeled>
+							<button id="settings-options-proofread-reset" class="lineout fit float-end">reset to default</button>
 							<button id="settings-misc-save" class="lineout">Save</button>
 						</div>
 					</details>
@@ -359,6 +369,29 @@
 						></ram-labeled>
 						<button class="lineout fit float-end" id="scenario-messages-asterize">*asterize*</button>
 					</div>
+					<details>
+						<summary class="settings-label">Proofread</summary>
+						<div class="list">
+							<div class="hint">Sends the character definition and the opening messages to a provider and asks for typos, grammar and style problems. The default prompt lives in settings; changes made here are for this session only.</div>
+							<div class="chat-provider-control row-compact">
+								<div>Provider:</div>
+								<select id="scenario-proofread-provider" class="lineout"></select>
+							</div>
+							<ram-labeled
+								legend="Proofread prompt"
+								id="scenario-proofread-prompt"
+								class="strip wide reduced-font"
+								placeholder=""
+								multiline
+								rows="1"
+							></ram-labeled>
+							<div class="row-wrap">
+								<button id="scenario-proofread-run" class="lineout fit">proofread</button>
+								<button id="scenario-proofread-reset" class="lineout fit">reset prompt</button>
+							</div>
+							<div id="scenario-proofread-output" class="lineout md reduced-font" hidden></div>
+						</div>
+					</details>
 				</div>
 			</ram-tab>
 			<ram-tab key="play">
