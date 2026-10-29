@@ -94,28 +94,29 @@ async function restore(picker: RampikeFilePicker) {
 	const parsed = JSON.parse(raw);
 
 	if (parsed.idb.media) {
+		const media: MediaEntry[] = [];
 		for (const item of parsed.idb.media) {
-			await idb.set(
-				"media",
-				{
-					id: item.id,
-					media: await b64Encoder.decode(item.media),
-					mime: item.mime
-				}
-			);
+			media.push({
+				id: item.id,
+				media: await b64Encoder.decode(item.media),
+				mime: item.mime
+			});
 		}
+		const r = await idb.setMany("media", media);
+		if (!r.success) toast("failed to restore media");
 	}
 
-	for (const [store, data] of Object.entries<any>(parsed.idb)) {
+	for (const [store, data] of Object.entries<any[]>(parsed.idb)) {
 		if (store === "media") continue;
 
 		for (const item of data) {
 			// HACK: temporary migration upgrade
 			if (store === "chats" && !item.messageChunks)
 				item.messageChunks = [];
-			// @ts-ignore
-			await idb.set(store, item);
 		}
+		// @ts-ignore
+		const r = await idb.setMany(store, data);
+		if (!r.success) toast(`failed to restore ${store}`);
 	}
 
 	for (const [key, data] of Object.entries<string>(parsed.local)) {

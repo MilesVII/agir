@@ -50,7 +50,7 @@ export async function init() {
 	return result.success;
 }
 
-export const idb = { get, set, getAll, del };
+export const idb = { get, set, setMany, getAll, del };
 export const local = { get: localGet, set: localSet };
 
 async function get<T extends IDBStore>(store: T, key: IDBStorageSchema[T]["id"]): Promise<Result<IDBStorageSchema[T], any>> {
@@ -103,6 +103,30 @@ async function set<T extends IDBStore>(store: T, value: IDBStorageSchema[T]): Pr
 			storageListeners.forEach(l => l(update));
 		};
 		r.onerror = () => resolve({ success: false, error: "write error" });
+	});
+}
+
+/**
+ * Writes all values in one transaction and notifies listeners once at the end:
+ * restoring a backup item by item would re-render every list once per item
+ */
+async function setMany<T extends IDBStore>(store: T, values: IDBStorageSchema[T][]): Promise<Result<number, string>> {
+	if (values.length === 0) return { success: true, value: 0 };
+	const db = await dbInitPromise;
+
+	const tx = db.transaction(store, "readwrite");
+	const objectStore = tx.objectStore(store);
+	for (const value of values) objectStore.put(value);
+
+	return await new Promise(resolve => {
+		tx.oncomplete = () => {
+			resolve({ success: true, value: values.length });
+			const update: StorageUpdate = { storage: "idb", store: store };
+			bc.postMessage(update);
+			storageListeners.forEach(l => l(update));
+		};
+		tx.onerror = () => resolve({ success: false, error: "write error" });
+		tx.onabort = () => resolve({ success: false, error: "write error" });
 	});
 }
 

@@ -2942,7 +2942,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     else toast(result.error);
     return result.success;
   }
-  var idb = { get, set, getAll, del };
+  var idb = { get, set, setMany, getAll, del };
   var local = { get: localGet, set: localSet };
   async function get(store, key) {
     const db = await dbInitPromise;
@@ -2971,6 +2971,23 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         storageListeners.forEach((l) => l(update4));
       };
       r.onerror = () => resolve({ success: false, error: "write error" });
+    });
+  }
+  async function setMany(store, values) {
+    if (values.length === 0) return { success: true, value: 0 };
+    const db = await dbInitPromise;
+    const tx = db.transaction(store, "readwrite");
+    const objectStore = tx.objectStore(store);
+    for (const value of values) objectStore.put(value);
+    return await new Promise((resolve) => {
+      tx.oncomplete = () => {
+        resolve({ success: true, value: values.length });
+        const update4 = { storage: "idb", store };
+        bc.postMessage(update4);
+        storageListeners.forEach((l) => l(update4));
+      };
+      tx.onerror = () => resolve({ success: false, error: "write error" });
+      tx.onabort = () => resolve({ success: false, error: "write error" });
     });
   }
   async function del(store, id) {
@@ -3701,24 +3718,25 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     const raw = await file.text();
     const parsed = JSON.parse(raw);
     if (parsed.idb.media) {
+      const media = [];
       for (const item of parsed.idb.media) {
-        await idb.set(
-          "media",
-          {
-            id: item.id,
-            media: await b64Encoder.decode(item.media),
-            mime: item.mime
-          }
-        );
+        media.push({
+          id: item.id,
+          media: await b64Encoder.decode(item.media),
+          mime: item.mime
+        });
       }
+      const r = await idb.setMany("media", media);
+      if (!r.success) toast("failed to restore media");
     }
     for (const [store, data] of Object.entries(parsed.idb)) {
       if (store === "media") continue;
       for (const item of data) {
         if (store === "chats" && !item.messageChunks)
           item.messageChunks = [];
-        await idb.set(store, item);
       }
+      const r = await idb.setMany(store, data);
+      if (!r.success) toast(`failed to restore ${store}`);
     }
     for (const [key, data] of Object.entries(parsed.local)) {
       if (data) local.set(key, data);
