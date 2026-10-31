@@ -3131,6 +3131,31 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         URL.revokeObjectURL(link);
         this.revokeBlob = null;
       };
+      this.dispatchEvent(new Event("pick"));
+    }
+    async pasteFromClipboard() {
+      if (!navigator.clipboard?.read) {
+        toast("this browser doesn't let pages read pictures from the clipboard");
+        return;
+      }
+      const contents = await nothrowAsync(navigator.clipboard.read());
+      if (!contents.success) {
+        toast(`can't read the clipboard: ${contents.error?.message ?? contents.error}`);
+        return;
+      }
+      for (const item of contents.value) {
+        const type = item.types.find((t) => t.startsWith("image/"));
+        if (!type) continue;
+        const blob = await nothrowAsync(item.getType(type));
+        if (!blob.success) {
+          toast("can't read the picture from the clipboard");
+          return;
+        }
+        this.paste(new File([blob.value], "pasted", { type }));
+        return;
+      }
+      const offered = Array.from(new Set(contents.value.flatMap((i) => i.types)));
+      toast(offered.length > 0 ? `no picture in the clipboard, only ${offered.join(", ")}` : "the clipboard is empty or the browser doesn't share it");
     }
     clearButton;
     constructor() {
@@ -3183,16 +3208,7 @@ Please report this to https://github.com/markedjs/marked.`, e) {
         className: "lineout image-picker-paste pointer",
         contents: "\u2398",
         events: {
-          click: async () => {
-            const contents2 = await navigator.clipboard.read();
-            for (const item of contents2) {
-              const type = item.types.find((t) => t.startsWith("image/"));
-              if (!type) continue;
-              const file = await item.getType(type);
-              this.paste(new File([file], "pasted", { type }));
-              return;
-            }
-          }
+          click: () => this.pasteFromClipboard()
         }
       });
       const contents = [
