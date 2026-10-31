@@ -4395,29 +4395,31 @@ ${selectedText(m2)}
 
   // src/units/chat/macros.ts
   var PRON_MACROS = {
-    "{{sub}}": "subjective",
-    "{{he}}": "subjective",
-    "{{she}}": "subjective",
-    "{{they}}": "subjective",
-    "{{obj}}": "objective",
-    "{{them}}": "objective",
-    "{{poss}}": "possessiveAdj",
-    "{{their}}": "possessiveAdj",
-    "{{poss_p}}": "possessivePro",
-    "{{theirs}}": "possessivePro",
-    "{{ref}}": "reflexive",
-    "{{themselves}}": "reflexive"
+    "sub": "subjective",
+    "he": "subjective",
+    "she": "subjective",
+    "they": "subjective",
+    "obj": "objective",
+    "them": "objective",
+    "poss": "possessiveAdj",
+    "their": "possessiveAdj",
+    "poss_p": "possessivePro",
+    "theirs": "possessivePro",
+    "ref": "reflexive",
+    "themselves": "reflexive"
   };
-  var CHAR_NAME_MACRO = "{{char}}";
-  var USER_NAME_MACRO = "{{user}}";
-  var PERSONA_MACRO = "{{persona}}";
-  var MACROS_MACRO = "{{macros}}";
+  var CHAR_NAME_MACRO = "char";
+  var USER_NAME_MACRO = "user";
+  var PERSONA_MACRO = "persona";
+  var MACROS_MACRO = "macros";
   var MACROS = `# Macros
 ## Names
 {{char}}
     Character name
 {{user}}
     User's persona name
+{{persona}}
+	User's persona description
 
 ## User's persona pronouns:
 {{sub}} or {{they}}
@@ -4430,16 +4432,33 @@ ${selectedText(m2)}
     possessive pronoun (his/hers/theirs)
 {{ref}} or {{themselves}}
     reflexive (himself/herself/themselves)`;
+  var MACRO_RE = /\{+(\w+)\}+/g;
   function runMacros(template10, context) {
-    for (const [from, toKey] of Object.entries(PRON_MACROS)) {
-      template10 = template10.replaceAll(from, context.pronouns[toKey]);
+    const subs = {
+      [CHAR_NAME_MACRO]: context.charName,
+      [USER_NAME_MACRO]: context.userName,
+      [PERSONA_MACRO]: context.persona,
+      [MACROS_MACRO]: MACROS
+    };
+    function sigh(m2) {
+      m2 = m2.toLowerCase();
+      if (m2 in PRON_MACROS) {
+        return context.pronouns[PRON_MACROS[m2]];
+      }
+      if (m2 in subs) {
+        return subs[m2];
+      }
+      return `{{${m2}}}`;
     }
-    template10 = template10.replaceAll(CHAR_NAME_MACRO, context.charName);
-    template10 = template10.replaceAll(USER_NAME_MACRO, context.userName);
-    template10 = template10.replaceAll(PERSONA_MACRO, context.persona);
-    template10 = template10.replaceAll(MACROS_MACRO, MACROS);
-    return template10;
+    return template10.replace(MACRO_RE, (_2, cap) => sigh(cap));
   }
+  var KNOWN_MACROS = /* @__PURE__ */ new Set([
+    ...Object.keys(PRON_MACROS),
+    CHAR_NAME_MACRO,
+    USER_NAME_MACRO,
+    PERSONA_MACRO,
+    MACROS_MACRO
+  ]);
   function macroContext(chat) {
     return {
       pronouns: chat.userPersona.pronouns,
@@ -6219,14 +6238,7 @@ ${card.value.card.description}`;
         },
         lorebooks
       };
-      if (!payload.chat.definition.includes("{{persona}}")) {
-        toast([
-          "warning!\nthe saved definition lacks",
-          " {{persona}} macro -- meaning the bot",
-          " won't be able to know abything about",
-          " user's persona"
-        ].join(""));
-      }
+      macroSafetyCheck(payload.chat);
       return payload;
     }
     previewClose.addEventListener("click", () => previewModal.close());
@@ -6304,6 +6316,34 @@ ${card.value.card.description}`;
     const [picture, changed] = optimized.value;
     if (changed) console.log(`optimized delta: ${picture.size - value.size} (negative means win)`);
     return await upload(picture);
+  }
+  function macroSafetyCheck(card) {
+    let personaMissing = true;
+    const errors = [];
+    [
+      ["definition", card.definition],
+      ...card.initials.map((c2, ix) => [`opening ${ix + 1}`, c2])
+    ].forEach(([source, template10]) => {
+      for (const [_2, cap] of template10.matchAll(MACRO_RE)) {
+        const name = cap.toLowerCase();
+        if (name === PERSONA_MACRO) personaMissing = false;
+        if (!KNOWN_MACROS.has(name)) errors.push(`${cap} in ${source}`);
+      }
+    });
+    if (errors.length > 0) {
+      toast([
+        "warning! unknown macros detected:",
+        ...errors
+      ].join("\n"));
+    }
+    if (personaMissing) {
+      toast([
+        "warning!\nthe saved definition lacks",
+        " {{persona}} macro -- meaning the bot",
+        " won't be able to know anything about",
+        " user's persona"
+      ].join(""));
+    }
   }
 
   // src/views/scenario-card.html

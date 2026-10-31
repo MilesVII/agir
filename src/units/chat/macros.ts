@@ -6,35 +6,37 @@ Text macros shared by scenario definitions, openings and lorebook entries:
 */
 
 const PRON_MACROS: Record<string, keyof Pronouns> = {
-	"{{sub}}":     "subjective",
-	"{{he}}":      "subjective",
-	"{{she}}":     "subjective",
-	"{{they}}":    "subjective",
+	"sub":     "subjective",
+	"he":      "subjective",
+	"she":     "subjective",
+	"they":    "subjective",
 
-	"{{obj}}":     "objective",
-	"{{them}}":    "objective",
+	"obj":     "objective",
+	"them":    "objective",
 
-	"{{poss}}":    "possessiveAdj",
-	"{{their}}":   "possessiveAdj",
+	"poss":    "possessiveAdj",
+	"their":   "possessiveAdj",
 
-	"{{poss_p}}":  "possessivePro",
-	"{{theirs}}":  "possessivePro",
+	"poss_p":  "possessivePro",
+	"theirs":  "possessivePro",
 
-	"{{ref}}":     "reflexive",
-	"{{themselves}}":"reflexive"
+	"ref":     "reflexive",
+	"themselves":"reflexive"
 };
-const CHAR_NAME_MACRO = "{{char}}";
-const USER_NAME_MACRO = "{{user}}";
-const PERSONA_MACRO = "{{persona}}";
-const MACROS_MACRO = "{{macros}}";
+const CHAR_NAME_MACRO = "char";
+const USER_NAME_MACRO = "user";
+export const PERSONA_MACRO = "persona";
+const MACROS_MACRO = "macros";
 
-const MACROS =
+export const MACROS =
 `# Macros
 ## Names
 {{char}}
     Character name
 {{user}}
     User's persona name
+{{persona}}
+	User's persona description
 
 ## User's persona pronouns:
 {{sub}} or {{they}}
@@ -55,16 +57,36 @@ export type MacroContext = {
 	persona: string
 };
 
+/** any run of braces around a name: {char}, {{Char}} and {{{char}}} are the same macro */
+export const MACRO_RE = /\{+(\w+)\}+/g;
+
 export function runMacros(template: string, context: MacroContext) {
-	for (const [from, toKey] of Object.entries(PRON_MACROS)) {
-		template = template.replaceAll(from, context.pronouns[toKey]);
+	const subs = {
+		[CHAR_NAME_MACRO]: context.charName,
+		[USER_NAME_MACRO]: context.userName,
+		[PERSONA_MACRO]: context.persona,
+		[MACROS_MACRO]: MACROS
+	};
+	function sigh(m: string) {
+		m = m.toLowerCase();
+		if (m in PRON_MACROS) {
+			return context.pronouns[PRON_MACROS[m]]
+		}
+		if (m in subs) {
+			return subs[m as keyof typeof subs];
+		}
+		return `{{${m}}}`;
 	}
-	template = template.replaceAll(CHAR_NAME_MACRO, context.charName);
-	template = template.replaceAll(USER_NAME_MACRO, context.userName);
-	template = template.replaceAll(PERSONA_MACRO, context.persona);
-	template = template.replaceAll(MACROS_MACRO, MACROS);
-	return template;
+	return template.replace(MACRO_RE, (_, cap) => sigh(cap));
 }
+
+export const KNOWN_MACROS = new Set([
+	...Object.keys(PRON_MACROS),
+	CHAR_NAME_MACRO,
+	USER_NAME_MACRO,
+	PERSONA_MACRO,
+	MACROS_MACRO
+]);
 
 /** Macro values of an open chat */
 export function macroContext(chat: Chat): MacroContext {

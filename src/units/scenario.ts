@@ -11,6 +11,7 @@ import { toast } from "./toasts";
 import { estimateTokenCount } from "tokenx";
 import { RampikeModal } from "@rampike/modal";
 import { optimizeToWEBP } from "@root/optimizer";
+import { KNOWN_MACROS, MACRO_RE, PERSONA_MACRO } from "./chat/macros";
 
 const definitionTemplate = [
 	"# Characters",
@@ -211,14 +212,7 @@ export function scenarioUnit() {
 			lorebooks
 		};
 
-		if (!payload.chat.definition.includes("{{persona}}")) {
-			toast([
-				"warning!\nthe saved definition lacks",
-				" {{persona}} macro -- meaning the bot",
-				" won't be able to know abything about",
-				" user's persona"
-			].join(""));
-		}
+		macroSafetyCheck(payload.chat);
 
 		return payload;
 	}
@@ -307,4 +301,35 @@ async function storePicture(picker: RampikeImagePicker): Promise<string | null> 
 	const [picture, changed] = optimized.value;
 	if (changed) console.log(`optimized delta: ${picture.size - value.size} (negative means win)`);
 	return await upload(picture);
+}
+
+/** warns about macros runMacros won't expand and about a missing {{persona}}; reads the raw text, so {{macros}} stays one macro */
+function macroSafetyCheck(card: ScenarioCard["chat"]) {
+	let personaMissing = true;
+	const errors: string[] = [];
+	[
+		["definition", card.definition] as const,
+		...card.initials.map((c, ix) => [`opening ${ix + 1}`, c] as const)
+	].forEach(([source, template]) => {
+		for (const [_, cap] of template.matchAll(MACRO_RE)) {
+			const name = cap.toLowerCase();
+			if (name === PERSONA_MACRO) personaMissing = false;
+			if (!KNOWN_MACROS.has(name)) errors.push(`${cap} in ${source}`);
+		}
+	});
+
+	if (errors.length > 0) {
+		toast([
+			"warning! unknown macros detected:",
+			...errors
+		].join("\n"));
+	}
+	if (personaMissing) {
+		toast([
+			"warning!\nthe saved definition lacks",
+			" {{persona}} macro -- meaning the bot",
+			" won't be able to know anything about",
+			" user's persona"
+		].join(""));
+	}
 }
