@@ -118,10 +118,13 @@ export function initRember() {
 			return;
 		}
 
-		setRember(session, plan.at, result.value.trim());
+		setRember(session, plan.at, result.value.text.trim());
 		await commitContents(session);
 		getSystemView(chatId, plan.at, true)?.controls.endStreaming();
 		getMessageView(chatId, plan.at)?.controls.refresh();
+		// rerunning would plan from the truncated summary, so this only warns
+		if (result.value.finishReason === "length")
+			toast("the rEmber summary was cut off by the token limit; raise the rEmber provider's max and summarize again");
 	}
 
 	async function saveSettings() {

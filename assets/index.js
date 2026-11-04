@@ -3989,6 +3989,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
   };
   async function runProvider(prompt2, provider, hooks) {
     const chonks = [];
+    let finishReason = null;
     const reasoningEffort = provider.reasoning && provider.reasoning !== "unset" ? { reasoning: { effort: provider.reasoning } } : {};
     const params = {
       model: provider.model,
@@ -3997,9 +3998,13 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       ...reasoningEffort,
       max_completion_tokens: provider.max,
       temperature: provider.temp,
+      // a fresh seed per request keeps rerolls varied while making each one reproducible where supported
+      seed: Math.floor(Math.random() * 2 ** 31),
       ...provider.params
     };
     if (!provider.max) delete params.max_completion_tokens;
+    if (params.seed === null) delete params.seed;
+    const seed = typeof params.seed === "number" ? params.seed : null;
     try {
       const attribution = provider.url.toLowerCase().includes("openrouter.ai/") ? OR_ATTRIBUTION_HEADERS : {};
       const response = await fetch(provider.url, {
@@ -4067,8 +4072,11 @@ Status ${response.status}${metaWrapped}`
                 error: `Provider says "${JSON.stringify(parsed.value.error)}"`
               };
             }
+            const choice = parsed.value.choices?.[0];
+            if (!choice) continue;
+            if (choice.finish_reason) finishReason = choice.finish_reason;
             try {
-              const delta = parsed.value.choices[0].delta;
+              const delta = choice.delta ?? {};
               const reasoning = delta.reasoning || delta.reasoning_content;
               const content = delta.content;
               if (reasoning) {
@@ -4097,9 +4105,9 @@ Status ${response.status}${metaWrapped}`
     if (result.includes(legacyReasoningSeparator)) {
       const [reasoning, value] = result.split(legacyReasoningSeparator).map((v2) => v2.trim());
       if (reasoning) hooks.onReasoningChunk?.(reasoning);
-      return { success: true, value: value.trim() };
+      return { success: true, value: { text: value.trim(), finishReason, seed } };
     }
-    return { success: true, value: result };
+    return { success: true, value: { text: result, finishReason, seed } };
   }
 
   // src/units/chat/generation.ts
@@ -4123,6 +4131,27 @@ Status ${response.status}${metaWrapped}`
     active = null;
     listeners.forEach((l) => l(null));
     return result;
+  }
+  function offerLongerRerun(what, provider, seed, rerun) {
+    if (!provider.max) {
+      toast(`the ${what} was cut off by the provider's own token limit; set a max in its settings to raise it`);
+      return;
+    }
+    const params = seed === null ? provider.params : { ...provider.params, seed };
+    const withMax = (max) => ({ ...provider, max, params });
+    toast(`the ${what} was cut off at the ${provider.max} token limit`, {
+      actions: [
+        [`rerun with ${provider.max * 2}`, (close) => {
+          close();
+          rerun(withMax(provider.max * 2));
+        }],
+        ["rerun without a limit", (close) => {
+          close();
+          rerun(withMax(0));
+        }],
+        ["dismiss", (close) => close()]
+      ]
+    });
   }
 
   // src/units/chat/session.ts
@@ -4224,17 +4253,33 @@ Status ${response.status}${metaWrapped}`
     messages.splice(index, 1);
     return true;
   }
-  function pushSwipe(session, mid, text2, reasoning) {
+  function pushSwipe(session, mid, text2, extras = {}) {
     const message = messageByID(session, mid);
     if (!message) return null;
-    message.swipes = message.swipes.filter((s) => s.trim());
+    const kept = message.swipes.flatMap((s, ix) => s.trim() ? [ix] : []);
+    message.swipes = kept.map((ix) => message.swipes[ix]);
+    if (message.reasoningBoxes) message.reasoningBoxes = kept.map((ix) => message.reasoningBoxes[ix] ?? "");
+    if (message.seeds) message.seeds = kept.map((ix) => message.seeds[ix] ?? null);
     message.swipes.push(text2);
     message.selectedSwipe = message.swipes.length - 1;
-    if (reasoning) {
+    if (extras.reasoning) {
       if (!message.reasoningBoxes) message.reasoningBoxes = [];
-      message.reasoningBoxes[message.selectedSwipe] = reasoning;
+      message.reasoningBoxes[message.selectedSwipe] = extras.reasoning;
+    }
+    if (typeof extras.seed === "number") {
+      if (!message.seeds) message.seeds = [];
+      message.seeds[message.selectedSwipe] = extras.seed;
     }
     return message;
+  }
+  function removeSwipe(session, mid, swipe) {
+    const message = messageByID(session, mid);
+    if (!message || message.swipes.length < 2 || typeof message.swipes[swipe] !== "string") return false;
+    message.swipes.splice(swipe, 1);
+    message.reasoningBoxes?.splice(swipe, 1);
+    message.seeds?.splice(swipe, 1);
+    if (message.selectedSwipe > swipe || message.selectedSwipe >= message.swipes.length) message.selectedSwipe--;
+    return true;
   }
   function setSwipeText(session, mid, swipe, text2) {
     const message = messageByID(session, mid);
@@ -4621,7 +4666,6 @@ ${selectedText(m2)}
     const tabs = tabGroups(root);
     root.dataset.mid = String(msg.id);
     r.avatar.src = placeholder(msg.from === "user" ? userPic : modelPic);
-    r.avatar.title = `mid #${msg.id}`;
     r.name.textContent = msg.name;
     r.delete.hidden = msg.from !== "user";
     let streamNode = null;
@@ -4677,6 +4721,8 @@ ${selectedText(m2)}
       r.swipes.hidden = !(isLast && msg.swipes.length > 1);
       r.reroll.hidden = !(msg.from === "model" && isLast);
       r.rember.hidden = !msg.rember;
+      const seed = msg.seeds?.[msg.selectedSwipe];
+      r.avatar.title = typeof seed === "number" ? `mid #${msg.id}, seed ${seed}` : `mid #${msg.id}`;
       const reasoning = msg.reasoningBoxes?.[msg.selectedSwipe];
       r.reasoning.hidden = !reasoning;
       r["reasoning-box"].textContent = reasoning ?? "";
@@ -4967,14 +5013,14 @@ ${selectedText(m2)}
     list.scrollTop = list.scrollHeight;
     return true;
   }
-  async function generate(mid) {
+  async function generate(mid, override, cutoff) {
     const session = getSession();
     if (!session) return;
     if (activeJob()) {
       toast(BUSY_TOAST);
       return;
     }
-    const provider = mainProvider();
+    const provider = override ?? mainProvider();
     if (!provider) {
       toast("no providers found");
       return;
@@ -5005,12 +5051,37 @@ ${selectedText(m2)}
       onReasoningStatus: (on) => getMessageView(chatId, mid)?.controls.reasoningStatus(on)
     });
     if (result.success) {
-      pushSwipe(session, mid, result.value, reasoning);
+      pushSwipe(session, mid, result.value.text, { reasoning, seed: result.value.seed });
+      if (cutoff) replaceCutOff(session, mid, cutoff, result.value.text, reasoning);
       await commit(session);
     } else {
       toast(result.error);
     }
     getMessageView(chatId, mid)?.controls.endStreaming();
+    if (result.success && result.value.finishReason === "length") {
+      const cut = { text: result.value.text, reasoning, seed: result.value.seed };
+      offerLongerRerun("reply", provider, cut.seed, (longer) => {
+        const current2 = getSession();
+        if (current2?.chat.id !== chatId || lastModelMessage(current2)?.id !== mid) {
+          toast("the chat has moved on since that reply");
+          return;
+        }
+        generate(mid, longer, cut);
+      });
+    }
+  }
+  function replaceCutOff(session, mid, cutoff, text2, reasoning) {
+    const message = messageByID(session, mid);
+    if (!message) return;
+    if (!cutoff.text.trim() && !cutoff.reasoning.trim()) return;
+    const continued = text2.startsWith(cutoff.text.trimEnd()) && reasoning.startsWith(cutoff.reasoning.trimEnd());
+    if (!continued) {
+      toast("the rerun went differently, so the provider ignored the seed or isn't deterministic; the cut-off reply stays as the previous swipe");
+      return;
+    }
+    const old = message.swipes.findIndex((s, ix) => ix !== message.selectedSwipe && s === cutoff.text && (message.seeds?.[ix] ?? null) === cutoff.seed);
+    if (old >= 0 && removeSwipe(session, mid, old))
+      toast("the rerun picked up where the cut-off reply ended, so it replaced that reply", { timeoutMS: 4e3 });
   }
   async function deleteFrom(mid) {
     const session = getSession();
@@ -5159,10 +5230,12 @@ ${selectedText(m2)}
         else view?.remove();
         return;
       }
-      setRember(session, plan.at, result.value.trim());
+      setRember(session, plan.at, result.value.text.trim());
       await commitContents(session);
       getSystemView(chatId, plan.at, true)?.controls.endStreaming();
       getMessageView(chatId, plan.at)?.controls.refresh();
+      if (result.value.finishReason === "length")
+        toast("the rEmber summary was cut off by the token limit; raise the rEmber provider's max and summarize again");
     }
     async function saveSettings() {
       const session = getSession();
@@ -5931,7 +6004,7 @@ ${card.value.card.description}`;
     makeResizable(promptInput);
     promptInput.addEventListener("input", () => promptEdited = true);
     resetButton.addEventListener("click", fillPrompt);
-    runButton.addEventListener("click", run);
+    runButton.addEventListener("click", () => run());
     providerPicker.addEventListener("input", () => {
       const actives = readActiveProviders();
       actives.proofread = providerPicker.value;
@@ -5954,8 +6027,8 @@ ${card.value.card.description}`;
       const activeId = providerOptions.find(([, e]) => e.proofreadActive)?.[0];
       setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
     }
-    async function run() {
-      const provider = readProviders()[providerPicker.value];
+    async function run(override) {
+      const provider = override ?? readProviders()[providerPicker.value];
       if (!provider) {
         toast("pick a provider for proofreading first");
         return;
@@ -5988,8 +6061,10 @@ ${card.value.card.description}`;
         output.innerHTML = renderMD(text2 || "*no answer*");
         return;
       }
-      text2 = result.value.trim() || "*the model returned nothing*";
+      const final = result.value.text.trim() || text2;
+      text2 = final.replaceAll("$\\rightarrow$", " \u2192 ") || "*the model returned nothing*";
       show();
+      if (result.value.finishReason === "length") offerLongerRerun("proofread", provider, result.value.seed, run);
     }
   }
   function proofreadPrompt(systemPrompt, d3) {

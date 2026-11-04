@@ -3,12 +3,12 @@ import { Chat, ChatMessage, Provider } from "@root/types";
 import { loadMiscSettings } from "@units/settings/misc";
 import { readProviders } from "@units/settings/providers";
 import { toast } from "@units/toasts";
-import { activeJob, runJob } from "./generation";
+import { activeJob, offerLongerRerun, runJob } from "./generation";
 import { roleplayPrompt } from "./prompt";
 import { activateLore, reportLore } from "./lore";
 import {
 	ChatSession, addMessage, commit, commitContents, getSession, lastModelMessage, messageByID,
-	pushSwipe, removeMessage, selectSwipe, selectedText, setRember, setSwipeText, truncateFrom
+	pushSwipe, removeMessage, removeSwipe, selectSwipe, selectedText, setRember, setSwipeText, truncateFrom
 } from "./session";
 import { makeMessageView, MessageView, Pictures } from "@views/message";
 import { makeSystemView, SystemView, systemViewKey } from "@views/system-message";
@@ -190,15 +190,21 @@ export async function appendNote(text: string) {
 	return true;
 }
 
-/** Generates a new swipe for a model message from everything before it */
-async function generate(mid: number) {
+/** A reply that hit the token limit, as the rerun that continues it needs to recognize it */
+type CutOff = { text: string, reasoning: string, seed: number | null };
+
+/**
+ * Generates a new swipe for a model message from everything before it; `override` replaces the main provider for this run.
+ * With `cutoff`, the run is a longer rerun of that reply: if it repeats the reply and goes on, the cut-off swipe is dropped.
+ */
+async function generate(mid: number, override?: Provider, cutoff?: CutOff) {
 	const session = getSession();
 	if (!session) return;
 	if (activeJob()) {
 		toast(BUSY_TOAST);
 		return;
 	}
-	const provider = mainProvider();
+	const provider = override ?? mainProvider();
 	if (!provider) {
 		toast("no providers found");
 		return;
@@ -233,12 +239,48 @@ async function generate(mid: number) {
 	});
 
 	if (result.success) {
-		pushSwipe(session, mid, result.value, reasoning);
+		pushSwipe(session, mid, result.value.text, { reasoning, seed: result.value.seed });
+		if (cutoff) replaceCutOff(session, mid, cutoff, result.value.text, reasoning);
 		await commit(session);
 	} else {
 		toast(result.error);
 	}
 	getMessageView(chatId, mid)?.controls.endStreaming();
+
+	if (result.success && result.value.finishReason === "length") {
+		const cut: CutOff = { text: result.value.text, reasoning, seed: result.value.seed };
+		offerLongerRerun("reply", provider, cut.seed, longer => {
+			// the rerun adds a swipe, so it only makes sense while this is still the reply being written
+			const current = getSession();
+			if (current?.chat.id !== chatId || lastModelMessage(current)?.id !== mid) {
+				toast("the chat has moved on since that reply");
+				return;
+			}
+			generate(mid, longer, cut);
+		});
+	}
+}
+
+/**
+ * Drops the cut-off swipe once its rerun (the selected swipe) turns out to start with the same text and reasoning:
+ * the provider respected the seed, so the rerun holds all of it. A rerun that went elsewhere keeps both.
+ */
+function replaceCutOff(session: ChatSession, mid: number, cutoff: CutOff, text: string, reasoning: string) {
+	const message = messageByID(session, mid);
+	if (!message) return;
+	// blank cut-offs are gone already: pushSwipe drops blank swipes
+	if (!cutoff.text.trim() && !cutoff.reasoning.trim()) return;
+
+	const continued = text.startsWith(cutoff.text.trimEnd()) && reasoning.startsWith(cutoff.reasoning.trimEnd());
+	if (!continued) {
+		toast("the rerun went differently, so the provider ignored the seed or isn't deterministic; the cut-off reply stays as the previous swipe");
+		return;
+	}
+	// found by content, since the user may have swiped, edited or rerolled in between
+	const old = message.swipes.findIndex((s, ix) =>
+		ix !== message.selectedSwipe && s === cutoff.text && (message.seeds?.[ix] ?? null) === cutoff.seed);
+	if (old >= 0 && removeSwipe(session, mid, old))
+		toast("the rerun picked up where the cut-off reply ended, so it replaced that reply", { timeoutMS: 4000 });
 }
 
 /** Deletes a user message and everything after it */

@@ -65,7 +65,6 @@ export function makeMessageView(msg: ChatMessage, [userPic, modelPic]: Pictures,
 
 	root.dataset.mid = String(msg.id);
 	r.avatar.src = placeholder(msg.from === "user" ? userPic : modelPic);
-	r.avatar.title = `mid #${msg.id}`;
 	r.name.textContent = msg.name;
 	r.delete.hidden = msg.from !== "user";
 
@@ -126,6 +125,8 @@ export function makeMessageView(msg: ChatMessage, [userPic, modelPic]: Pictures,
 		r.swipes.hidden = !(isLast && msg.swipes.length > 1);
 		r.reroll.hidden = !(msg.from === "model" && isLast);
 		r.rember.hidden = !msg.rember;
+		const seed = msg.seeds?.[msg.selectedSwipe];
+		r.avatar.title = typeof seed === "number" ? `mid #${msg.id}, seed ${seed}` : `mid #${msg.id}`;
 
 		const reasoning = msg.reasoningBoxes?.[msg.selectedSwipe];
 		r.reasoning.hidden = !reasoning;

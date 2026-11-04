@@ -14,26 +14,39 @@ export type ProviderHooks = {
 	onReasoningStatus?: (reasoning: boolean) => void
 };
 
+export type Completion = {
+	text: string,
+	/** "length" means the output was cut off by the token limit; null when the stream ended without one (or was aborted) */
+	finishReason: string | null,
+	/** the seed the request asked for; providers may ignore it, the API doesn't report the one actually used */
+	seed: number | null
+};
+
 export async function runProvider(
 	prompt: PromptMessage[],
 	provider: Provider,
 	hooks: ProviderHooks
-): Promise<Result<string, string>> {
+): Promise<Result<Completion, string>> {
 	const chonks: string[] = [];
+	let finishReason: string | null = null;
 	const reasoningEffort = (provider.reasoning && provider.reasoning !== "unset")
 		? { reasoning: { effort: provider.reasoning } }
 		: {};
-	const params = {
+	const params: Record<string, any> = {
 		model: provider.model,
 		messages: prompt,
 		stream: true,
 		...reasoningEffort,
 		max_completion_tokens: provider.max,
 		temperature: provider.temp,
+		// a fresh seed per request keeps rerolls varied while making each one reproducible where supported
+		seed: Math.floor(Math.random() * 2 ** 31),
 		...provider.params
 	};
-	// @ts-ignore optional delete
 	if (!provider.max) delete params.max_completion_tokens;
+	// "seed": null in additional parameters opts out, for backends that reject unknown fields
+	if (params.seed === null) delete params.seed;
+	const seed = typeof params.seed === "number" ? params.seed : null;
 
 	try {
 		const attribution = provider.url.toLowerCase().includes("openrouter.ai/")
@@ -111,8 +124,11 @@ export async function runProvider(
 							error: `Provider says "${JSON.stringify(parsed.value.error)}"`
 						};
 					}
+					const choice = parsed.value.choices?.[0];
+					if (!choice) continue; // usage-only chunks carry no choices
+					if (choice.finish_reason) finishReason = choice.finish_reason;
 					try {
-						const delta = parsed.value.choices[0].delta;
+						const delta = choice.delta ?? {};
 						const reasoning = delta.reasoning || delta.reasoning_content;
 						const content = delta.content;
 						if (reasoning) {
@@ -144,8 +160,8 @@ export async function runProvider(
 			.split(legacyReasoningSeparator)
 			.map(v => v.trim());
 		if (reasoning) hooks.onReasoningChunk?.(reasoning);
-		return { success: true, value: value.trim() };
+		return { success: true, value: { text: value.trim(), finishReason, seed } };
 	}
 
-	return { success: true, value: result };
+	return { success: true, value: { text: result, finishReason, seed } };
 }

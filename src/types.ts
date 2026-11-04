@@ -145,6 +145,8 @@ export type ChatMessage = {
 	from: "user" | "model" | "system",
 	swipes: string[],
 	reasoningBoxes?: string[],
+	/** the seed each swipe was requested with, where one was sent; null (or a hole) for the rest */
+	seeds?: (number | null)[],
 	selectedSwipe: number,
 	rember: string | null
 };

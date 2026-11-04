@@ -1,7 +1,7 @@
 import { listen, local } from "@root/persist";
-import { PromptMessage } from "@root/types";
+import { PromptMessage, Provider } from "@root/types";
 import { makeResizable, renderMD, setSelectOptions, textareaReconsider } from "@root/utils";
-import { runJob } from "@units/chat/generation";
+import { offerLongerRerun, runJob } from "@units/chat/generation";
 import { loadMiscSettings, PROOFREAD_DEFAULT_PROMPT } from "@units/settings/misc";
 import { readActiveProviders, readProviders } from "@units/settings/providers";
 import { toast } from "@units/toasts";
@@ -30,7 +30,7 @@ export function initProofread(draft: () => ProofreadDraft) {
 	makeResizable(promptInput);
 	promptInput.addEventListener("input", () => promptEdited = true);
 	resetButton.addEventListener("click", fillPrompt);
-	runButton.addEventListener("click", run);
+	runButton.addEventListener("click", () => run());
 	providerPicker.addEventListener("input", () => {
 		const actives = readActiveProviders();
 		actives.proofread = providerPicker.value;
@@ -56,8 +56,9 @@ export function initProofread(draft: () => ProofreadDraft) {
 		setSelectOptions(providerPicker, providerOptions.map(([id, e]) => [id, e.name]), activeId);
 	}
 
-	async function run() {
-		const provider = readProviders()[providerPicker.value];
+	/** `override` replaces the picked provider for this run */
+	async function run(override?: Provider) {
+		const provider = override ?? readProviders()[providerPicker.value];
 		if (!provider) {
 			toast("pick a provider for proofreading first");
 			return;
@@ -94,8 +95,10 @@ export function initProofread(draft: () => ProofreadDraft) {
 			output.innerHTML = renderMD(text || "*no answer*");
 			return;
 		}
-		text = result.value.trim() || "*the model returned nothing*";
+		const final = (result.value.text.trim()) || text;
+		text = final.replaceAll("$\\rightarrow$", " → ") || "*the model returned nothing*";
 		show();
+		if (result.value.finishReason === "length") offerLongerRerun("proofread", provider, result.value.seed, run);
 	}
 }
 

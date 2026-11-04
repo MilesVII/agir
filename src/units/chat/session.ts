@@ -146,19 +146,43 @@ export function removeMessage(session: ChatSession, mid: number) {
 	return true;
 }
 
-/** Appends a new swipe and selects it. Blank swipes left by aborted generations are dropped first. */
-export function pushSwipe(session: ChatSession, mid: number, text: string, reasoning?: string) {
+export type SwipeExtras = { reasoning?: string, seed?: number | null };
+
+/**
+ * Appends a new swipe and selects it. Blank swipes left by aborted generations are dropped first,
+ * along with their entries in the per-swipe arrays, so those stay aligned with `swipes`.
+ */
+export function pushSwipe(session: ChatSession, mid: number, text: string, extras: SwipeExtras = {}) {
 	const message = messageByID(session, mid);
 	if (!message) return null;
 
-	message.swipes = message.swipes.filter(s => s.trim());
+	const kept = message.swipes.flatMap((s, ix) => s.trim() ? [ix] : []);
+	message.swipes = kept.map(ix => message.swipes[ix]);
+	if (message.reasoningBoxes) message.reasoningBoxes = kept.map(ix => message.reasoningBoxes![ix] ?? "");
+	if (message.seeds) message.seeds = kept.map(ix => message.seeds![ix] ?? null);
+
 	message.swipes.push(text);
 	message.selectedSwipe = message.swipes.length - 1;
-	if (reasoning) {
+	if (extras.reasoning) {
 		if (!message.reasoningBoxes) message.reasoningBoxes = [];
-		message.reasoningBoxes[message.selectedSwipe] = reasoning;
+		message.reasoningBoxes[message.selectedSwipe] = extras.reasoning;
+	}
+	if (typeof extras.seed === "number") {
+		if (!message.seeds) message.seeds = [];
+		message.seeds[message.selectedSwipe] = extras.seed;
 	}
 	return message;
+}
+
+/** Removes one swipe with its per-swipe entries; the selection stays on the same swipe, or the last one */
+export function removeSwipe(session: ChatSession, mid: number, swipe: number) {
+	const message = messageByID(session, mid);
+	if (!message || message.swipes.length < 2 || typeof message.swipes[swipe] !== "string") return false;
+	message.swipes.splice(swipe, 1);
+	message.reasoningBoxes?.splice(swipe, 1);
+	message.seeds?.splice(swipe, 1);
+	if (message.selectedSwipe > swipe || message.selectedSwipe >= message.swipes.length) message.selectedSwipe--;
+	return true;
 }
 
 export function setSwipeText(session: ChatSession, mid: number, swipe: number, text: string) {
