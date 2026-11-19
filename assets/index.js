@@ -272,11 +272,17 @@
   }
 
   // src/components/modal.ts
+  var MODAL_OPEN = "ram-modal-open";
+  var MODAL_CLOSE = "ram-modal-close";
+  var BUTTON_INPUTS = /* @__PURE__ */ new Set(["submit", "button", "reset", "image"]);
   var RampikeModal = class extends HTMLElement {
     dialog;
+    /** the state last announced with MODAL_OPEN / MODAL_CLOSE */
+    announced = false;
     open() {
       if (this.dialog.open) return;
       this.dialog.showModal();
+      this.announce();
     }
     close() {
       if (!this.dialog.open) return;
@@ -292,20 +298,35 @@
           method: "dialog"
         },
         events: {
-          submit: (e) => e.preventDefault()
+          submit: (e) => e.preventDefault(),
+          // Enter in a text field "clicks" the form's first button, which is usually "close":
+          // fields that want Enter handle it with their own keydown listeners
+          keydown: (e) => {
+            const t = e.target;
+            if (e.key === "Enter" && t instanceof HTMLInputElement && !BUTTON_INPUTS.has(t.type)) e.preventDefault();
+          }
         }
       });
       this.dialog = E({
         tagName: "dialog",
         events: {
-          click: (e, el) => {
-            if (e.target === el && !this.hasAttribute("strong")) el.close();
-          }
+          click: (e, el3) => {
+            if (e.target === el3 && !this.hasAttribute("strong")) el3.close();
+          },
+          // some Chromium builds fire only `toggle` and skip `close`, so either one announces
+          close: () => this.announce(),
+          toggle: () => this.announce()
         },
         contents: [form]
       });
       this.append(this.dialog);
       contents.forEach((e) => form.appendChild(e));
+    }
+    announce() {
+      const open2 = this.dialog.open;
+      if (open2 === this.announced) return;
+      this.announced = open2;
+      this.dispatchEvent(new Event(open2 ? MODAL_OPEN : MODAL_CLOSE, { bubbles: true }));
     }
   };
   function define3(name) {
@@ -2016,9 +2037,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const getChildNodes = lookupGetter(ElementPrototype, "childNodes");
     const getParentNode = lookupGetter(ElementPrototype, "parentNode");
     if (typeof HTMLTemplateElement === "function") {
-      const template10 = document2.createElement("template");
-      if (template10.content && template10.content.ownerDocument) {
-        document2 = template10.content.ownerDocument;
+      const template11 = document2.createElement("template");
+      if (template11.content && template11.content.ownerDocument) {
+        document2 = template11.content.ownerDocument;
       }
     }
     let trustedTypesPolicy;
@@ -3181,11 +3202,11 @@ Please report this to https://github.com/markedjs/marked.`, e) {
           display: "none"
         },
         events: {
-          input: (_ev, el) => {
-            const file = el.files?.[0];
+          input: (_ev, el3) => {
+            const file = el3.files?.[0];
             if (!file) return;
             if (file.type && !file.type.startsWith("image/")) {
-              el.value = "";
+              el3.value = "";
               return;
             }
             this.setFile(file);
@@ -3650,8 +3671,8 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
   }
   function selectorItem(name) {
-    const template10 = document.querySelector("#template-theme-selector");
-    const button = k(template10);
+    const template11 = document.querySelector("#template-theme-selector");
+    const button = k(template11);
     const themeClassName = `theme-${name}`;
     button.classList.add(themeClassName);
     button.addEventListener("click", () => switchTheme(themeClassName));
@@ -3727,8 +3748,8 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     const isFull = ALL_STORES.length === backupKeys.length && settings;
     download(payload, `${(/* @__PURE__ */ new Date()).toLocaleString()}${isFull ? "" : "_PARTIAL"}.aegir.backup.json`);
   }
-  async function restore(picker) {
-    const file = picker.input.files?.[0];
+  async function restore(picker2) {
+    const file = picker2.input.files?.[0];
     if (!file) return;
     const closeToast = toast("on it, please wait...");
     const raw = await file.text();
@@ -4478,7 +4499,7 @@ ${selectedText(m2)}
 {{ref}} or {{themselves}}
     reflexive (himself/herself/themselves)`;
   var MACRO_RE = /\{+(\w+)\}+/g;
-  function runMacros(template10, context) {
+  function runMacros(template11, context) {
     const subs = {
       [CHAR_NAME_MACRO]: context.charName,
       [USER_NAME_MACRO]: context.userName,
@@ -4495,7 +4516,7 @@ ${selectedText(m2)}
       }
       return `{{${m2}}}`;
     }
-    return template10.replace(MACRO_RE, (_2, cap) => sigh(cap));
+    return template11.replace(MACRO_RE, (_2, cap) => sigh(cap));
   }
   var KNOWN_MACROS = /* @__PURE__ */ new Set([
     ...Object.keys(PRON_MACROS),
@@ -4706,7 +4727,7 @@ ${selectedText(m2)}
       r.text.removeAttribute("contenteditable");
       tabs.pick("main");
     }
-    function setStatus(value) {
+    function setStatus2(value) {
       r.status.hidden = value === null;
       r.status.textContent = value ?? "";
     }
@@ -4741,7 +4762,7 @@ ${selectedText(m2)}
       r["reasoning-preview"].hidden = true;
       r["reasoning-box"].hidden = true;
       tabs.pick("streaming");
-      setStatus(STATUS.RESPONDING);
+      setStatus2(STATUS.RESPONDING);
     }
     function appendChunk(chunk) {
       if (!streamNode) startStreaming();
@@ -4755,14 +4776,14 @@ ${selectedText(m2)}
       r["reasoning-preview"].scrollTop = r["reasoning-preview"].scrollHeight;
     }
     function reasoningStatus(reasoning) {
-      setStatus(reasoning ? STATUS.REASONING : STATUS.RESPONDING);
+      setStatus2(reasoning ? STATUS.REASONING : STATUS.RESPONDING);
     }
     function endStreaming() {
       r["reasoning-preview"].textContent = "";
       r["reasoning-preview"].hidden = true;
       refresh();
       tabs.pick("main");
-      setStatus(null);
+      setStatus2(null);
       scrollIntoView();
     }
     refresh();
@@ -4906,8 +4927,8 @@ ${selectedText(m2)}
     list.addEventListener("system:edit", ({ detail }) => {
       const session = getSession();
       if (!session) return;
-      const changed = detail.rember ? setRember(session, detail.mid, detail.text) : setNoteText(session, detail.mid, detail.text);
-      if (changed) commitContents(session);
+      const changed2 = detail.rember ? setRember(session, detail.mid, detail.text) : setNoteText(session, detail.mid, detail.text);
+      if (changed2) commitContents(session);
       getSystemView(session.chat.id, detail.mid, detail.rember)?.controls.refresh();
     });
     list.addEventListener("system:delete", ({ detail }) => {
@@ -4968,10 +4989,10 @@ ${selectedText(m2)}
       existing.controls.show();
       return existing;
     }
-    const anchor = getMessageView(chatId, mid);
-    if (!anchor) return null;
+    const anchor2 = getMessageView(chatId, mid);
+    if (!anchor2) return null;
     const view = remberView(message, false);
-    anchor.before(view);
+    anchor2.before(view);
     return view;
   }
   function scrollToMessage(chatId, mid) {
@@ -4985,14 +5006,14 @@ ${selectedText(m2)}
       return false;
     }
     const previous = lastModelMessage(session);
-    const request = addMessage(session, "user", text2);
+    const request2 = addMessage(session, "user", text2);
     const reply = addMessage(session, "model", "");
     if (!await commit(session)) return false;
     const pictures = await loadPictures(session.chat);
     const list = listElement();
     if (previous) getMessageView(session.chat.id, previous.id)?.controls.setIsLast(false);
     list.append(
-      makeMessageView(request, pictures, false),
+      makeMessageView(request2, pictures, false),
       makeMessageView(reply, pictures, true)
     );
     list.scrollTop = list.scrollHeight;
@@ -5395,15 +5416,15 @@ ${selectedText(m2)}
     const parsed = nothrow(() => JSON.parse(text2.value));
     if (!parsed.success) return { success: false, error: "the file is not valid JSON" };
     const name = file.name.replace(/\.json$/i, "").replace(/_?sillytavern_lorebook$/i, "");
-    const json = parsed.value;
-    if (json?.data?.character_book?.entries)
-      return { success: true, value: await fromCharacterBook(json.data.character_book, json.data.name ?? name) };
-    if (json?.entries) {
-      const items = Array.isArray(json.entries) ? json.entries : Object.values(json.entries);
+    const json2 = parsed.value;
+    if (json2?.data?.character_book?.entries)
+      return { success: true, value: await fromCharacterBook(json2.data.character_book, json2.data.name ?? name) };
+    if (json2?.entries) {
+      const items = Array.isArray(json2.entries) ? json2.entries : Object.values(json2.entries);
       const first = items[0];
       if (!first) return { success: false, error: "the lorebook has no entries" };
-      if ("keys" in first) return { success: true, value: await fromCharacterBook(json, name) };
-      if ("key" in first) return { success: true, value: await fromWorldInfo(json, name) };
+      if ("keys" in first) return { success: true, value: await fromCharacterBook(json2, name) };
+      if ("key" in first) return { success: true, value: await fromWorldInfo(json2, name) };
     }
     return { success: false, error: "this doesn't look like a lorebook" };
   }
@@ -5979,8 +6000,8 @@ ${card.value.card.description}`;
     await idb.set("chats", chat.value);
   }
   async function importChat(file) {
-    const json = await file.text();
-    const parsed = nothrow(() => JSON.parse(json));
+    const json2 = await file.text();
+    const parsed = nothrow(() => JSON.parse(json2));
     if (!parsed.success) return;
     const chat = parsed.value.chat;
     const contents = parsed.value.contents;
@@ -6380,16 +6401,16 @@ ${card.value.card.description}`;
       }
     };
   }
-  async function storePicture(picker) {
-    const value = picker.value;
+  async function storePicture(picker2) {
+    const value = picker2.value;
     if (typeof value === "string") return value || null;
     const optimized = await nothrowAsync(optimizeToWEBP(value));
     if (!optimized.success) {
       toast("can't process the picture, the card is saved without it");
       return null;
     }
-    const [picture, changed] = optimized.value;
-    if (changed) console.log(`optimized delta: ${picture.size - value.size} (negative means win)`);
+    const [picture, changed2] = optimized.value;
+    if (changed2) console.log(`optimized delta: ${picture.size - value.size} (negative means win)`);
     return await upload(picture);
   }
   function macroSafetyCheck(card) {
@@ -6398,8 +6419,8 @@ ${card.value.card.description}`;
     [
       ["definition", card.definition],
       ...card.initials.map((c2, ix) => [`opening ${ix + 1}`, c2])
-    ].forEach(([source, template10]) => {
-      for (const [_2, cap] of template10.matchAll(MACRO_RE)) {
+    ].forEach(([source, template11]) => {
+      for (const [_2, cap] of template11.matchAll(MACRO_RE)) {
         const name = cap.toLowerCase();
         if (name === PERSONA_MACRO) personaMissing = false;
         if (!KNOWN_MACROS.has(name)) errors.push(`${cap} in ${source}`);
@@ -6518,7 +6539,7 @@ ${card.value.card.description}`;
       userName: persona.name,
       persona: persona.description
     };
-    const expand = (template10) => runMacros(template10, context);
+    const expand = (template11) => runMacros(template11, context);
     const definition = expand(origin.chat.definition);
     return {
       id: origin.id,
@@ -6746,15 +6767,16 @@ ${card.value.card.description}`;
       "The user is {{user}}, all other roles are played by you"
     ]
   };
-  async function importDatacatJSON(parsed) {
-    const definitionSource = parsed.data.description ? parsed.data.description.replace("##DESCRIPTION START##", "") : parsed.data.personality;
-    const author = parsed.metadata.janitor_creator_name ? {
-      name: parsed.metadata.janitor_creator_name,
+  async function importDatacatJSON(parsed, hints = {}) {
+    const metadata = parsed.metadata;
+    const definitionSource = parsed.data.description ? parsed.data.description.replace("##DESCRIPTION START##", "") : parsed.data.personality ?? "";
+    const author = hints.author ?? (metadata?.janitor_creator_name ? {
+      name: metadata.janitor_creator_name,
       url: parsed.data.creator
     } : {
       name: parsed.data.creator,
       url: null
-    };
+    });
     const definition = [
       ...definitionTemplate2.characters,
       fix(definitionSource.trim()),
@@ -6771,18 +6793,19 @@ ${card.value.card.description}`;
       lorebooks: book ? [book] : [],
       card: {
         author,
-        description: parsed.metadata.raw_description_html ?? parsed.data.description,
-        picture: await avatar(parsed.data.avatar),
-        tags: parsed.data.tags,
-        title: parsed.metadata.janitor_character_name ?? parsed.data.name
+        description: metadata?.raw_description_html ?? hints.description ?? parsed.data.creator_notes ?? parsed.data.description,
+        picture: hints.picture ? await upload(hints.picture) : await avatar(parsed.data.avatar),
+        // tags as strings per Character Card V2, though datacat's own profiles send them as objects
+        tags: (parsed.data.tags ?? []).map((t) => typeof t === "string" ? t : t?.name ?? "").filter((t) => t),
+        title: metadata?.janitor_character_name ?? parsed.data.name
       },
       chat: {
         definition,
         initials: [
           parsed.data.first_mes,
           ...parsed.data.alternate_greetings ?? []
-        ].map(fix),
-        name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name ?? parsed.data.name,
+        ].filter((m2) => typeof m2 === "string").map(fix),
+        name: metadata?.janitor_character_chatname ?? metadata?.janitor_character_name ?? parsed.data.name,
         picture: null,
         tokenCount: estimateTokenCount(definition)
       }
@@ -6866,11 +6889,654 @@ ${card.value.card.description}`;
     window.location.hash = "library";
   }
 
+  // src/views/datacat-item.html
+  var datacat_item_default = '<div class="datacat-item lineout">\n	<a class="datacat-item-picture" data-ref="picture-link" target="_blank" rel="noopener noreferrer">\n		<img data-ref="picture" loading="lazy" alt="" referrerpolicy="no-referrer">\n	</a>\n	<div class="list grow">\n		<div class="row-compact">\n			<a class="datacat-item-title" data-ref="title" target="_blank" rel="noopener noreferrer"></a>\n			<div class="datacat-item-stats no-shrink" data-ref="stats"></div>\n		</div>\n		<div class="row baseline">\n			<div class="datacat-item-creator" data-ref="creator"></div>\n			<div class="hint float-end no-shrink" data-ref="meta"></div>\n		</div>\n		<div class="datacat-item-description hint" data-ref="description"></div>\n		<div class="scenario-card-tags datacat-item-tags" data-ref="tags"></div>\n		<button class="lineout fit float-end" data-ref="import">import</button>\n	</div>\n</div>\n';
+
+  // src/units/library/datacat-api.ts
+  var DATACAT_ORIGIN = "https://datacat.run";
+  var BASE = `${DATACAT_ORIGIN}/api/client/v1`;
+  var CLIENT_ID = "dca_na8fy-hryenqwaaioa8_crju";
+  var CLIENT_NAME = "Aegir";
+  var PAGE_SIZE = 24;
+  var SEARCH_CHARS = 120;
+  var TAG_SEARCH_CHARS = 80;
+  var LEASE_MARGIN_MS = 3e4;
+  var SOURCE_KINDS = ["janitor_core", "janitor", "jannyai", "saucepan", "direct_upload"];
+  var SORTS = {
+    score: "score",
+    fresh: "freshest",
+    chat_count: "chats",
+    messages_per_chat: "messages per chat",
+    first_published: "first published"
+  };
+  var MAX_BLOCKED_TAGS = 50;
+  var MAX_REQUIRED_TAGS = 24;
+  function characterPage(ref) {
+    return `${DATACAT_ORIGIN}/characters/recent/${ref.sourceKind}/${ref.id}`;
+  }
+  var UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+  function parseCharacterLink(raw) {
+    const text2 = raw.trim().toLowerCase();
+    const datacat = text2.match(new RegExp(`datacat\\.run/.*?/(${SOURCE_KINDS.join("|")})/(${UUID})`));
+    if (datacat) return { sourceKind: datacat[1], id: datacat[2] };
+    const id = text2.match(new RegExp(UUID))?.[0];
+    if (!id) return null;
+    const bare = text2 === id;
+    const janitor = /(^|\/\/|\.)(janitorai|jannyai)\.com\//.test(text2);
+    return bare || janitor ? { sourceKind: "janitor", id } : null;
+  }
+  function installationId() {
+    let id = local.get("datacatInstallation");
+    if (!id) {
+      id = `aegir-${crypto.randomUUID()}`;
+      local.set("datacatInstallation", id);
+    }
+    return id;
+  }
+  function failure(status, error, code = "", verificationRequired = false) {
+    return { success: false, status, error, code, verificationRequired };
+  }
+  async function request(path, init2 = {}) {
+    const headers = {
+      "X-Datacat-Client-Id": CLIENT_ID,
+      "X-Datacat-Client": CLIENT_NAME
+    };
+    if (init2.body) headers["Content-Type"] = "application/json";
+    if (init2.lease) {
+      headers["X-Datacat-Verification-Lease"] = init2.lease;
+      headers["X-Datacat-Installation-Id"] = installationId();
+    }
+    const response = await nothrowAsync(fetch(`${BASE}${path}`, {
+      method: init2.method ?? "GET",
+      headers,
+      body: init2.body ? JSON.stringify(init2.body) : void 0
+    }));
+    if (!response.success) return failure(0, "can't reach datacat");
+    const r = response.value;
+    if (r.ok) return { success: true, value: r };
+    const body = await nothrowAsync(r.json());
+    const e = body.success && body.value && typeof body.value === "object" ? body.value : {};
+    const code = typeof e.error === "string" ? e.error : "";
+    let message = typeof e.message === "string" && e.message ? e.message : `datacat answered ${r.status}`;
+    if (r.status === 429) {
+      const after = parseInt(r.headers.get("Retry-After") ?? "", 10);
+      message = isNaN(after) ? "datacat's rate limit is reached, try again in a few minutes" : `datacat's rate limit is reached, try again in ${after < 90 ? `${after} seconds` : `${Math.ceil(after / 60)} minutes`}`;
+    }
+    const f2 = failure(r.status, message, code, e.verificationRequired === true);
+    if (typeof e.verificationReason === "string") f2.verificationReason = e.verificationReason;
+    return f2;
+  }
+  async function json(path, init2) {
+    const r = await request(path, init2);
+    if (!r.success) return r;
+    const body = await nothrowAsync(r.value.json());
+    if (!body.success) return failure(r.value.status, "datacat sent a malformed answer");
+    return { success: true, value: body.value };
+  }
+  function tagText(tag, prefer = "name") {
+    if (typeof tag === "string") return tag;
+    return (prefer === "name" ? tag?.name ?? tag?.slug : tag?.slug ?? tag?.name) ?? "";
+  }
+  function normalize(raw) {
+    const tags = raw.tags ?? [];
+    const custom = (raw.customTags ?? []).filter((t) => typeof t === "string");
+    return {
+      ...raw,
+      tags: unique([...tags.map((t) => tagText(t)), ...custom].filter((t) => t)),
+      tagSlugs: unique([...tags.map((t) => tagText(t, "slug")), ...custom].filter((t) => t))
+    };
+  }
+  async function searchCharacters(query, options, offset = 0) {
+    const q2 = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(offset), sort: options.sort });
+    const required = options.tagIds.slice(0, MAX_REQUIRED_TAGS);
+    const search = query.trim().slice(0, SEARCH_CHARS);
+    if (required.length > 0) q2.set("tagIds", required.join(","));
+    else if (search) q2.set("search", search);
+    const blocked = options.blockedTagIds.slice(0, MAX_BLOCKED_TAGS);
+    if (blocked.length > 0) q2.set("blockedTagIds", blocked.join(","));
+    const r = await json(`/characters?${q2}`);
+    if (!r.success) return r;
+    return { success: true, value: { characters: (r.value.characters ?? []).map(normalize), paging: r.value.paging } };
+  }
+  async function getCharacter(ref) {
+    const q2 = new URLSearchParams({ sourceKind: ref.sourceKind });
+    const r = await json(`/characters/${ref.id}?${q2}`);
+    return r.success ? { success: true, value: normalize(r.value.character) } : r;
+  }
+  async function listTags(search = "") {
+    const q2 = new URLSearchParams({ limit: "250", sort: "count" });
+    const text2 = search.trim().slice(0, TAG_SEARCH_CHARS);
+    if (text2) q2.set("search", text2);
+    const r = await json(`/tags?${q2}`);
+    if (!r.success) return r;
+    return { success: true, value: (r.value.tags ?? []).filter((t) => typeof t?.id === "number" && t.name) };
+  }
+  function fetchCard(ref, lease) {
+    const q2 = new URLSearchParams({ sourceKind: ref.sourceKind });
+    return json(`/characters/${ref.id}/card?${q2}`, { lease });
+  }
+  async function fetchAvatar(ref, lease) {
+    const q2 = new URLSearchParams({ sourceKind: ref.sourceKind });
+    const r = await request(`/characters/${ref.id}/avatar?${q2}`, { lease });
+    if (!r.success) return r;
+    const blob = await nothrowAsync(r.value.blob());
+    return blob.success ? { success: true, value: blob.value } : failure(r.value.status, "can't read the picture");
+  }
+  function refKey(ref) {
+    return `${ref.sourceKind}:${ref.id}`;
+  }
+  function loadLease() {
+    const raw = local.get("datacatLease");
+    if (!raw) return null;
+    const parsed = nothrow(() => JSON.parse(raw));
+    if (!parsed.success || typeof parsed.value?.token !== "string") return null;
+    return parsed.value;
+  }
+  function saveLease(lease) {
+    local.set("datacatLease", lease ? JSON.stringify(lease) : "");
+  }
+  function dropLease() {
+    saveLease(null);
+  }
+  function usableLease(ref) {
+    const lease = loadLease();
+    if (!lease) return null;
+    if (lease.expiresAt - LEASE_MARGIN_MS < Date.now()) return null;
+    const key = refKey(ref);
+    if (!lease.used.includes(key) && lease.used.length >= lease.maxCharacters) return null;
+    return lease;
+  }
+  function markLeaseUsed(lease, ref) {
+    const key = refKey(ref);
+    const stored = loadLease();
+    if (stored?.token !== lease.token || stored.used.includes(key)) return;
+    stored.used.push(key);
+    saveLease(stored);
+  }
+  async function startVerification() {
+    const r = await json("/verifications", {
+      method: "POST",
+      // the spec's examples say "character_transfer", but the server only takes what /capabilities lists
+      body: { installationId: installationId(), clientName: CLIENT_NAME, action: "character-import" }
+    });
+    if (!r.success) return r;
+    return {
+      success: true,
+      value: {
+        id: r.value.verificationId,
+        deviceCode: r.value.deviceCode,
+        url: r.value.verificationUriComplete,
+        expiresAt: Date.now() + (r.value.expiresIn || 300) * 1e3,
+        intervalMS: Math.max(r.value.interval || 3, 2) * 1e3
+      }
+    };
+  }
+  async function pollVerification(challenge2) {
+    const r = await json(`/verifications/${challenge2.id}/token`, {
+      method: "POST",
+      body: { deviceCode: challenge2.deviceCode, installationId: installationId() }
+    });
+    if (!r.success) {
+      if (r.status === 428 || r.code === "VERIFICATION_PENDING") return { success: true, value: "pending" };
+      return r;
+    }
+    const expiresAt = Date.parse(r.value.expiresAt);
+    const lease = {
+      token: r.value.leaseToken,
+      expiresAt: isNaN(expiresAt) ? Date.now() + 30 * 6e4 : expiresAt,
+      maxCharacters: r.value.maxUniqueCharacters || 20,
+      used: []
+    };
+    saveLease(lease);
+    return { success: true, value: lease };
+  }
+
+  // src/views/datacat-item.ts
+  var template10 = R(datacat_item_default);
+  var REFS10 = {
+    "picture-link": HTMLAnchorElement,
+    picture: HTMLImageElement,
+    title: HTMLAnchorElement,
+    stats: HTMLElement,
+    creator: HTMLElement,
+    meta: HTMLElement,
+    description: HTMLElement,
+    tags: HTMLElement,
+    import: HTMLButtonElement
+  };
+  function makeDatacatItemView(item, onImport) {
+    const { root, refs: r } = h(template10, REFS10);
+    const page = item.id ? characterPage({ id: item.id, sourceKind: item.sourceKind }) : null;
+    if (page) {
+      r["picture-link"].href = page;
+      r.title.href = page;
+    }
+    r.picture.src = placeholder((item.image?.status === "ready" ? item.image.url : null) ?? item.avatarUrl ?? null);
+    r.title.textContent = item.name;
+    r.stats.textContent = `\u{1F4AC} ${neatNumber(item.stats?.chats ?? 0)}`;
+    r.stats.title = `${item.stats?.chats ?? 0} chats, ${item.stats?.messages ?? 0} messages on the source site`;
+    r.creator.textContent = item.creator?.name ? `by ${item.creator.name}` : "";
+    const meta = [];
+    if (item.totalTokens) meta.push(`${neatNumber(item.totalTokens)} tokens`);
+    if (item.nsfw) meta.push("nsfw");
+    meta.push(item.sourceKind);
+    r.meta.textContent = meta.join(" \xB7 ");
+    r.description.textContent = item.description;
+    r.tags.append(...item.tags.map((tag) => E({ tagName: "span", contents: tag })).toReversed());
+    if (item.id) {
+      r.import.addEventListener("click", () => onImport(r.import));
+    } else {
+      r.import.disabled = true;
+      r.import.title = "Datacat doesn't offer this one for download";
+    }
+    return root;
+  }
+
+  // src/units/library/datacat-tags.ts
+  function makeTagPicker(o) {
+    let results = null;
+    let sequence = 0;
+    let status = "";
+    async function search(raw) {
+      const query = raw.trim();
+      const run = ++sequence;
+      status = query ? "Searching Datacat's tags\u2026" : "Asking Datacat for the most used tags\u2026";
+      render();
+      const r = await listTags(query);
+      if (run !== sequence) return;
+      status = r.success ? "" : `Can't get the tags: ${r.error}`;
+      if (r.success) results = { query, tags: r.value };
+      render();
+    }
+    function toggle(tag) {
+      const picked = o.read();
+      const ix = picked.findIndex((t) => t.id === tag.id);
+      if (ix !== -1) {
+        picked.splice(ix, 1);
+      } else if (picked.length >= o.max) {
+        status = o.tooMany;
+        return render();
+      } else {
+        picked.push({ id: tag.id, name: tag.name });
+      }
+      status = "";
+      o.write(picked);
+      render();
+    }
+    function render() {
+      const picked = o.read();
+      const pickedIds = new Set(picked.map((t) => t.id));
+      o.picked.hidden = picked.length === 0 && !o.nonePicked;
+      o.picked.replaceChildren(...picked.length > 0 ? picked.map((tag) => E({
+        tagName: "button",
+        className: "datacat-tag pointer",
+        attributes: { "aria-pressed": "true", title: o.dropHint },
+        contents: `${tag.name} \u2715`,
+        events: { click: () => toggle(tag) }
+      })) : [E({ tagName: "div", className: "hint", contents: o.nonePicked ?? "" })]);
+      o.found.replaceChildren(...(results?.tags ?? []).map((tag) => E({
+        tagName: "button",
+        className: "datacat-tag pointer",
+        attributes: { "aria-pressed": String(pickedIds.has(tag.id)), title: `${tag.count} characters` },
+        contents: [tag.name, E({ tagName: "span", className: "hint", contents: ` ${neatNumber(tag.count)}` })],
+        events: { click: () => toggle(tag) }
+      })));
+      o.status.textContent = status || describe();
+    }
+    function describe() {
+      if (!results) return "";
+      if (!results.query) return "The most used tags; search for the rest";
+      return results.tags.length > 0 ? `Tags matching "${results.query}", most used first` : `Datacat has no tags matching "${results.query}"`;
+    }
+    return {
+      search,
+      render,
+      /** whether it has asked Datacat yet */
+      get searched() {
+        return results !== null;
+      }
+    };
+  }
+
+  // src/units/library/datacat-blacklist.ts
+  var el = (selector) => document.querySelector(selector);
+  function blockedTags() {
+    const raw = local.get("datacatBlocked");
+    if (!raw) return [];
+    const parsed = nothrow(() => JSON.parse(raw));
+    return parsed.success && Array.isArray(parsed.value) ? parsed.value : [];
+  }
+  var picker = null;
+  var changed = false;
+  function datacatBlacklistUnit(done) {
+    const p2 = picker = makeTagPicker({
+      found: el("#datacat-tags"),
+      status: el("#datacat-tags-status"),
+      picked: el("#datacat-blocked"),
+      nonePicked: "Nothing is blocked",
+      dropHint: "unblock",
+      max: MAX_BLOCKED_TAGS,
+      tooMany: `Datacat leaves out at most ${MAX_BLOCKED_TAGS} tags per search: unblock some first`,
+      read: blockedTags,
+      write: (tags) => {
+        local.set("datacatBlocked", JSON.stringify(tags));
+        changed = true;
+        updateCount();
+      }
+    });
+    const filter = el("#datacat-tags-filter");
+    filter.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") p2.search(filter.value);
+    });
+    el("#datacat-tags-search").addEventListener("click", () => p2.search(filter.value));
+    el("#datacat-blacklist-back").addEventListener("click", () => {
+      const wasChanged = changed;
+      changed = false;
+      done(wasChanged);
+    });
+  }
+  function updateCount() {
+    el("#datacat-blocked-count").textContent = `${blockedTags().length}/${MAX_BLOCKED_TAGS}`;
+  }
+  function openBlacklist() {
+    if (!picker) return;
+    el("#datacat-tabs").tab = "blacklist";
+    updateCount();
+    picker.render();
+    if (!picker.searched) picker.search("");
+  }
+
+  // src/units/library/datacat-browser.ts
+  var el2 = (selector) => document.querySelector(selector);
+  function datacatBrowserUnit() {
+    const open2 = el2("#library-dc-browser-open");
+    const modal = el2("#datacat-modal");
+    const link = el2("#datacat-link");
+    const search = el2("#datacat-search");
+    let searched = false;
+    open2.addEventListener("click", () => {
+      modal.open();
+      if (!searched) {
+        searched = true;
+        runSearch("");
+      }
+    });
+    el2("#datacat-close").addEventListener("click", () => modal.close());
+    modal.addEventListener(MODAL_CLOSE, () => finishVerification(null));
+    el2("#datacat-link-go").addEventListener("click", () => openLink(link.value));
+    link.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") openLink(link.value);
+    });
+    const finder = makeTagPicker({
+      found: el2("#datacat-found"),
+      status: el2("#datacat-found-status"),
+      picked: el2("#datacat-picked"),
+      dropHint: "drop",
+      max: MAX_REQUIRED_TAGS,
+      tooMany: `Datacat takes at most ${MAX_REQUIRED_TAGS} tags per search`,
+      read: () => [...requiredTags],
+      write: (tags) => {
+        requiredTags = tags;
+        runSearch(lastQuery ?? "");
+      }
+    });
+    const searchText = () => {
+      if (requiredTags.length > 0) {
+        requiredTags = [];
+        finder.render();
+      }
+      runSearch(search.value);
+    };
+    el2("#datacat-search-go").addEventListener("click", searchText);
+    search.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") searchText();
+    });
+    el2("#datacat-search-tags").addEventListener("click", () => {
+      el2("#datacat-found-panel").hidden = false;
+      finder.search(search.value);
+    });
+    el2("#datacat-found-hide").addEventListener("click", () => el2("#datacat-found-panel").hidden = true);
+    el2("#datacat-more").addEventListener("click", () => {
+      if (nextPage) runSearch(nextPage.query, nextPage.offset, nextPage.options);
+    });
+    const sort = el2("#datacat-sort");
+    setSelectOptions(sort, Object.entries(SORTS), currentSort());
+    sort.addEventListener("change", () => {
+      local.set("datacatSort", sort.value);
+      if (lastQuery !== null) runSearch(lastQuery);
+    });
+    updateBlacklistCaption();
+    el2("#datacat-blacklist-open").addEventListener("click", openBlacklist);
+    datacatBlacklistUnit((changed2) => {
+      el2("#datacat-tabs").tab = "main";
+      updateBlacklistCaption();
+      if (changed2 && lastQuery !== null) runSearch(lastQuery);
+    });
+    el2("#datacat-verify-cancel").addEventListener("click", () => finishVerification(null));
+    el2("#datacat-verify-retry").addEventListener("click", beginChallenge);
+    window.addEventListener("focus", () => {
+      if (challenge) poll(challenge);
+    });
+  }
+  var listSequence = 0;
+  var nextPage = null;
+  var lastQuery = null;
+  var requiredTags = [];
+  function currentSort() {
+    const stored = local.get("datacatSort");
+    return stored && Object.hasOwn(SORTS, stored) ? stored : "score";
+  }
+  function searchOptions() {
+    return { sort: currentSort(), tagIds: requiredTags.map((t) => t.id), blockedTagIds: blockedTags().map((t) => t.id) };
+  }
+  function updateBlacklistCaption() {
+    const count = blockedTags().length;
+    el2("#datacat-blacklist-open").textContent = count > 0 ? `blacklist (${count})` : "blacklist";
+  }
+  function setStatus(contents) {
+    const status = el2("#datacat-status");
+    status.hidden = !contents;
+    status.replaceChildren(...contents ?? []);
+  }
+  function showCharacters(characters, append) {
+    const list = el2("#datacat-results");
+    const views = characters.map((c2) => makeDatacatItemView(c2, (button) => importCharacter(c2, button)));
+    if (append) list.append(...views);
+    else list.replaceChildren(...views);
+  }
+  async function runSearch(query, offset = 0, options = searchOptions()) {
+    const run = ++listSequence;
+    lastQuery = query;
+    const more = el2("#datacat-more");
+    more.disabled = true;
+    if (offset === 0) {
+      nextPage = null;
+      more.hidden = true;
+      setStatus(null);
+      el2("#datacat-results").replaceChildren(placeholderView("Searching\u2026"));
+    }
+    const r = await searchCharacters(query, options, offset);
+    if (run !== listSequence) return;
+    more.disabled = false;
+    if (!r.success) {
+      if (offset === 0) el2("#datacat-results").replaceChildren();
+      setStatus([`Can't search: ${r.error}`]);
+      return;
+    }
+    showCharacters(r.value.characters, offset > 0);
+    if (offset === 0 && r.value.characters.length === 0)
+      el2("#datacat-results").replaceChildren(placeholderView(query.trim() || options.tagIds.length > 0 || options.blockedTagIds.length > 0 ? "Nothing found" : "Datacat has nothing to show"));
+    const { hasMore, nextOffset } = r.value.paging ?? {};
+    nextPage = hasMore && typeof nextOffset === "number" ? { query, offset: nextOffset, options } : null;
+    more.hidden = !nextPage;
+  }
+  async function openLink(raw) {
+    if (!raw.trim()) return;
+    const ref = parseCharacterLink(raw);
+    if (!ref) {
+      setStatus(["That's not a Janitor or Datacat character link"]);
+      return;
+    }
+    const run = ++listSequence;
+    lastQuery = null;
+    nextPage = null;
+    el2("#datacat-more").hidden = true;
+    setStatus(null);
+    el2("#datacat-results").replaceChildren(placeholderView("Looking it up\u2026"));
+    const r = await getCharacter(ref);
+    if (run !== listSequence) return;
+    if (r.success) {
+      showCharacters([r.value], false);
+      return;
+    }
+    el2("#datacat-results").replaceChildren();
+    if (r.status === 404) {
+      setStatus([
+        "Datacat hasn't indexed this character. ",
+        anchor("https://datacat.run/retrieve", "Add it on Datacat"),
+        " by its link, then open it here again."
+      ]);
+    } else {
+      setStatus([`Can't look it up: ${r.error}`]);
+    }
+  }
+  function anchor(href, text2) {
+    const a = document.createElement("a");
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = text2;
+    return a;
+  }
+  async function importCharacter(character, button) {
+    if (!character.id) return;
+    const ref = { id: character.id, sourceKind: character.sourceKind };
+    const caption = button.textContent;
+    button.disabled = true;
+    button.textContent = "importing\u2026";
+    const restore2 = () => {
+      button.disabled = false;
+      button.textContent = caption;
+    };
+    const transfer = await withLease(ref, async (lease) => {
+      const card2 = await fetchCard(ref, lease);
+      if (!card2.success) return card2;
+      const picture = await fetchAvatar(ref, lease);
+      return { success: true, value: { card: card2.value, picture: picture.success ? picture.value : null } };
+    });
+    if (!transfer) return restore2();
+    if (!transfer.success) {
+      toast(`can't import ${character.name}: ${transfer.error}`);
+      return restore2();
+    }
+    const card = transfer.value.card;
+    if (card?.spec !== "chara_card_v2" || !card.data) {
+      toast(`can't import ${character.name}: datacat sent something that isn't a character card`);
+      return restore2();
+    }
+    const converted = await importDatacatJSON(card, {
+      picture: transfer.value.picture,
+      author: character.creator?.name ? { name: character.creator.name, url: characterPage(ref) } : void 0,
+      description: character.description || void 0
+    });
+    const saved = await idb.set("scenarios", converted);
+    if (!saved.success) {
+      toast(`can't save ${character.name} to the library`);
+      return restore2();
+    }
+    button.textContent = "imported";
+    toast(`${converted.card.title} is in the library now`, { timeoutMS: 3e3 });
+  }
+  async function withLease(ref, transfer) {
+    const stored = usableLease(ref);
+    let lease = stored ?? await verify();
+    if (!lease) return null;
+    let r = await transfer(lease.token);
+    if (!r.success && r.verificationRequired && stored) {
+      dropLease();
+      lease = await verify();
+      if (!lease) return null;
+      r = await transfer(lease.token);
+    }
+    if (!r.success && r.verificationRequired) {
+      dropLease();
+      const reason = r.verificationReason ? ` (${r.verificationReason})` : "";
+      return { ...r, error: `datacat didn't accept the lease it just issued${reason}` };
+    }
+    if (r.success) markLeaseUsed(lease, ref);
+    return r;
+  }
+  var verification = null;
+  var challenge = null;
+  var pollTimer;
+  var polling = false;
+  function verify() {
+    if (verification) return verification.promise;
+    verification = revolvers();
+    el2("#datacat-tabs").tab = "verify";
+    beginChallenge();
+    return verification.promise;
+  }
+  function finishVerification(lease) {
+    clearTimeout(pollTimer);
+    challenge = null;
+    el2("#datacat-tabs").tab = "main";
+    const waiting = verification;
+    verification = null;
+    waiting?.resolve(lease);
+  }
+  function verifyStatus(text2, retry = false) {
+    el2("#datacat-verify-status").textContent = text2;
+    el2("#datacat-verify-retry").hidden = !retry;
+  }
+  async function beginChallenge() {
+    clearTimeout(pollTimer);
+    challenge = null;
+    const openLink2 = el2("#datacat-verify-open");
+    openLink2.hidden = true;
+    verifyStatus("Asking Datacat for a check\u2026");
+    const r = await startVerification();
+    if (!verification) return;
+    if (!r.success) return verifyStatus(`Can't start the check: ${r.error}`, true);
+    challenge = r.value;
+    openLink2.href = r.value.url;
+    openLink2.hidden = false;
+    verifyStatus("Pass the check on Datacat's page, then come back here: the import carries on by itself.");
+    schedulePoll(r.value, r.value.intervalMS);
+  }
+  function schedulePoll(c2, delay) {
+    clearTimeout(pollTimer);
+    pollTimer = setTimeout(() => poll(c2), delay);
+  }
+  async function poll(c2) {
+    if (polling || challenge !== c2) return;
+    clearTimeout(pollTimer);
+    if (Date.now() > c2.expiresAt) {
+      challenge = null;
+      el2("#datacat-verify-open").hidden = true;
+      return verifyStatus("The check expired.", true);
+    }
+    polling = true;
+    const r = await pollVerification(c2);
+    polling = false;
+    if (challenge !== c2) return;
+    if (r.success) {
+      if (r.value === "pending") return schedulePoll(c2, c2.intervalMS);
+      return finishVerification(r.value);
+    }
+    if (r.status === 429) return schedulePoll(c2, c2.intervalMS * 4);
+    if (r.status === 0) return schedulePoll(c2, c2.intervalMS * 2);
+    challenge = null;
+    el2("#datacat-verify-open").hidden = true;
+    verifyStatus(r.status === 410 ? "The check expired." : `The check failed: ${r.error}`, true);
+  }
+
   // src/units/library.ts
   var CARDS_PER_PAGE = 16;
   var openerRelay = null;
   function libraryUnit() {
     hashListenerUnit();
+    datacatBrowserUnit();
     const startButton = document.querySelector("#library-start-button");
     const startPersonaPicker = document.querySelector("#library-start-persona");
     const startImportButton = document.querySelector("#library-start-import");
@@ -7018,7 +7684,7 @@ ${card.value.card.description}`;
   }
   async function openStartModal(scenario, descriptionMD) {
     const modal = document.querySelector("#library-start");
-    const picker = modal.querySelector("#library-start-persona");
+    const picker2 = modal.querySelector("#library-start-persona");
     const description = document.querySelector("#library-start-description");
     const placeholder2 = modal.querySelector("#library-start-placeholder");
     const noPlaceholder = modal.querySelector("#library-start-no-placeholder");
@@ -7027,7 +7693,7 @@ ${card.value.card.description}`;
     placeholder2.hidden = personas.value.length > 0;
     noPlaceholder.style.display = placeholder2.hidden ? "contents" : "none";
     setSelectOptions(
-      picker,
+      picker2,
       personas.value.map(({ id, name }) => [id, name]),
       personas.value[0]?.id
     );

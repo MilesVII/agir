@@ -5,10 +5,13 @@ Janitor-inspired local roleplay frontend
 - Standalone and (optionally) self-hosted
 - Mobile-first
 - No sync between devices (chats and scenarios stay on your device)
+- Native import/export, full or partial backups
 - No JLLM (as in real LLMs only)
 - No mobile app (as in no regulations, moderation and censorship)
 - Unlimited number of first messages
-- Native import/export
+- Built-in [Datacat](https://datacat.run) browser to find and import characters
+- Lorebooks, compatible with SillyTavern world info and Character Card V2 lorebooks
+- Proofreader in the scenario editor: lets a model of your choice check the definition and openings
 - *⧖ rEmber (WIP)*: a customizable recap assistant that helps to keep track of roleplay state. Basically a "Chat Memory" from Janitor but not half-assed and actually usable.
 
 ## Usage
@@ -18,7 +21,7 @@ You can use a [github-hosted version](https://milesvii.github.io/agir/). GitHub 
 1. You need an LLM provider to use with Ägir. Janitor AI calls them "proxies", in Ägir they are "providers". Refer to [their guide](https://help.janitorai.com/en/article/the-absolute-beginners-guide-to-using-a-proxy-with-janitor-part-one-19to7y9/) to acquire one for free on OpenRouter.
 2. Navigate to `Settings` > `LLM providers`, add your credentials into the form, and hit "Save provider".
 3. Navigate to `Settings` > `Personas` and add a persona -- a character representing you in roleplay.
-4. Navigate to `Characters` and import or create a scenario. The `download` option allows to fetch characters from *janitorai.com* and *jannyai.com*.
+4. Navigate to `Characters` and import or create a scenario. The `datacat` option lets you search Datacat and import characters from there.
 5. Once ready, pick a scenario from `Characters` library, hit `play`, select a persona and start the roleplay session.
 
 You also can run an LLM locally with [LM Studio](https://lmstudio.ai/) on desktop, just figure out how to host a web server with it and add a provider with localhost connection.
@@ -26,7 +29,9 @@ You also can run an LLM locally with [LM Studio](https://lmstudio.ai/) on deskto
 You can also use [Fenrir](https://github.com/MilesVII/fenrir) to add characters from Janitor -- it's a sniffer proxy that helps to extract character definition even if it's hidden.
 
 ### Where do I get characters?
-From JanitorAI, mostly. Use [datacat.run](https://datacat.run) to extract character definition, download the JSON file, then import it via `Characters` > `Import`.
+From JanitorAI, mostly, through [Datacat](https://datacat.run). Open `Characters` > `datacat` to search Datacat by text or tags, or paste a Janitor or Datacat character link, and hit `import`. If a character is missing, [add it on Datacat](https://datacat.run/retrieve) first.
+
+You can also download the JSON file from Datacat yourself and import it via `Characters` > `Import`.
 
 Downloading Janitor character links directly is supported too, but characters from [jannyai.com](https://jannyai.com) lack some important data like character's chat name and alternative openings.
 

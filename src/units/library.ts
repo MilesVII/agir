@@ -14,6 +14,7 @@ import { DatacatCard, importDatacatJSON } from "./library/datacat";
 import { RampikePagination } from "@rampike/pagination";
 import { filterBySearch } from "./library/search";
 import { hashListenerUnit } from "./library/hash";
+import { datacatBrowserUnit } from "./library/datacat-browser";
 
 const CARDS_PER_PAGE = 16;
 let openerRelay: {
@@ -22,6 +23,7 @@ let openerRelay: {
 
 export function libraryUnit() {
 	hashListenerUnit();
+	datacatBrowserUnit();
 
 	const startButton        = document.querySelector<HTMLButtonElement>("#library-start-button")!;
 	const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;

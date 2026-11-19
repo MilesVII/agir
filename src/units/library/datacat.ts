@@ -18,10 +18,12 @@ export type DatacatCard = {
 		// personality: "", // skipped?
 		// system_prompt: "",
 		alternate_greetings: string[],
+		creator_notes?: string,
 		character_book?: CharacterBook
 	},
 	spec: "chara_card_v2",
-	metadata: {
+	/** datacat's file exports have it; the Client API only promises `spec` and `data` */
+	metadata?: {
 		created: number,
 		modified: number,
 		janitor_creator_name: string,
@@ -47,19 +49,28 @@ const definitionTemplate = {
 	],
 };
 
-export async function importDatacatJSON(parsed: DatacatCard) {
+/** what the Client API knows besides the card: it has the picture behind a lease, and its own creator credit */
+export type DatacatImportHints = {
+	picture?: Blob | null,
+	author?: { name: string, url: string | null },
+	/** the public description, when the card has no description HTML */
+	description?: string
+};
+
+export async function importDatacatJSON(parsed: DatacatCard, hints: DatacatImportHints = {}) {
+	const metadata = parsed.metadata;
 	const definitionSource = parsed.data.description
 		? parsed.data.description.replace("##DESCRIPTION START##", "")
-		: parsed.data.personality;
-	const author = parsed.metadata.janitor_creator_name
+		: parsed.data.personality ?? "";
+	const author = hints.author ?? (metadata?.janitor_creator_name
 		? {
-			name: parsed.metadata.janitor_creator_name,
+			name: metadata.janitor_creator_name,
 			url: parsed.data.creator
 		}
 		: {
 			name: parsed.data.creator,
 			url: null
-		};
+		});
 
 	const definition = [
 		...definitionTemplate.characters,
@@ -81,18 +92,19 @@ export async function importDatacatJSON(parsed: DatacatCard) {
 		lorebooks: book ? [book] : [],
 		card: {
 			author,
-			description: parsed.metadata.raw_description_html ?? parsed.data.description,
-			picture: await avatar(parsed.data.avatar),
-			tags: parsed.data.tags,
-			title: parsed.metadata.janitor_character_name ?? parsed.data.name
+			description: metadata?.raw_description_html ?? hints.description ?? parsed.data.creator_notes ?? parsed.data.description,
+			picture: hints.picture ? await upload(hints.picture) : await avatar(parsed.data.avatar),
+			// tags as strings per Character Card V2, though datacat's own profiles send them as objects
+			tags: (parsed.data.tags ?? []).map(t => typeof t === "string" ? t : (t as { name?: string })?.name ?? "").filter(t => t),
+			title: metadata?.janitor_character_name ?? parsed.data.name
 		},
 		chat: {
 			definition,
 			initials: [
 				parsed.data.first_mes,
 				...(parsed.data.alternate_greetings ?? [])
-			].map(fix),
-			name: parsed.metadata.janitor_character_chatname ?? parsed.metadata.janitor_character_name ?? parsed.data.name,
+			].filter(m => typeof m === "string").map(fix),
+			name: metadata?.janitor_character_chatname ?? metadata?.janitor_character_name ?? parsed.data.name,
 			picture: null,
 			tokenCount: estimateTokenCount(definition)
 		}

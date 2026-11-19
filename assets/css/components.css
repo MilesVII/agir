@@ -449,3 +449,98 @@ summary.settings-label {
 .toast button {
 	min-width: 6ch;
 }
+
+/* ---- datacat browser ---- */
+
+.datacat-item {
+	position: relative;
+	display: flex;
+	flex-flow: row nowrap;
+	gap: var(--dims-reg);
+}
+
+.datacat-item-picture {
+	flex-shrink: 0;
+	width: 25%;
+	max-width: 10em;
+}
+
+.datacat-item-picture img {
+	width: 100%;
+	aspect-ratio: 3 / 4;
+	object-fit: cover;
+	object-position: top;
+	border-radius: var(--dims-smol);
+}
+
+.datacat-item > .list {
+	min-width: 0;
+}
+
+.datacat-item-title {
+	font: var(--font-bold);
+	color: var(--color-text) !important;
+	text-decoration: none;
+	flex-grow: 1;
+	word-break: break-word;
+	max-height: 5lh;
+	overflow: hidden;
+}
+
+.datacat-item-title:hover {
+	color: var(--color-accent) !important;
+}
+
+.datacat-item-stats {
+	color: var(--color-subtext);
+	font: var(--font-smol);
+}
+
+.datacat-item-creator {
+	font: var(--font-smol);
+	min-width: 0;
+}
+
+.datacat-item-description {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	max-height: 6lh;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}
+
+.datacat-item-tags {
+	flex-direction: row;
+	margin-top: 0;
+	max-height: 6lh;
+	font: var(--font-smol);
+}
+
+.datacat-tags {
+	flex-wrap: wrap;
+}
+
+.datacat-tags-scroll {
+	max-height: 10lh;
+	overflow-y: auto;
+	scrollbar-width: thin;
+}
+
+.datacat-tag {
+	background-color: var(--color-base-semi);
+	padding-inline: var(--dims-reg);
+	padding-block: var(--dims-smol);
+	border-radius: var(--dims-smol);
+	color: inherit;
+	border: none;
+	font: var(--font-smol);
+}
+
+.datacat-tag[aria-pressed="true"] {
+	background-color: var(--color-accent);
+	color: var(--color-base);
+}
+
+.datacat-tag[aria-pressed="true"] .hint {
+	color: inherit;
+}
