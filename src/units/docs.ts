@@ -17,5 +17,7 @@ export function docsUnit() {
 		local.set("firstLaunch", `{ "intro": true }`);
 		introMessage.innerHTML = renderMD(await r.text());
 		introModal.open();
+	}).catch(() => {
+		// offline: the intro shows on a later visit
 	});
 }

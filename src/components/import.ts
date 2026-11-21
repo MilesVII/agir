@@ -23,6 +23,8 @@ class RampikeSVGImport extends HTMLElement {
 				}
 				this.parentElement?.replaceChild(parsed, this);
 			};
+		}).catch(() => {
+			// offline, or the page is being left: the icon just stays out
 		});
 	}
 };

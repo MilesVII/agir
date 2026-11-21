@@ -439,6 +439,7 @@
           this.parentElement?.replaceChild(parsed, this);
         }
         ;
+      }).catch(() => {
       });
     }
   };
@@ -7744,6 +7745,7 @@ ${card.value.card.description}`;
       local.set("firstLaunch", `{ "intro": true }`);
       introMessage.innerHTML = renderMD(await r.text());
       introModal.open();
+    }).catch(() => {
     });
   }
 
@@ -7754,7 +7756,7 @@ ${card.value.card.description}`;
     let offered = false;
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.kind !== "aegir-activated") return;
-      if (e.data.version === "9bf52682c4" || offered) return;
+      if (e.data.version === "58f660890a" || offered) return;
       offered = true;
       toast("\xC4gir has been updated, reload the page to get the new version", {
         actions: [
