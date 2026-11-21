@@ -6,6 +6,7 @@ export function initMisc() {
 	const tailInput = document.querySelector<HTMLInputElement>("#settings-options-tail")!;
 	const remberStretchInput = document.querySelector<HTMLInputElement>("#settings-options-rember-stretch")!;
 	const oocAsUserInput = document.querySelector<HTMLInputElement>("#settings-options-ooc-user")!;
+	const backupReminderInput = document.querySelector<HTMLInputElement>("#settings-options-backup-reminder")!;
 	const cwo = document.querySelector<HTMLInputElement>("#settings-options-cwo")!;
 	const miscSave = document.querySelector<HTMLButtonElement>("#settings-misc-save")!;
 	const proofreadInput = document.querySelector<HTMLTextAreaElement>("#settings-options-proofread")!;
@@ -31,6 +32,7 @@ export function initMisc() {
 		settings.tail = isNaN(tail) ? 0 : tail;
 		settings.remberStretch = remberStretchInput.checked;
 		settings.oocAsUser = oocAsUserInput.checked;
+		settings.backupReminder = backupReminderInput.checked;
 		settings.contentWidthOverride = isNaN(cw) ? 0 : cw;
 		settings.proofreadPrompt = proofreadInput.value.trim() || PROOFREAD_DEFAULT_PROMPT;
 
@@ -43,6 +45,7 @@ export function initMisc() {
 		tailInput.value = String(settings.tail);
 		remberStretchInput.checked = settings.remberStretch;
 		oocAsUserInput.checked = settings.oocAsUser;
+		backupReminderInput.checked = settings.backupReminder;
 		cwo.value = String(settings.contentWidthOverride);
 		proofreadInput.value = settings.proofreadPrompt;
 		proofreadInput.dispatchEvent(new Event("input"));
@@ -54,6 +57,8 @@ export type MiscSettings = {
 	remberStretch: boolean,
 	/** send OOC notes as "OOC: ..." user turns for backends that reject mid-conversation system messages */
 	oocAsUser: boolean,
+	/** a weekly toast that offers a full backup, see backup.ts */
+	backupReminder: boolean,
 	contentWidthOverride: number,
 	/** system prompt of the scenario editor's proofread section */
 	proofreadPrompt: string
@@ -68,6 +73,7 @@ const DEFAULT_SETTINGS: MiscSettings = {
 	tail: 100,
 	remberStretch: true,
 	oocAsUser: false,
+	backupReminder: true,
 	contentWidthOverride: 0,
 	proofreadPrompt: PROOFREAD_DEFAULT_PROMPT
 };

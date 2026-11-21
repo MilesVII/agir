@@ -3686,7 +3686,78 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
+  // src/units/settings/misc.ts
+  function initMisc() {
+    const tailInput = document.querySelector("#settings-options-tail");
+    const remberStretchInput = document.querySelector("#settings-options-rember-stretch");
+    const oocAsUserInput = document.querySelector("#settings-options-ooc-user");
+    const backupReminderInput = document.querySelector("#settings-options-backup-reminder");
+    const cwo = document.querySelector("#settings-options-cwo");
+    const miscSave = document.querySelector("#settings-misc-save");
+    const proofreadInput = document.querySelector("#settings-options-proofread");
+    const proofreadReset = document.querySelector("#settings-options-proofread-reset");
+    makeResizable(proofreadInput);
+    proofreadReset.addEventListener("click", () => {
+      proofreadInput.value = PROOFREAD_DEFAULT_PROMPT;
+      proofreadInput.dispatchEvent(new Event("input"));
+    });
+    listen((u3) => {
+      if (u3.storage !== "local") return;
+      if (u3.key !== "settings") return;
+      updateSettings();
+    });
+    updateSettings();
+    miscSave.addEventListener("click", () => {
+      const settings = loadMiscSettings();
+      const tail = parseInt(tailInput.value, 10);
+      const cw = parseFloat(cwo.value);
+      settings.tail = isNaN(tail) ? 0 : tail;
+      settings.remberStretch = remberStretchInput.checked;
+      settings.oocAsUser = oocAsUserInput.checked;
+      settings.backupReminder = backupReminderInput.checked;
+      settings.contentWidthOverride = isNaN(cw) ? 0 : cw;
+      settings.proofreadPrompt = proofreadInput.value.trim() || PROOFREAD_DEFAULT_PROMPT;
+      local.set("settings", JSON.stringify(settings));
+      toast("settings updated");
+    });
+    function updateSettings() {
+      const settings = loadMiscSettings();
+      tailInput.value = String(settings.tail);
+      remberStretchInput.checked = settings.remberStretch;
+      oocAsUserInput.checked = settings.oocAsUser;
+      backupReminderInput.checked = settings.backupReminder;
+      cwo.value = String(settings.contentWidthOverride);
+      proofreadInput.value = settings.proofreadPrompt;
+      proofreadInput.dispatchEvent(new Event("input"));
+    }
+  }
+  var PROOFREAD_DEFAULT_PROMPT = [
+    "you are a proofreader for roleplay scenario cards. the user sends a character definition and one or more opening messages.",
+    "list typos, grammar mistakes, awkward or repetitive phrasing, inconsistencies (names, tense, point of view) and other style problems.",
+    "for each one quote the fragment, say what is wrong and suggest a fix. group the findings by section, as a markdown list.",
+    "do not rewrite the text as a whole, do not comment on the content, setting or themes, and do not praise. if a section is fine, say so in one line."
+  ].join(" ");
+  var DEFAULT_SETTINGS = {
+    tail: 100,
+    remberStretch: true,
+    oocAsUser: false,
+    backupReminder: true,
+    contentWidthOverride: 0,
+    proofreadPrompt: PROOFREAD_DEFAULT_PROMPT
+  };
+  function loadMiscSettings() {
+    const raw = local.get("settings");
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = nothrow(() => JSON.parse(raw));
+    if (!parsed.success) return DEFAULT_SETTINGS;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed.value
+    };
+  }
+
   // src/units/settings/backup.ts
+  var REMIND_EVERY_MS = 7 * 24 * 60 * 60 * 1e3;
   function initBackup() {
     const saveButton = document.querySelector("#settings-backup-save");
     const importPicker = document.querySelector("#settings-backup-import");
@@ -3698,6 +3769,26 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     importPicker.addEventListener("input", () => restore(importPicker));
     cleanupButton.addEventListener("click", mediaCleanup);
     savePartialButton.addEventListener("click", () => runPartial());
+    remindAboutBackup();
+  }
+  function remindAboutBackup() {
+    const last2 = Number(local.get("backupReminder"));
+    if (!last2) {
+      local.set("backupReminder", String(Date.now()));
+      return;
+    }
+    if (!loadMiscSettings().backupReminder) return;
+    if (Date.now() - last2 < REMIND_EVERY_MS) return;
+    local.set("backupReminder", String(Date.now()));
+    toast("Your chats and characters are stored only in this browser, and clearing site data deletes them. Save a full backup?", {
+      actions: [
+        ["later", (close) => close()],
+        ["save backup", (close) => {
+          close();
+          backup();
+        }]
+      ]
+    });
   }
   var ALL_STORES = [
     "chatContents",
@@ -3746,6 +3837,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     const payload = JSON.stringify(backup2);
     closeToast();
     const isFull = ALL_STORES.length === backupKeys.length && settings;
+    if (isFull) local.set("backupReminder", String(Date.now()));
     download(payload, `${(/* @__PURE__ */ new Date()).toLocaleString()}${isFull ? "" : "_PARTIAL"}.aegir.backup.json`);
   }
   async function restore(picker2) {
@@ -3869,72 +3961,6 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
         if (items.scenarios[1]()) stores.push("scenarios");
         return backup(stores, items.settings[1]());
       }
-    };
-  }
-
-  // src/units/settings/misc.ts
-  function initMisc() {
-    const tailInput = document.querySelector("#settings-options-tail");
-    const remberStretchInput = document.querySelector("#settings-options-rember-stretch");
-    const oocAsUserInput = document.querySelector("#settings-options-ooc-user");
-    const cwo = document.querySelector("#settings-options-cwo");
-    const miscSave = document.querySelector("#settings-misc-save");
-    const proofreadInput = document.querySelector("#settings-options-proofread");
-    const proofreadReset = document.querySelector("#settings-options-proofread-reset");
-    makeResizable(proofreadInput);
-    proofreadReset.addEventListener("click", () => {
-      proofreadInput.value = PROOFREAD_DEFAULT_PROMPT;
-      proofreadInput.dispatchEvent(new Event("input"));
-    });
-    listen((u3) => {
-      if (u3.storage !== "local") return;
-      if (u3.key !== "settings") return;
-      updateSettings();
-    });
-    updateSettings();
-    miscSave.addEventListener("click", () => {
-      const settings = loadMiscSettings();
-      const tail = parseInt(tailInput.value, 10);
-      const cw = parseFloat(cwo.value);
-      settings.tail = isNaN(tail) ? 0 : tail;
-      settings.remberStretch = remberStretchInput.checked;
-      settings.oocAsUser = oocAsUserInput.checked;
-      settings.contentWidthOverride = isNaN(cw) ? 0 : cw;
-      settings.proofreadPrompt = proofreadInput.value.trim() || PROOFREAD_DEFAULT_PROMPT;
-      local.set("settings", JSON.stringify(settings));
-      toast("settings updated");
-    });
-    function updateSettings() {
-      const settings = loadMiscSettings();
-      tailInput.value = String(settings.tail);
-      remberStretchInput.checked = settings.remberStretch;
-      oocAsUserInput.checked = settings.oocAsUser;
-      cwo.value = String(settings.contentWidthOverride);
-      proofreadInput.value = settings.proofreadPrompt;
-      proofreadInput.dispatchEvent(new Event("input"));
-    }
-  }
-  var PROOFREAD_DEFAULT_PROMPT = [
-    "you are a proofreader for roleplay scenario cards. the user sends a character definition and one or more opening messages.",
-    "list typos, grammar mistakes, awkward or repetitive phrasing, inconsistencies (names, tense, point of view) and other style problems.",
-    "for each one quote the fragment, say what is wrong and suggest a fix. group the findings by section, as a markdown list.",
-    "do not rewrite the text as a whole, do not comment on the content, setting or themes, and do not praise. if a section is fine, say so in one line."
-  ].join(" ");
-  var DEFAULT_SETTINGS = {
-    tail: 100,
-    remberStretch: true,
-    oocAsUser: false,
-    contentWidthOverride: 0,
-    proofreadPrompt: PROOFREAD_DEFAULT_PROMPT
-  };
-  function loadMiscSettings() {
-    const raw = local.get("settings");
-    if (!raw) return DEFAULT_SETTINGS;
-    const parsed = nothrow(() => JSON.parse(raw));
-    if (!parsed.success) return DEFAULT_SETTINGS;
-    return {
-      ...DEFAULT_SETTINGS,
-      ...parsed.value
     };
   }
 
@@ -7728,7 +7754,7 @@ ${card.value.card.description}`;
     let offered = false;
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.kind !== "aegir-activated") return;
-      if (e.data.version === "94e72482a3" || offered) return;
+      if (e.data.version === "9bf52682c4" || offered) return;
       offered = true;
       toast("\xC4gir has been updated, reload the page to get the new version", {
         actions: [

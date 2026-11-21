@@ -4,6 +4,9 @@ import { MediaEntry } from "@root/types";
 import { b64Encoder, download } from "@root/utils";
 import { toast } from "@units/toasts";
 import { mudcrack } from "rampike";
+import { loadMiscSettings } from "./misc";
+
+const REMIND_EVERY_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function initBackup() {
 	const saveButton          = document.querySelector("#settings-backup-save")!;
@@ -18,6 +21,33 @@ export function initBackup() {
 	importPicker.addEventListener("input", () => restore(importPicker));
 	cleanupButton.addEventListener("click", mediaCleanup);
 	savePartialButton.addEventListener("click", () => runPartial());
+
+	remindAboutBackup();
+}
+
+/**
+ * Once a week, offers a full backup. The first visit only starts the clock: a new user has little to lose yet.
+ * Saving a full backup restarts it too.
+ */
+function remindAboutBackup() {
+	const last = Number(local.get("backupReminder"));
+	if (!last) {
+		local.set("backupReminder", String(Date.now()));
+		return;
+	}
+	if (!loadMiscSettings().backupReminder) return;
+	if (Date.now() - last < REMIND_EVERY_MS) return;
+
+	local.set("backupReminder", String(Date.now()));
+	toast("Your chats and characters are stored only in this browser, and clearing site data deletes them. Save a full backup?", {
+		actions: [
+			["later", close => close()],
+			["save backup", close => {
+				close();
+				backup();
+			}]
+		]
+	});
 }
 
 const ALL_STORES: IDBStore[] = [
@@ -82,6 +112,7 @@ async function backup(
 
 	closeToast();
 	const isFull = ALL_STORES.length === backupKeys.length && settings;
+	if (isFull) local.set("backupReminder", String(Date.now()));
 	download(payload, `${new Date().toLocaleString()}${isFull ? "" : "_PARTIAL"}.aegir.backup.json`);
 }
 
