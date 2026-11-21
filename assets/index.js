@@ -7721,6 +7721,34 @@ ${card.value.card.description}`;
     });
   }
 
+  // src/units/service-worker.ts
+  var CHECK_EVERY_MS = 10 * 60 * 1e3;
+  function serviceWorkerUnit() {
+    if (!("serviceWorker" in navigator)) return;
+    let offered = false;
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      if (e.data?.kind !== "aegir-activated") return;
+      if (e.data.version === "94e72482a3" || offered) return;
+      offered = true;
+      toast("\xC4gir has been updated, reload the page to get the new version", {
+        actions: [
+          ["later", (close) => close()],
+          ["reload", () => location.reload()]
+        ]
+      });
+    });
+    navigator.serviceWorker.register("sw.js").then((registration) => {
+      let checkedAt = Date.now();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") return;
+        if (Date.now() - checkedAt < CHECK_EVERY_MS) return;
+        checkedAt = Date.now();
+        registration.update().catch(() => {
+        });
+      });
+    }).catch((e) => console.warn("service worker registration failed", e));
+  }
+
   // src/index.ts
   define2();
   define();
@@ -7739,7 +7767,8 @@ ${card.value.card.description}`;
     libraryUnit,
     scenarioUnit,
     docsUnit,
-    cheatsUnit
+    cheatsUnit,
+    serviceWorkerUnit
   ];
   async function main() {
     units.forEach((u3) => u3());

@@ -5,6 +5,7 @@ Janitor-inspired local roleplay frontend
 - Standalone and (optionally) self-hosted
 - Mobile-first
 - No sync between devices (chats and scenarios stay on your device)
+- Works offline once opened, so your chats and backups stay reachable without a connection (LLMs still need one, obviously)
 - Native import/export, full or partial backups
 - No JLLM (as in real LLMs only)
 - No mobile app (as in no regulations, moderation and censorship)
@@ -51,6 +52,8 @@ git clone https://github.com/MilesVII/agir
 cd agir
 ```
 Then just serve the page from root with whatever tool you prefer (i use [`serve`](https://www.npmjs.com/package/serve) for example). If you don't know how, you can ask any free use bot on Janitor for instructions. Or just ChatGPT or Gemini if you're lame and boring.
+
+Offline mode only works over `https` or on `localhost`, since browsers allow service workers nowhere else.
 
 ## Credits
 Maid Ägir placeholder:
