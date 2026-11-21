@@ -116,6 +116,7 @@ fieldset:has(*:focus) > legend, fieldset:hover > legend {
 .main-chats-item > img {
 	border-radius: var(--dims-smol);
 	object-fit: cover;
+	object-position: top;
 	width: 40%;
 	aspect-ratio: 1/1;
 }
@@ -369,6 +370,7 @@ summary.settings-label {
 
 .message > img {
 	object-fit: cover;
+	object-position: top;
 	width: var(--profile-pictire-size);
 	height: var(--profile-pictire-size);
 	border-radius: var(--dims-reg);
