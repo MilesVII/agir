@@ -7,14 +7,14 @@ import { start } from "./chat/start";
 import { ScenarioCard } from "@root/types";
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { importSTMessages } from "./library/st";
-import { downloadScenarioCard } from "./library/dl";
-import { toast } from "./toasts";
 import { startArmory } from "./library/armory";
 import { DatacatCard, importDatacatJSON } from "./library/datacat";
 import { RampikePagination } from "@rampike/pagination";
 import { filterBySearch } from "./library/search";
 import { hashListenerUnit } from "./library/hash";
 import { datacatBrowserUnit } from "./library/datacat-browser";
+import { mudcrack } from "rampike";
+import { makeStartedChatView } from "@views/started-chat";
 
 const CARDS_PER_PAGE = 16;
 let openerRelay: {
@@ -29,7 +29,6 @@ export function libraryUnit() {
 	const startPersonaPicker = document.querySelector<HTMLSelectElement>("#library-start-persona")!;
 	const startImportButton  = document.querySelector<RampikeFilePicker>("#library-start-import")!;
 	const importButton       = document.querySelector<RampikeFilePicker>("#library-import")!;
-	const downloadButton     = document.querySelector<HTMLButtonElement>("#library-download")!;
 	const armoryButton       = document.querySelector<HTMLButtonElement>("#library-armory-button")!;
 	const pager              = document.querySelector<RampikePagination>("#library-pager")!;
 	const modal              = document.querySelector<RampikeModal>("#library-start")!;
@@ -68,37 +67,6 @@ export function libraryUnit() {
 		for (let i = 0; i < files.length; ++i) {
 			importScenario(files.item(i)!);
 		}
-	});
-
-	downloadButton.addEventListener("click", async () => {
-		alert([
-			"Apologies, download is not available. jannyai.com",
-			" started using Cloudflare's bot protection and",
-			" can't be accessed automatically anymore.\n\n",
-			"You still can import JSON files downloaded from",
-			" https://datacat.run/ \n\n",
-			"There's a chance a better integration will be",
-			" implemented soon"
-		].join(""));
-		return;
-		// const url = prompt("Enter the link to a character page on janitorai.com")?.trim();
-		// if (!url) return;
-		// const card = await downloadScenarioCard(url);
-		// if (card) {
-		// 	await idb.set("scenarios", card);
-		// 	toast(
-		// 		"scenario downloaded!\ndon't forget to add the character name and check the definition",
-		// 		{
-		// 			actions: [
-		// 				["ok", close => close()],
-		// 				["open", close => {
-		// 					close();
-		// 					window.open(`#scenario-editor.${card.id}`);
-		// 				}]
-		// 			]
-		// 		}
-		// 	);
-		// }
 	});
 	armoryButton.addEventListener("click", startArmory);
 
@@ -232,6 +200,8 @@ async function openStartModal(scenario: string, descriptionMD: string) {
 		personas.value[0]?.id
 	);
 
+	await highlightStartedChats(scenario, modal);
+
 	openerRelay = {
 		scenarioId: scenario
 	};
@@ -240,4 +210,28 @@ async function openStartModal(scenario: string, descriptionMD: string) {
 	description.innerHTML = renderMD(descriptionMD);
 
 	modal.open();
+}
+
+async function highlightStartedChats(scenario: string, modal: RampikeModal) {
+	const chatList = modal.querySelector<HTMLElement>("#library-start-chats")!;
+	chatList.hidden = true;
+
+	const chats = await idb.getAll("chats");
+	if (!chats.success) return;
+
+	const startedChats = chats.value.filter(c => c.scenario.id === scenario);
+	if (startedChats.length === 0) return;
+
+	chatList.innerHTML = "";
+	chatList.append(...startedChats.map(c =>
+		makeStartedChatView(
+			c,
+			c.userPersona.picture ? getBlobLink(c.userPersona.picture) : null,
+			() => {
+				window.location.hash = `play.${c.id}`;
+				modal.close();
+			}
+		)
+	));
+	chatList.hidden = false;
 }

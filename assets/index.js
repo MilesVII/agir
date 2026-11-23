@@ -2038,9 +2038,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const getChildNodes = lookupGetter(ElementPrototype, "childNodes");
     const getParentNode = lookupGetter(ElementPrototype, "parentNode");
     if (typeof HTMLTemplateElement === "function") {
-      const template11 = document2.createElement("template");
-      if (template11.content && template11.content.ownerDocument) {
-        document2 = template11.content.ownerDocument;
+      const template12 = document2.createElement("template");
+      if (template12.content && template12.content.ownerDocument) {
+        document2 = template12.content.ownerDocument;
       }
     }
     let trustedTypesPolicy;
@@ -3672,8 +3672,8 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
   }
   function selectorItem(name) {
-    const template11 = document.querySelector("#template-theme-selector");
-    const button = k(template11);
+    const template12 = document.querySelector("#template-theme-selector");
+    const button = k(template12);
     const themeClassName = `theme-${name}`;
     button.classList.add(themeClassName);
     button.addEventListener("click", () => switchTheme(themeClassName));
@@ -4526,7 +4526,7 @@ ${selectedText(m2)}
 {{ref}} or {{themselves}}
     reflexive (himself/herself/themselves)`;
   var MACRO_RE = /\{+(\w+)\}+/g;
-  function runMacros(template11, context) {
+  function runMacros(template12, context) {
     const subs = {
       [CHAR_NAME_MACRO]: context.charName,
       [USER_NAME_MACRO]: context.userName,
@@ -4543,7 +4543,7 @@ ${selectedText(m2)}
       }
       return `{{${m2}}}`;
     }
-    return template11.replace(MACRO_RE, (_2, cap) => sigh(cap));
+    return template12.replace(MACRO_RE, (_2, cap) => sigh(cap));
   }
   var KNOWN_MACROS = /* @__PURE__ */ new Set([
     ...Object.keys(PRON_MACROS),
@@ -6446,8 +6446,8 @@ ${card.value.card.description}`;
     [
       ["definition", card.definition],
       ...card.initials.map((c2, ix) => [`opening ${ix + 1}`, c2])
-    ].forEach(([source, template11]) => {
-      for (const [_2, cap] of template11.matchAll(MACRO_RE)) {
+    ].forEach(([source, template12]) => {
+      for (const [_2, cap] of template12.matchAll(MACRO_RE)) {
         const name = cap.toLowerCase();
         if (name === PERSONA_MACRO) personaMissing = false;
         if (!KNOWN_MACROS.has(name)) errors.push(`${cap} in ${source}`);
@@ -6566,7 +6566,7 @@ ${card.value.card.description}`;
       userName: persona.name,
       persona: persona.description
     };
-    const expand = (template11) => runMacros(template11, context);
+    const expand = (template12) => runMacros(template12, context);
     const definition = expand(origin.chat.definition);
     return {
       id: origin.id,
@@ -7558,6 +7558,32 @@ ${card.value.card.description}`;
     verifyStatus(r.status === 410 ? "The check expired." : `The check failed: ${r.error}`, true);
   }
 
+  // src/views/started-chat.html
+  var started_chat_default = '\r\n<div class="lineout pointer row wide align-center main-chats-item-user">\r\n	<img data-ref="user-icon" />\r\n	<div data-ref="user-name"></div>\r\n	<div class="hint" data-ref="message-count"></div>\r\n	<div class="hint" data-ref="last-update"></div>\r\n	<div class="hint" data-ref="memo"></div>\r\n</div>\r\n';
+
+  // src/views/started-chat.ts
+  var template11 = R(started_chat_default);
+  var REFS11 = {
+    "user-icon": HTMLImageElement,
+    "user-name": HTMLElement,
+    "message-count": HTMLElement,
+    "last-update": HTMLElement,
+    "memo": HTMLElement
+  };
+  function makeStartedChatView(chat, userIcon, play) {
+    const { root, refs: r } = h(template11, REFS11);
+    setPicture(r["user-icon"], userIcon);
+    r["user-name"].textContent = chat.userPersona.name;
+    r["message-count"].textContent = messagesCaption(chat.messageCount);
+    r["last-update"].textContent = new Date(chat.lastUpdate).toLocaleString();
+    if (chat.memo)
+      r.memo.textContent = chat.memo;
+    else
+      r.memo.hidden = true;
+    root.addEventListener("click", play);
+    return root;
+  }
+
   // src/units/library.ts
   var CARDS_PER_PAGE = 16;
   var openerRelay = null;
@@ -7568,7 +7594,6 @@ ${card.value.card.description}`;
     const startPersonaPicker = document.querySelector("#library-start-persona");
     const startImportButton = document.querySelector("#library-start-import");
     const importButton = document.querySelector("#library-import");
-    const downloadButton = document.querySelector("#library-download");
     const armoryButton = document.querySelector("#library-armory-button");
     const pager = document.querySelector("#library-pager");
     const modal = document.querySelector("#library-start");
@@ -7602,18 +7627,6 @@ ${card.value.card.description}`;
       for (let i = 0; i < files.length; ++i) {
         importScenario(files.item(i));
       }
-    });
-    downloadButton.addEventListener("click", async () => {
-      alert([
-        "Apologies, download is not available. jannyai.com",
-        " started using Cloudflare's bot protection and",
-        " can't be accessed automatically anymore.\n\n",
-        "You still can import JSON files downloaded from",
-        " https://datacat.run/ \n\n",
-        "There's a chance a better integration will be",
-        " implemented soon"
-      ].join(""));
-      return;
     });
     armoryButton.addEventListener("click", startArmory);
     search.open.addEventListener("click", () => {
@@ -7724,12 +7737,33 @@ ${card.value.card.description}`;
       personas.value.map(({ id, name }) => [id, name]),
       personas.value[0]?.id
     );
+    await highlightStartedChats(scenario, modal);
     openerRelay = {
       scenarioId: scenario
     };
     description.hidden = descriptionMD.trim() ? false : true;
     description.innerHTML = renderMD(descriptionMD);
     modal.open();
+  }
+  async function highlightStartedChats(scenario, modal) {
+    const chatList = modal.querySelector("#library-start-chats");
+    chatList.hidden = true;
+    const chats = await idb.getAll("chats");
+    if (!chats.success) return;
+    const startedChats = chats.value.filter((c2) => c2.scenario.id === scenario);
+    if (startedChats.length === 0) return;
+    chatList.innerHTML = "";
+    chatList.append(...startedChats.map(
+      (c2) => makeStartedChatView(
+        c2,
+        c2.userPersona.picture ? getBlobLink(c2.userPersona.picture) : null,
+        () => {
+          window.location.hash = `play.${c2.id}`;
+          modal.close();
+        }
+      )
+    ));
+    chatList.hidden = false;
   }
 
   // src/units/docs.ts
@@ -7756,7 +7790,7 @@ ${card.value.card.description}`;
     let offered = false;
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.kind !== "aegir-activated") return;
-      if (e.data.version === "58f660890a" || offered) return;
+      if (e.data.version === "bcb207ace0" || offered) return;
       offered = true;
       toast("\xC4gir has been updated, reload the page to get the new version", {
         actions: [

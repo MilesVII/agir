@@ -7,7 +7,6 @@ import { cheatHandler } from "./cheats";
 import { placeholderView } from "@views/common";
 import { makeChatHandleView, messagesCaption } from "@views/chat-handle";
 
-
 export function mainUnit() {
 	const importButton = document.querySelector<RampikeFilePicker>("#main-import")!;
 	const chatCounter = document.querySelector<HTMLElement>("#main-counter")!;
