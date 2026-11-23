@@ -34,3 +34,14 @@
 	margin-top: 1em;
 	margin-bottom: .4em;
 }
+
+.md abbr[title] {
+	cursor: help;
+}
+
+.md-intro pre > code {
+	display: block;
+	border: 2px solid var(--color-secondary);
+	padding: var(--dims-smol);
+	border-radius: var(--dims-smol);
+}

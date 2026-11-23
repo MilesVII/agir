@@ -7767,20 +7767,38 @@ ${card.value.card.description}`;
   }
 
   // src/units/docs.ts
+  var DOCS = {
+    intro: "assets/docs/intro.md",
+    tutorial: "assets/docs/tutorial.md"
+  };
   function docsUnit() {
-    const introMessage = document.querySelector("#help-message");
     const introModal = document.querySelector("#help-modal");
     const introClose = document.querySelector("#help-close");
     introClose.addEventListener("click", () => introModal.close());
-    const fl = local.get("firstLaunch");
-    if (fl) return;
-    fetch("assets/docs/intro.md").then(async (r) => {
-      if (!r.ok) return;
-      local.set("firstLaunch", `{ "intro": true }`);
-      introMessage.innerHTML = renderMD(await r.text());
-      introModal.open();
-    }).catch(() => {
+    const openers = [
+      ["#settings-docs-intro", "intro"],
+      ["#settings-docs-creator-guide", "tutorial"],
+      ["#scenario-tutorial", "tutorial"]
+    ];
+    for (const [selector, doc] of openers)
+      document.querySelector(selector).addEventListener("click", async () => {
+        if (!await showDoc(doc)) toast("Couldn't load the docs, check your connection");
+      });
+    if (local.get("firstLaunch")) return;
+    showDoc("intro").then((shown) => {
+      if (shown) local.set("firstLaunch", `{ "intro": true }`);
     });
+  }
+  async function showDoc(doc) {
+    const r = await fetch(DOCS[doc]).catch(() => null);
+    if (!r?.ok) return false;
+    const message = document.querySelector("#help-message");
+    const modal = document.querySelector("#help-modal");
+    message.innerHTML = renderMD(await r.text());
+    message.querySelectorAll("abbr[title]").forEach((e) => e.addEventListener("click", () => alert(e.getAttribute("title"))));
+    modal.open();
+    message.scrollIntoView({ block: "start" });
+    return true;
   }
 
   // src/units/service-worker.ts
@@ -7790,7 +7808,7 @@ ${card.value.card.description}`;
     let offered = false;
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.kind !== "aegir-activated") return;
-      if (e.data.version === "b77e4c4fa6" || offered) return;
+      if (e.data.version === "3a3001d01f" || offered) return;
       offered = true;
       toast("\xC4gir has been updated, reload the page to get the new version", {
         actions: [
