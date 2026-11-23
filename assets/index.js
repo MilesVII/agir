@@ -7559,7 +7559,7 @@ ${card.value.card.description}`;
   }
 
   // src/views/started-chat.html
-  var started_chat_default = '\r\n<div class="lineout pointer row wide align-center main-chats-item-user">\r\n	<img data-ref="user-icon" />\r\n	<div data-ref="user-name"></div>\r\n	<div class="hint" data-ref="message-count"></div>\r\n	<div class="hint" data-ref="last-update"></div>\r\n	<div class="hint" data-ref="memo"></div>\r\n</div>\r\n';
+  var started_chat_default = '\n<div class="lineout pointer row wide align-center main-chats-item-user">\n	<img data-ref="user-icon" />\n	<div data-ref="user-name"></div>\n	<div class="hint" data-ref="message-count"></div>\n	<div class="hint" data-ref="last-update"></div>\n	<div class="hint" data-ref="memo"></div>\n</div>\n';
 
   // src/views/started-chat.ts
   var template11 = R(started_chat_default);
@@ -7750,7 +7750,7 @@ ${card.value.card.description}`;
     chatList.hidden = true;
     const chats = await idb.getAll("chats");
     if (!chats.success) return;
-    const startedChats = chats.value.filter((c2) => c2.scenario.id === scenario);
+    const startedChats = chats.value.filter((c2) => c2.scenario.id === scenario).sort((a, b2) => b2.lastUpdate - a.lastUpdate);
     if (startedChats.length === 0) return;
     chatList.innerHTML = "";
     chatList.append(...startedChats.map(
@@ -7790,7 +7790,7 @@ ${card.value.card.description}`;
     let offered = false;
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.kind !== "aegir-activated") return;
-      if (e.data.version === "bcb207ace0" || offered) return;
+      if (e.data.version === "b77e4c4fa6" || offered) return;
       offered = true;
       toast("\xC4gir has been updated, reload the page to get the new version", {
         actions: [

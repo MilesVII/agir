@@ -13,7 +13,6 @@ import { RampikePagination } from "@rampike/pagination";
 import { filterBySearch } from "./library/search";
 import { hashListenerUnit } from "./library/hash";
 import { datacatBrowserUnit } from "./library/datacat-browser";
-import { mudcrack } from "rampike";
 import { makeStartedChatView } from "@views/started-chat";
 
 const CARDS_PER_PAGE = 16;
@@ -219,7 +218,9 @@ async function highlightStartedChats(scenario: string, modal: RampikeModal) {
 	const chats = await idb.getAll("chats");
 	if (!chats.success) return;
 
-	const startedChats = chats.value.filter(c => c.scenario.id === scenario);
+	const startedChats = chats.value
+		.filter(c => c.scenario.id === scenario)
+		.sort((a, b) => b.lastUpdate - a.lastUpdate);
 	if (startedChats.length === 0) return;
 
 	chatList.innerHTML = "";
