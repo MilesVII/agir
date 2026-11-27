@@ -176,6 +176,18 @@
 								rows="1"
 							></ram-labeled>
 							<button id="settings-options-proofread-reset" class="lineout fit float-end">reset to default</button>
+							<div class="list">
+								<div class="hint">Default system prompt of the proofread section's diff mode. The model gets each section wrapped in a tag like &lt;definition&gt; and has to answer with the corrected text in the same tags.</div>
+								<ram-labeled
+									legend="Proofread prompt (diff mode)"
+									id="settings-options-proofread-diff"
+									class="strip wide reduced-font"
+									placeholder=""
+									multiline
+									rows="1"
+								></ram-labeled>
+								<button id="settings-options-proofread-diff-reset" class="lineout fit float-end">reset to default</button>
+							</div>
 							<button id="settings-misc-save" class="lineout">Save</button>
 						</div>
 					</details>
@@ -387,7 +399,7 @@
 					<details>
 						<summary class="settings-label">Proofread</summary>
 						<div class="list">
-							<div class="hint">Sends the character definition and the opening messages to a provider and asks for typos, grammar and style problems. The default prompt lives in settings; changes made here are for this session only.</div>
+							<div class="hint">Sends the character definition and the opening messages to a provider and asks for typos, grammar and style problems. The default prompts live in settings; changes made here are for this session only.</div>
 							<div class="chat-provider-control row-compact">
 								<div>Provider:</div>
 								<select id="scenario-proofread-provider" class="lineout"></select>
@@ -404,7 +416,13 @@
 								<button id="scenario-proofread-run" class="lineout fit">proofread</button>
 								<button id="scenario-proofread-reset" class="lineout fit">reset prompt</button>
 							</div>
+							<label class="row-compact align-center">
+								<input type="checkbox" id="scenario-proofread-diff-mode" checked/>
+								<div>Suggest fixes as changes to accept or reject</div>
+							</label>
+							<div class="hint">When enabled, the model writes a corrected copy of the text and you review the differences one by one; accepted changes go straight into the fields above. When disabled, it lists the problems it found instead. Each mode has its own prompt.</div>
 							<div id="scenario-proofread-output" class="lineout md reduced-font" hidden></div>
+							<div id="scenario-proofread-review" class="list reduced-font" hidden></div>
 						</div>
 					</details>
 				</div>

@@ -2038,9 +2038,9 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     const getChildNodes = lookupGetter(ElementPrototype, "childNodes");
     const getParentNode = lookupGetter(ElementPrototype, "parentNode");
     if (typeof HTMLTemplateElement === "function") {
-      const template12 = document2.createElement("template");
-      if (template12.content && template12.content.ownerDocument) {
-        document2 = template12.content.ownerDocument;
+      const template13 = document2.createElement("template");
+      if (template13.content && template13.content.ownerDocument) {
+        document2 = template13.content.ownerDocument;
       }
     }
     let trustedTypesPolicy;
@@ -2816,6 +2816,36 @@ Please report this to https://github.com/markedjs/marked.`, e) {
     textarea.style.height = "auto";
     textarea.style.height = `${Math.max(initialHeight, textarea.scrollHeight + 7)}px`;
     scrollParent.scrollTop = bodyScroll;
+  }
+  function selectInTextarea(textarea, start2, end) {
+    const probe = textarea.cloneNode();
+    Object.assign(probe.style, {
+      position: "absolute",
+      visibility: "hidden",
+      pointerEvents: "none",
+      height: "0",
+      width: `${textarea.offsetWidth}px`
+    });
+    probe.removeAttribute("id");
+    probe.value = textarea.value.slice(0, start2);
+    textarea.after(probe);
+    const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 20;
+    const offset = probe.scrollHeight - lineHeight;
+    probe.remove();
+    textarea.focus({ preventScroll: true });
+    textarea.setSelectionRange(start2, end);
+    textarea.scrollTop = offset - textarea.clientHeight / 2;
+    const scroller = scrollParentOf(textarea);
+    const scrollerTop = scroller === document.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
+    const y3 = textarea.getBoundingClientRect().top + offset - textarea.scrollTop;
+    scroller.scrollTop += y3 - scrollerTop - scroller.clientHeight / 2;
+  }
+  function scrollParentOf(element) {
+    for (let e = element.parentElement; e; e = e.parentElement) {
+      const overflow = getComputedStyle(e).overflowY;
+      if ((overflow === "auto" || overflow === "scroll") && e.scrollHeight > e.clientHeight) return e;
+    }
+    return document.scrollingElement ?? document.documentElement;
   }
   function getRoute() {
     return window.location.hash.slice(1).split(".");
@@ -3672,8 +3702,8 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     document.querySelector("#settings-themes")?.append(...themes.map((t) => selectorItem(t[1])));
   }
   function selectorItem(name) {
-    const template12 = document.querySelector("#template-theme-selector");
-    const button = k(template12);
+    const template13 = document.querySelector("#template-theme-selector");
+    const button = k(template13);
     const themeClassName = `theme-${name}`;
     button.classList.add(themeClassName);
     button.addEventListener("click", () => switchTheme(themeClassName));
@@ -3687,6 +3717,81 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     window.localStorage.setItem(STORAGE_KEY_THEME, themeClassName);
   }
 
+  // src/units/chat/macros.ts
+  var PRON_MACROS = {
+    "sub": "subjective",
+    "he": "subjective",
+    "she": "subjective",
+    "they": "subjective",
+    "obj": "objective",
+    "them": "objective",
+    "poss": "possessiveAdj",
+    "their": "possessiveAdj",
+    "poss_p": "possessivePro",
+    "theirs": "possessivePro",
+    "ref": "reflexive",
+    "themselves": "reflexive"
+  };
+  var CHAR_NAME_MACRO = "char";
+  var USER_NAME_MACRO = "user";
+  var PERSONA_MACRO = "persona";
+  var MACROS_MACRO = "macros";
+  var MACROS = `# Macros
+## Names
+{{char}}
+    Character name
+{{user}}
+    User's persona name
+{{persona}}
+	User's persona description
+
+## User's persona pronouns:
+{{sub}} or {{they}}
+    subjective (he/she/they)
+{{obj}} or {{them}}
+    objective (him/her/them)
+{{poss}} or {{their}}
+    possessive (his/her/their)
+{{poss_p}} or {{theirs}}
+    possessive pronoun (his/hers/theirs)
+{{ref}} or {{themselves}}
+    reflexive (himself/herself/themselves)`;
+  var MACRO_RE = /\{+(\w+)\}+/g;
+  function runMacros(template13, context) {
+    const subs = {
+      [CHAR_NAME_MACRO]: context.charName,
+      [USER_NAME_MACRO]: context.userName,
+      [PERSONA_MACRO]: context.persona,
+      [MACROS_MACRO]: MACROS
+    };
+    function sigh(m2) {
+      m2 = m2.toLowerCase();
+      if (m2 in PRON_MACROS) {
+        return context.pronouns[PRON_MACROS[m2]];
+      }
+      if (m2 in subs) {
+        return subs[m2];
+      }
+      return `{{${m2}}}`;
+    }
+    return template13.replace(MACRO_RE, (_2, cap) => sigh(cap));
+  }
+  var KNOWN_MACROS = /* @__PURE__ */ new Set([
+    ...Object.keys(PRON_MACROS),
+    CHAR_NAME_MACRO,
+    USER_NAME_MACRO,
+    PERSONA_MACRO,
+    MACROS_MACRO
+  ]);
+  function macroContext(chat) {
+    return {
+      pronouns: chat.userPersona.pronouns,
+      charName: chat.scenario.name,
+      userName: chat.userPersona.name,
+      persona: chat.userPersona.description
+    };
+  }
+
   // src/units/settings/misc.ts
   function initMisc() {
     const tailInput = document.querySelector("#settings-options-tail");
@@ -3697,10 +3802,17 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     const miscSave = document.querySelector("#settings-misc-save");
     const proofreadInput = document.querySelector("#settings-options-proofread");
     const proofreadReset = document.querySelector("#settings-options-proofread-reset");
+    const proofreadDiffInput = document.querySelector("#settings-options-proofread-diff");
+    const proofreadDiffReset = document.querySelector("#settings-options-proofread-diff-reset");
     makeResizable(proofreadInput);
+    makeResizable(proofreadDiffInput);
     proofreadReset.addEventListener("click", () => {
       proofreadInput.value = PROOFREAD_DEFAULT_PROMPT;
       proofreadInput.dispatchEvent(new Event("input"));
+    });
+    proofreadDiffReset.addEventListener("click", () => {
+      proofreadDiffInput.value = PROOFREAD_DIFF_DEFAULT_PROMPT;
+      proofreadDiffInput.dispatchEvent(new Event("input"));
     });
     listen((u3) => {
       if (u3.storage !== "local") return;
@@ -3718,6 +3830,7 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       settings.backupReminder = backupReminderInput.checked;
       settings.contentWidthOverride = isNaN(cw) ? 0 : cw;
       settings.proofreadPrompt = proofreadInput.value.trim() || PROOFREAD_DEFAULT_PROMPT;
+      settings.proofreadDiffPrompt = proofreadDiffInput.value.trim() || PROOFREAD_DIFF_DEFAULT_PROMPT;
       local.set("settings", JSON.stringify(settings));
       toast("settings updated");
     });
@@ -3730,6 +3843,8 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
       cwo.value = String(settings.contentWidthOverride);
       proofreadInput.value = settings.proofreadPrompt;
       proofreadInput.dispatchEvent(new Event("input"));
+      proofreadDiffInput.value = settings.proofreadDiffPrompt;
+      proofreadDiffInput.dispatchEvent(new Event("input"));
     }
   }
   var PROOFREAD_DEFAULT_PROMPT = [
@@ -3738,13 +3853,27 @@ ${text2.slice(0, 64)}`, { parent: getToastParent() });
     "for each one quote the fragment, say what is wrong and suggest a fix. group the findings by section, as a markdown list.",
     "do not rewrite the text as a whole, do not comment on the content, setting or themes, and do not praise. if a section is fine, say so in one line."
   ].join(" ");
+  var PROOFREAD_DIFF_DEFAULT_PROMPT = [
+    "you are a proofreader for roleplay scenario cards. the user sends a character definition and one or more opening messages, each wrapped in its own tag like <definition> or <opening_1>.",
+    "fix typos, grammar, punctuation, wrong word forms and clearly broken phrasing.",
+    "keep everything else exactly as it is: the author's wording and style, formatting, line breaks, markdown, quotes, asterisks and names.",
+    "do not rephrase text that is already correct, do not add or remove content, do not change the meaning, tense or point of view.",
+    "macros in curly braces are placeholders filled in by the app; keep them exactly as they are.",
+    "answer with the full corrected text of every section, wrapped in the same tags and in the same order.",
+    "write nothing outside the tags: no comments, no explanations. if a section needs no fixes, return it unchanged.",
+    `
+
+${MACROS}`
+  ].join(" ");
   var DEFAULT_SETTINGS = {
     tail: 100,
     remberStretch: true,
     oocAsUser: false,
     backupReminder: true,
     contentWidthOverride: 0,
-    proofreadPrompt: PROOFREAD_DEFAULT_PROMPT
+    proofreadPrompt: PROOFREAD_DEFAULT_PROMPT,
+    proofreadDiff: true,
+    proofreadDiffPrompt: PROOFREAD_DIFF_DEFAULT_PROMPT
   };
   function loadMiscSettings() {
     const raw = local.get("settings");
@@ -4483,81 +4612,6 @@ ${selectedText(m2)}
     return {
       role: message.from === "model" ? "assistant" : message.from,
       content: selectedText(message)
-    };
-  }
-
-  // src/units/chat/macros.ts
-  var PRON_MACROS = {
-    "sub": "subjective",
-    "he": "subjective",
-    "she": "subjective",
-    "they": "subjective",
-    "obj": "objective",
-    "them": "objective",
-    "poss": "possessiveAdj",
-    "their": "possessiveAdj",
-    "poss_p": "possessivePro",
-    "theirs": "possessivePro",
-    "ref": "reflexive",
-    "themselves": "reflexive"
-  };
-  var CHAR_NAME_MACRO = "char";
-  var USER_NAME_MACRO = "user";
-  var PERSONA_MACRO = "persona";
-  var MACROS_MACRO = "macros";
-  var MACROS = `# Macros
-## Names
-{{char}}
-    Character name
-{{user}}
-    User's persona name
-{{persona}}
-	User's persona description
-
-## User's persona pronouns:
-{{sub}} or {{they}}
-    subjective (he/she/they)
-{{obj}} or {{them}}
-    objective (him/her/them)
-{{poss}} or {{their}}
-    possessive (his/her/their)
-{{poss_p}} or {{theirs}}
-    possessive pronoun (his/hers/theirs)
-{{ref}} or {{themselves}}
-    reflexive (himself/herself/themselves)`;
-  var MACRO_RE = /\{+(\w+)\}+/g;
-  function runMacros(template12, context) {
-    const subs = {
-      [CHAR_NAME_MACRO]: context.charName,
-      [USER_NAME_MACRO]: context.userName,
-      [PERSONA_MACRO]: context.persona,
-      [MACROS_MACRO]: MACROS
-    };
-    function sigh(m2) {
-      m2 = m2.toLowerCase();
-      if (m2 in PRON_MACROS) {
-        return context.pronouns[PRON_MACROS[m2]];
-      }
-      if (m2 in subs) {
-        return subs[m2];
-      }
-      return `{{${m2}}}`;
-    }
-    return template12.replace(MACRO_RE, (_2, cap) => sigh(cap));
-  }
-  var KNOWN_MACROS = /* @__PURE__ */ new Set([
-    ...Object.keys(PRON_MACROS),
-    CHAR_NAME_MACRO,
-    USER_NAME_MACRO,
-    PERSONA_MACRO,
-    MACROS_MACRO
-  ]);
-  function macroContext(chat) {
-    return {
-      pronouns: chat.userPersona.pronouns,
-      charName: chat.scenario.name,
-      userName: chat.userPersona.name,
-      persona: chat.userPersona.description
     };
   }
 
@@ -6041,9 +6095,396 @@ ${card.value.card.description}`;
     await idb.set("chatContents", contents);
   }
 
+  // src/views/proofread-change.html
+  var proofread_change_default = '<div class="lineout list proofread-change">\n	<div class="proofread-change-text"><span class="hint" data-ref="prefix"></span><del data-ref="before"></del><ins data-ref="after"></ins><span class="hint" data-ref="suffix"></span></div>\n	<div class="row-compact align-center">\n		<button class="lineout fit" data-ref="accept">accept</button>\n		<button class="lineout fit" data-ref="reject">reject</button>\n		<button class="lineout fit" data-ref="edit">edit</button>\n		<button class="lineout fit" data-ref="undo">undo</button>\n		<button class="lineout fit" data-ref="show" title="scroll to this fragment in the text and select it">show</button>\n		<div class="hint" data-ref="status"></div>\n	</div>\n</div>\n';
+
+  // src/views/proofread-change.ts
+  var template7 = R(proofread_change_default);
+  var REFS7 = {
+    prefix: HTMLElement,
+    before: HTMLElement,
+    after: HTMLElement,
+    suffix: HTMLElement,
+    accept: HTMLButtonElement,
+    reject: HTMLButtonElement,
+    edit: HTMLButtonElement,
+    undo: HTMLButtonElement,
+    show: HTMLButtonElement,
+    status: HTMLElement
+  };
+  function makeProofreadChangeView(content, handlers) {
+    const { root: element, refs: r } = h(template7, REFS7);
+    const root = element;
+    let state = "pending";
+    let editing = false;
+    let replacement = content.after;
+    r.prefix.textContent = content.prefix;
+    r.suffix.textContent = content.suffix;
+    showText(r.before, content.before);
+    showText(r.after, replacement);
+    const update4 = () => {
+      root.dataset.state = state;
+      r.accept.hidden = state !== "pending";
+      r.reject.hidden = state !== "pending" || editing;
+      r.edit.hidden = state !== "pending";
+      r.undo.hidden = state === "pending";
+      r.edit.textContent = editing ? "cancel" : "edit";
+      r.status.textContent = state === "accepted" ? replacement === content.after ? "accepted" : "accepted with your edit" : state === "rejected" ? "rejected" : "";
+    };
+    const stopEditing = () => {
+      editing = false;
+      r.after.removeAttribute("contenteditable");
+    };
+    const accept = () => {
+      if (state !== "pending") return;
+      const text2 = editing ? r.after.textContent ?? "" : replacement;
+      if (!handlers.accept(text2)) return;
+      replacement = text2;
+      stopEditing();
+      showText(r.after, replacement);
+      state = "accepted";
+      update4();
+    };
+    const reject = () => {
+      if (state !== "pending" || editing) return;
+      state = "rejected";
+      update4();
+    };
+    r.accept.addEventListener("click", accept);
+    r.reject.addEventListener("click", reject);
+    r.edit.addEventListener("click", () => {
+      if (editing) {
+        stopEditing();
+        showText(r.after, replacement);
+      } else {
+        editing = true;
+        r.after.textContent = replacement;
+        r.after.classList.remove("proofread-ws");
+        r.after.setAttribute("contenteditable", "plaintext-only");
+        r.after.focus();
+      }
+      update4();
+    });
+    r.show.addEventListener("click", handlers.show);
+    r.undo.addEventListener("click", () => {
+      if (state === "accepted" && !handlers.undo()) return;
+      state = "pending";
+      update4();
+    });
+    update4();
+    return {
+      root,
+      state: () => state,
+      accept,
+      reject
+    };
+  }
+  function showText(target, text2) {
+    const blank = text2.trim() === "";
+    target.classList.toggle("proofread-ws", blank);
+    target.textContent = blank ? text2.replace(/\n/g, "\u21B5").replace(/\t/g, "\u2192").replace(/ /g, "\xB7") : text2;
+  }
+
+  // node_modules/diff/libesm/diff/base.js
+  var Diff = class {
+    diff(oldStr, newStr, options = {}) {
+      let callback;
+      if (typeof options === "function") {
+        callback = options;
+        options = {};
+      } else if ("callback" in options) {
+        callback = options.callback;
+      }
+      const oldString = this.castInput(oldStr, options);
+      const newString = this.castInput(newStr, options);
+      const oldTokens = this.removeEmpty(this.tokenize(oldString, options));
+      const newTokens = this.removeEmpty(this.tokenize(newString, options));
+      return this.diffWithOptionsObj(oldTokens, newTokens, options, callback);
+    }
+    diffWithOptionsObj(oldTokens, newTokens, options, callback) {
+      var _a;
+      const done = (value) => {
+        value = this.postProcess(value, options);
+        if (callback) {
+          setTimeout(function() {
+            callback(value);
+          }, 0);
+          return void 0;
+        } else {
+          return value;
+        }
+      };
+      const newLen = newTokens.length, oldLen = oldTokens.length;
+      let editLength = 1;
+      let maxEditLength = newLen + oldLen;
+      if (options.maxEditLength != null) {
+        maxEditLength = Math.min(maxEditLength, options.maxEditLength);
+      }
+      const maxExecutionTime = (_a = options.timeout) !== null && _a !== void 0 ? _a : Infinity;
+      const abortAfterTimestamp = Date.now() + maxExecutionTime;
+      const bestPath = [{ oldPos: -1, lastComponent: void 0 }];
+      let newPos = this.extractCommon(bestPath[0], newTokens, oldTokens, 0, options);
+      if (bestPath[0].oldPos + 1 >= oldLen && newPos + 1 >= newLen) {
+        return done(this.buildValues(bestPath[0].lastComponent, newTokens, oldTokens));
+      }
+      let minDiagonalToConsider = -Infinity, maxDiagonalToConsider = Infinity;
+      const execEditLength = () => {
+        for (let diagonalPath = Math.max(minDiagonalToConsider, -editLength); diagonalPath <= Math.min(maxDiagonalToConsider, editLength); diagonalPath += 2) {
+          let basePath;
+          const removePath = bestPath[diagonalPath - 1], addPath = bestPath[diagonalPath + 1];
+          if (removePath) {
+            bestPath[diagonalPath - 1] = void 0;
+          }
+          let canAdd = false;
+          if (addPath) {
+            const addPathNewPos = addPath.oldPos - diagonalPath;
+            canAdd = addPath && 0 <= addPathNewPos && addPathNewPos < newLen;
+          }
+          const canRemove = removePath && removePath.oldPos + 1 < oldLen;
+          if (!canAdd && !canRemove) {
+            bestPath[diagonalPath] = void 0;
+            continue;
+          }
+          if (!canRemove || canAdd && removePath.oldPos < addPath.oldPos) {
+            basePath = this.addToPath(addPath, true, false, 0, options);
+          } else {
+            basePath = this.addToPath(removePath, false, true, 1, options);
+          }
+          newPos = this.extractCommon(basePath, newTokens, oldTokens, diagonalPath, options);
+          if (basePath.oldPos + 1 >= oldLen && newPos + 1 >= newLen) {
+            return done(this.buildValues(basePath.lastComponent, newTokens, oldTokens)) || true;
+          } else {
+            bestPath[diagonalPath] = basePath;
+            if (basePath.oldPos + 1 >= oldLen) {
+              maxDiagonalToConsider = Math.min(maxDiagonalToConsider, diagonalPath - 1);
+            }
+            if (newPos + 1 >= newLen) {
+              minDiagonalToConsider = Math.max(minDiagonalToConsider, diagonalPath + 1);
+            }
+          }
+        }
+        editLength++;
+      };
+      if (callback) {
+        (function exec() {
+          setTimeout(function() {
+            if (editLength > maxEditLength || Date.now() > abortAfterTimestamp) {
+              return callback(void 0);
+            }
+            if (!execEditLength()) {
+              exec();
+            }
+          }, 0);
+        })();
+      } else {
+        while (editLength <= maxEditLength && Date.now() <= abortAfterTimestamp) {
+          const ret = execEditLength();
+          if (ret) {
+            return ret;
+          }
+        }
+      }
+    }
+    addToPath(path, added, removed, oldPosInc, options) {
+      const last2 = path.lastComponent;
+      if (last2 && !options.oneChangePerToken && last2.added === added && last2.removed === removed) {
+        return {
+          oldPos: path.oldPos + oldPosInc,
+          lastComponent: { count: last2.count + 1, added, removed, previousComponent: last2.previousComponent }
+        };
+      } else {
+        return {
+          oldPos: path.oldPos + oldPosInc,
+          lastComponent: { count: 1, added, removed, previousComponent: last2 }
+        };
+      }
+    }
+    extractCommon(basePath, newTokens, oldTokens, diagonalPath, options) {
+      const newLen = newTokens.length, oldLen = oldTokens.length;
+      let oldPos = basePath.oldPos, newPos = oldPos - diagonalPath, commonCount = 0;
+      while (newPos + 1 < newLen && oldPos + 1 < oldLen && this.equals(oldTokens[oldPos + 1], newTokens[newPos + 1], options)) {
+        newPos++;
+        oldPos++;
+        commonCount++;
+        if (options.oneChangePerToken) {
+          basePath.lastComponent = { count: 1, previousComponent: basePath.lastComponent, added: false, removed: false };
+        }
+      }
+      if (commonCount && !options.oneChangePerToken) {
+        basePath.lastComponent = { count: commonCount, previousComponent: basePath.lastComponent, added: false, removed: false };
+      }
+      basePath.oldPos = oldPos;
+      return newPos;
+    }
+    equals(left, right, options) {
+      if (options.comparator) {
+        return options.comparator(left, right);
+      } else {
+        return left === right || !!options.ignoreCase && left.toLowerCase() === right.toLowerCase();
+      }
+    }
+    removeEmpty(array) {
+      const ret = [];
+      for (let i = 0; i < array.length; i++) {
+        if (array[i]) {
+          ret.push(array[i]);
+        }
+      }
+      return ret;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    castInput(value, options) {
+      return value;
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    tokenize(value, options) {
+      return Array.from(value);
+    }
+    join(chars) {
+      return chars.join("");
+    }
+    postProcess(changeObjects, options) {
+      return changeObjects;
+    }
+    get useLongestToken() {
+      return false;
+    }
+    buildValues(lastComponent, newTokens, oldTokens) {
+      const components = [];
+      let nextComponent;
+      while (lastComponent) {
+        components.push(lastComponent);
+        nextComponent = lastComponent.previousComponent;
+        delete lastComponent.previousComponent;
+        lastComponent = nextComponent;
+      }
+      components.reverse();
+      const componentLen = components.length;
+      let componentPos = 0, newPos = 0, oldPos = 0;
+      for (; componentPos < componentLen; componentPos++) {
+        const component = components[componentPos];
+        if (!component.removed) {
+          if (!component.added && this.useLongestToken) {
+            let value = newTokens.slice(newPos, newPos + component.count);
+            value = value.map(function(value2, i) {
+              const oldValue = oldTokens[oldPos + i];
+              return oldValue.length > value2.length ? oldValue : value2;
+            });
+            component.value = this.join(value);
+          } else {
+            component.value = this.join(newTokens.slice(newPos, newPos + component.count));
+          }
+          newPos += component.count;
+          if (!component.added) {
+            oldPos += component.count;
+          }
+        } else {
+          component.value = this.join(oldTokens.slice(oldPos, oldPos + component.count));
+          oldPos += component.count;
+        }
+      }
+      return components;
+    }
+  };
+
+  // node_modules/diff/libesm/diff/array.js
+  var ArrayDiff = class extends Diff {
+    tokenize(value) {
+      return value.slice();
+    }
+    join(value) {
+      return value;
+    }
+    removeEmpty(value) {
+      return value;
+    }
+  };
+  var arrayDiff = new ArrayDiff();
+  function diffArrays(oldArr, newArr, options) {
+    return arrayDiff.diff(oldArr, newArr, options);
+  }
+
+  // src/units/scenario/proofread-diff.ts
+  function diffProofreadPrompt(systemPrompt, sections) {
+    const content = sections.map((s) => `<${s.key}>
+${s.base}
+</${s.key}>`).join("\n\n");
+    return [
+      { role: "system", content: systemPrompt.trim() || PROOFREAD_DIFF_DEFAULT_PROMPT },
+      { role: "user", content }
+    ];
+  }
+  function parseProofreadAnswer(answer, sections) {
+    const found = /* @__PURE__ */ new Map();
+    for (const s of sections) {
+      const m2 = answer.match(new RegExp(`<${s.key}>([\\s\\S]*?)</${s.key}>`));
+      found.set(s.key, m2 ? stripFence(m2[1].trim(), s.base) : null);
+    }
+    return found;
+  }
+  function stripFence(text2, base) {
+    if (base.startsWith("```")) return text2;
+    const m2 = text2.match(/^```[\w-]*\n([\s\S]*?)\n```$/);
+    return m2 ? m2[1].trim() : text2;
+  }
+  function proofreadChanges(base, fixed) {
+    const parts = diffArrays(tokenize(base), tokenize(fixed));
+    const changes = [];
+    let offset = 0;
+    let current2 = null;
+    let gap = "";
+    for (const part of parts) {
+      const text2 = part.value.join("");
+      if (!part.added && !part.removed) {
+        if (current2 && /^[^\S\n]+$/.test(text2)) {
+          gap = text2;
+        } else {
+          current2 = null;
+          gap = "";
+        }
+        offset += text2.length;
+        continue;
+      }
+      if (!current2) {
+        current2 = { start: offset, before: "", after: "" };
+        changes.push(current2);
+      } else if (gap) {
+        current2.before += gap;
+        current2.after += gap;
+        gap = "";
+      }
+      if (part.removed) {
+        current2.before += text2;
+        offset += text2.length;
+      } else {
+        current2.after += text2;
+      }
+    }
+    return changes.map(trimShared);
+  }
+  function trimShared(c2) {
+    let { start: start2, before, after } = c2;
+    while (before && after && before[0] === after[0] && /\s/.test(before[0])) {
+      before = before.slice(1);
+      after = after.slice(1);
+      ++start2;
+    }
+    while (before && after && before.at(-1) === after.at(-1) && /\s/.test(before.at(-1))) {
+      before = before.slice(0, -1);
+      after = after.slice(0, -1);
+    }
+    return { start: start2, before, after };
+  }
+  function tokenize(text2) {
+    return text2.split(/(\s+)/).filter((t) => t);
+  }
+
   // src/units/scenario/proofread.ts
-  function initProofread(draft) {
+  function initProofread(target) {
+    const draft = target.draft;
     const providerPicker = document.querySelector("#scenario-proofread-provider");
+    const diffModeToggle = document.querySelector("#scenario-proofread-diff-mode");
+    const review = document.querySelector("#scenario-proofread-review");
     const promptInput = document.querySelector("#scenario-proofread-prompt");
     const resetButton = document.querySelector("#scenario-proofread-reset");
     const runButton = document.querySelector("#scenario-proofread-run");
@@ -6053,6 +6494,10 @@ ${card.value.card.description}`;
     promptInput.addEventListener("input", () => promptEdited = true);
     resetButton.addEventListener("click", fillPrompt);
     runButton.addEventListener("click", () => run());
+    diffModeToggle.addEventListener("change", () => {
+      local.set("settings", JSON.stringify({ ...loadMiscSettings(), proofreadDiff: diffModeToggle.checked }));
+      fillPrompt();
+    });
     providerPicker.addEventListener("input", () => {
       const actives = readActiveProviders();
       actives.proofread = providerPicker.value;
@@ -6061,12 +6506,17 @@ ${card.value.card.description}`;
     listen((u3) => {
       if (u3.storage !== "local") return;
       if (u3.key === "activeProvider" || u3.key === "providers") updateProviderPicker();
-      if (u3.key === "settings" && !promptEdited) fillPrompt();
+      if (u3.key === "settings") {
+        diffModeToggle.checked = loadMiscSettings().proofreadDiff;
+        if (!promptEdited) fillPrompt();
+      }
     });
+    diffModeToggle.checked = loadMiscSettings().proofreadDiff;
     updateProviderPicker();
     fillPrompt();
     function fillPrompt() {
-      promptInput.value = loadMiscSettings().proofreadPrompt;
+      const settings = loadMiscSettings();
+      promptInput.value = settings.proofreadDiff ? settings.proofreadDiffPrompt : settings.proofreadPrompt;
       textareaReconsider(promptInput);
       promptEdited = false;
     }
@@ -6086,7 +6536,12 @@ ${card.value.card.description}`;
         toast("nothing to proofread yet");
         return;
       }
+      if (diffModeToggle.checked) {
+        await runDiff(provider, d3);
+        return;
+      }
       runButton.disabled = true;
+      review.hidden = true;
       output.hidden = false;
       output.innerHTML = renderMD("*proofreading...*");
       let text2 = "";
@@ -6114,6 +6569,122 @@ ${card.value.card.description}`;
       show();
       if (result.value.finishReason === "length") offerLongerRerun("proofread", provider, result.value.seed, run);
     }
+    async function runDiff(provider, d3) {
+      const sections = [];
+      if (d3.definition.trim())
+        sections.push({ key: "definition", label: "Character definition", base: d3.definition.trim(), field: { definition: true } });
+      d3.openings.forEach((o, ix) => sections.push({
+        key: `opening_${ix + 1}`,
+        label: d3.openings.length > 1 ? `Opening message ${ix + 1}` : "Opening message",
+        base: o.trim(),
+        field: { opening: ix }
+      }));
+      runButton.disabled = true;
+      output.hidden = true;
+      review.hidden = false;
+      const progress = E({ className: "hint", contents: "proofreading..." });
+      review.replaceChildren(progress);
+      const expected = sections.reduce((sum, s) => sum + s.base.length, 0);
+      let text2 = "";
+      const result = await runJob("proofread", provider, diffProofreadPrompt(promptInput.value, sections), {
+        onChunk: (chunk) => {
+          text2 += chunk;
+          progress.textContent = `proofreading... ${Math.min(99, Math.floor(text2.length / expected * 100))}%`;
+        }
+      });
+      runButton.disabled = false;
+      if (!result.success) {
+        toast(result.error);
+        review.hidden = true;
+        return;
+      }
+      const answer = result.value.text.trim() || text2;
+      const fixed = parseProofreadAnswer(answer, sections);
+      if ([...fixed.values()].every((f2) => f2 === null)) {
+        review.hidden = true;
+        output.hidden = false;
+        output.innerHTML = renderMD(`*The model didn't answer in the expected format. Its answer as is:*
+
+${answer || "*nothing*"}`);
+      } else {
+        renderReview(sections, fixed);
+      }
+      if (result.value.finishReason === "length") offerLongerRerun("proofread", provider, result.value.seed, run);
+    }
+    function renderReview(sections, fixed) {
+      const views = [];
+      const blocks = sections.map((section) => {
+        const corrected = fixed.get(section.key);
+        const caption = E({ className: "hint" });
+        const block = E({ className: "list", contents: [E({ contents: section.label }), caption] });
+        if (corrected === null || corrected === void 0) {
+          caption.textContent = "missing from the answer, probably cut off";
+          return block;
+        }
+        const changes = proofreadChanges(section.base, corrected);
+        caption.textContent = changes.length === 0 ? "no changes" : `${changes.length} change${changes.length === 1 ? "" : "s"}`;
+        let current2 = section.base;
+        const live = changes.map((c2) => ({ at: c2.start, length: c2.before.length }));
+        const stale = () => toast(`the ${section.label.toLowerCase()} was edited after proofreading; run it again`);
+        const show = (ix) => {
+          const l = live[ix];
+          if (!target.select(section.field, current2, l.at, l.at + l.length)) stale();
+        };
+        const put = (ix, text2) => {
+          const l = live[ix];
+          const next = current2.slice(0, l.at) + text2 + current2.slice(l.at + l.length);
+          if (!target.replace(section.field, current2, next)) {
+            stale();
+            return false;
+          }
+          const delta = text2.length - l.length;
+          for (const other of live) if (other.at > l.at) other.at += delta;
+          l.length = text2.length;
+          current2 = next;
+          return true;
+        };
+        changes.forEach((c2, ix) => {
+          const view = makeProofreadChangeView(
+            { ...changeContext(section.base, c2.start, c2.start + c2.before.length), before: c2.before, after: c2.after },
+            {
+              accept: (text2) => put(ix, text2),
+              undo: () => put(ix, c2.before),
+              show: () => show(ix)
+            }
+          );
+          views.push(view);
+          block.append(view.root);
+        });
+        return block;
+      });
+      const controls = views.length === 0 ? [E({ className: "hint", contents: "No changes suggested." })] : [
+        E({ tagName: "button", className: "lineout fit", contents: "accept all", events: {
+          click: () => views.forEach((v2) => v2.accept())
+        } }),
+        E({ tagName: "button", className: "lineout fit", contents: "reject all", events: {
+          click: () => views.forEach((v2) => v2.reject())
+        } })
+      ];
+      const close = E({ tagName: "button", className: "lineout fit float-end", contents: "close", events: {
+        click: () => {
+          review.hidden = true;
+          review.replaceChildren();
+        }
+      } });
+      review.replaceChildren(E({ className: "row-wrap align-center", contents: [...controls, close] }), ...blocks);
+    }
+  }
+  function changeContext(text2, start2, end) {
+    const CONTEXT = 60;
+    const lineStart = text2.lastIndexOf("\n", start2 - 1) + 1;
+    const newline = text2.indexOf("\n", end);
+    const lineEnd = newline === -1 ? text2.length : newline;
+    const from = Math.max(lineStart, start2 - CONTEXT);
+    const to = Math.min(lineEnd, end + CONTEXT);
+    return {
+      prefix: (from > lineStart ? "\u2026" : "") + text2.slice(from, start2),
+      suffix: text2.slice(end, to) + (to < lineEnd ? "\u2026" : "")
+    };
   }
   function proofreadPrompt(systemPrompt, d3) {
     const sections = [
@@ -6222,11 +6793,27 @@ ${card.value.card.description}`;
     makeResizable(cardDescription);
     makeResizable(definition);
     const messagesControl = initFirstMessages();
-    initProofread(() => ({
-      name: characterName.value,
-      definition: definition.value,
-      openings: messagesControl.get()
-    }));
+    initProofread({
+      draft: () => ({
+        name: characterName.value,
+        definition: definition.value,
+        openings: messagesControl.get()
+      }),
+      replace: (field, expected, next) => {
+        if ("opening" in field) return messagesControl.replace(field.opening, expected, next);
+        if (definition.value.trim() !== expected) return false;
+        definition.value = next;
+        definition.dispatchEvent(new Event("input"));
+        return true;
+      },
+      select: (field, expected, start2, end) => {
+        if ("opening" in field) return messagesControl.select(field.opening, expected, start2, end);
+        if (definition.value.trim() !== expected) return false;
+        const lead = definition.value.length - definition.value.trimStart().length;
+        selectInTextarea(definition, lead + start2, lead + end);
+        return true;
+      }
+    });
     let lorebooks = [];
     let loaded = null;
     lorebookImport.addEventListener("input", async () => {
@@ -6425,8 +7012,30 @@ ${card.value.card.description}`;
       },
       get: () => {
         return messagesState.map((v2) => v2.trim()).filter((v2) => v2);
+      },
+      /** replaces the `index`th message of get() if it is still `expected` */
+      replace: (index, expected, next) => {
+        const at = locate(index, expected);
+        if (at === null) return false;
+        messagesState[at] = next;
+        if (at === messageIndex) updateMessagesPager();
+        return true;
+      },
+      /** pages to the `index`th message of get() and selects `start..end` of its trimmed text, if it is still `expected` */
+      select: (index, expected, start2, end) => {
+        const at = locate(index, expected);
+        if (at === null) return false;
+        messageIndex = at;
+        updateMessagesPager();
+        const lead = messagesState[at].length - messagesState[at].trimStart().length;
+        selectInTextarea(messages, lead + start2, lead + end);
+        return true;
       }
     };
+    function locate(index, expected) {
+      const at = messagesState.map((v2, ix) => [v2.trim(), ix]).filter(([v2]) => v2)[index]?.[1];
+      return at === void 0 || messagesState[at].trim() !== expected ? null : at;
+    }
   }
   async function storePicture(picker2) {
     const value = picker2.value;
@@ -6446,8 +7055,8 @@ ${card.value.card.description}`;
     [
       ["definition", card.definition],
       ...card.initials.map((c2, ix) => [`opening ${ix + 1}`, c2])
-    ].forEach(([source, template12]) => {
-      for (const [_2, cap] of template12.matchAll(MACRO_RE)) {
+    ].forEach(([source, template13]) => {
+      for (const [_2, cap] of template13.matchAll(MACRO_RE)) {
         const name = cap.toLowerCase();
         if (name === PERSONA_MACRO) personaMissing = false;
         if (!KNOWN_MACROS.has(name)) errors.push(`${cap} in ${source}`);
@@ -6473,8 +7082,8 @@ ${card.value.card.description}`;
   var scenario_card_default = '<div class="scenario-card lineout">\n	<div class="scenario-card-icon-container">\n		<img class="pointer" data-ref="icon">\n	</div>\n	<div class="list grow">\n		<div class="row-compact">\n			<h6 class="pointer" data-ref="title"></h6>\n			<button class="strip ghost pointer" data-ref="download">\u2913</button>\n			<button class="strip ghost pointer" data-ref="delete">\u2716</button>\n			<button class="strip ghost pointer" data-ref="edit">\u270E</button>\n			<button class="lineout" data-ref="play">play</button>\n		</div>\n		<div class="row baseline">\n			<a data-ref="author-link" hidden></a>\n			<span data-ref="author" hidden></span>\n			<div class="hint float-end" data-ref="tokens"></div>\n		</div>\n		<hr>\n		<div class="scenario-card-description md" data-ref="description"></div>\n		<div class="scenario-card-tags" data-ref="tags"></div>\n	</div>\n</div>\n';
 
   // src/views/scenario-card.ts
-  var template7 = R(scenario_card_default);
-  var REFS7 = {
+  var template8 = R(scenario_card_default);
+  var REFS8 = {
     icon: HTMLImageElement,
     title: HTMLElement,
     download: HTMLButtonElement,
@@ -6488,7 +7097,7 @@ ${card.value.card.description}`;
     tags: HTMLElement
   };
   function makeScenarioCardView(item, picture, handlers) {
-    const { root, refs: r } = h(template7, REFS7);
+    const { root, refs: r } = h(template8, REFS8);
     r.icon.src = placeholder(null);
     setPicture(r.icon, picture);
     r.title.textContent = item.card.title;
@@ -6566,7 +7175,7 @@ ${card.value.card.description}`;
       userName: persona.name,
       persona: persona.description
     };
-    const expand = (template12) => runMacros(template12, context);
+    const expand = (template13) => runMacros(template13, context);
     const definition = expand(origin.chat.definition);
     return {
       id: origin.id,
@@ -6606,10 +7215,10 @@ ${card.value.card.description}`;
   var armory_item_default = '<div class="row-compact baseline">\n	<div class="lineout wide pointer">\n		<div data-ref="name"></div>\n	</div>\n	<button class="lineout float-end" data-ref="delete">\u2716</button>\n	<button class="lineout" data-ref="open">open</button>\n</div>\n';
 
   // src/views/armory-item.ts
-  var template8 = R(armory_item_default);
-  var REFS8 = ["name", "open", "delete"];
+  var template9 = R(armory_item_default);
+  var REFS9 = ["name", "open", "delete"];
   function makeArmoryItemView(name, handlers) {
-    const { root, refs: r } = h(template8, REFS8);
+    const { root, refs: r } = h(template9, REFS9);
     r.name.textContent = name;
     r.open.addEventListener("click", handlers.open);
     r.delete.addEventListener("click", handlers.delete);
@@ -6620,8 +7229,8 @@ ${card.value.card.description}`;
   var armory_card_default = '<div class="lineout row armory-item">\n	<img data-ref="icon">\n	<div class="list wide">\n		<div class="armory-item-summary" data-ref="summary"></div>\n		<div class="row-compact float-bottom">\n			<button class="lineout float-end" data-ref="download"></button>\n		</div>\n		<progress max="100" value="0" data-ref="progress" hidden></progress>\n		<div class="placeholder fit float-end" data-ref="status" hidden>scenario downloaded</div>\n	</div>\n</div>\n';
 
   // src/views/armory-card.ts
-  var template9 = R(armory_card_default);
-  var REFS9 = {
+  var template10 = R(armory_card_default);
+  var REFS10 = {
     icon: HTMLImageElement,
     summary: HTMLElement,
     download: HTMLButtonElement,
@@ -6629,7 +7238,7 @@ ${card.value.card.description}`;
     status: HTMLElement
   };
   function makeArmoryCardView(data, onDownload) {
-    const { root, refs: r } = h(template9, REFS9);
+    const { root, refs: r } = h(template10, REFS10);
     r.icon.src = placeholder(data.icon);
     r.summary.textContent = data.summary;
     r.download.textContent = data.downloadCaption;
@@ -7119,8 +7728,8 @@ ${card.value.card.description}`;
   }
 
   // src/views/datacat-item.ts
-  var template10 = R(datacat_item_default);
-  var REFS10 = {
+  var template11 = R(datacat_item_default);
+  var REFS11 = {
     "picture-link": HTMLAnchorElement,
     picture: HTMLImageElement,
     title: HTMLAnchorElement,
@@ -7132,7 +7741,7 @@ ${card.value.card.description}`;
     import: HTMLButtonElement
   };
   function makeDatacatItemView(item, onImport) {
-    const { root, refs: r } = h(template10, REFS10);
+    const { root, refs: r } = h(template11, REFS11);
     const page = item.id ? characterPage({ id: item.id, sourceKind: item.sourceKind }) : null;
     if (page) {
       r["picture-link"].href = page;
@@ -7562,8 +8171,8 @@ ${card.value.card.description}`;
   var started_chat_default = '\n<div class="lineout pointer row wide align-center main-chats-item-user">\n	<img data-ref="user-icon" />\n	<div data-ref="user-name"></div>\n	<div class="hint" data-ref="message-count"></div>\n	<div class="hint" data-ref="last-update"></div>\n	<div class="hint" data-ref="memo"></div>\n</div>\n';
 
   // src/views/started-chat.ts
-  var template11 = R(started_chat_default);
-  var REFS11 = {
+  var template12 = R(started_chat_default);
+  var REFS12 = {
     "user-icon": HTMLImageElement,
     "user-name": HTMLElement,
     "message-count": HTMLElement,
@@ -7571,7 +8180,7 @@ ${card.value.card.description}`;
     "memo": HTMLElement
   };
   function makeStartedChatView(chat, userIcon, play) {
-    const { root, refs: r } = h(template11, REFS11);
+    const { root, refs: r } = h(template12, REFS12);
     setPicture(r["user-icon"], userIcon);
     r["user-name"].textContent = chat.userPersona.name;
     r["message-count"].textContent = messagesCaption(chat.messageCount);
@@ -7808,7 +8417,7 @@ ${card.value.card.description}`;
     let offered = false;
     navigator.serviceWorker.addEventListener("message", (e) => {
       if (e.data?.kind !== "aegir-activated") return;
-      if (e.data.version === "3a3001d01f" || offered) return;
+      if (e.data.version === "a8f15282da" || offered) return;
       offered = true;
       toast("\xC4gir has been updated, reload the page to get the new version", {
         actions: [

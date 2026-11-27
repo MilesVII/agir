@@ -546,3 +546,39 @@ summary.settings-label {
 .datacat-tag[aria-pressed="true"] .hint {
 	color: inherit;
 }
+
+/* proofreader's diff mode: one suggested change with its context */
+.proofread-change-text {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+.proofread-change del {
+	color: var(--color-diff-remove);
+	text-decoration-thickness: 2px;
+}
+.proofread-change ins {
+	color: var(--color-diff-add);
+	text-decoration: none;
+	border-bottom: 2px solid var(--color-diff-add);
+}
+.proofread-change ins[contenteditable] {
+	outline: none;
+	border: 2px dashed var(--color-diff-add);
+	padding-inline: var(--dims-smol);
+}
+.proofread-ws {
+	opacity: .7;
+}
+.proofread-change[data-state="accepted"] del,
+.proofread-change[data-state="rejected"] ins {
+	display: none;
+}
+.proofread-change[data-state="accepted"] ins,
+.proofread-change[data-state="rejected"] del {
+	color: inherit;
+	text-decoration: none;
+	border: none;
+}
+.proofread-change:not([data-state="pending"]) {
+	opacity: .6;
+}

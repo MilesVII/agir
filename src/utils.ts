@@ -53,6 +53,45 @@ export function textareaReconsider(
 	// why can't it just be normal for once
 }
 
+/**
+ * Selects `start..end` in a textarea and scrolls both the textarea (tall ones stop growing at their
+ * max-height) and the page so the selection is in the middle of the screen. Browsers don't bring
+ * a selection made from code into view, so a hidden copy with the text up to `start` tells how far down it is.
+ */
+export function selectInTextarea(textarea: HTMLTextAreaElement, start: number, end: number) {
+	const probe = textarea.cloneNode() as HTMLTextAreaElement;
+	Object.assign(probe.style, {
+		position: "absolute",
+		visibility: "hidden",
+		pointerEvents: "none",
+		height: "0",
+		width: `${textarea.offsetWidth}px`
+	});
+	probe.removeAttribute("id");
+	probe.value = textarea.value.slice(0, start);
+	textarea.after(probe);
+	const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 20;
+	const offset = probe.scrollHeight - lineHeight;
+	probe.remove();
+
+	textarea.focus({ preventScroll: true });
+	textarea.setSelectionRange(start, end);
+	textarea.scrollTop = offset - textarea.clientHeight / 2;
+
+	const scroller = scrollParentOf(textarea);
+	const scrollerTop = scroller === document.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
+	const y = textarea.getBoundingClientRect().top + offset - textarea.scrollTop;
+	scroller.scrollTop += y - scrollerTop - scroller.clientHeight / 2;
+}
+
+function scrollParentOf(element: HTMLElement): Element {
+	for (let e = element.parentElement; e; e = e.parentElement) {
+		const overflow = getComputedStyle(e).overflowY;
+		if ((overflow === "auto" || overflow === "scroll") && e.scrollHeight > e.clientHeight) return e;
+	}
+	return document.scrollingElement ?? document.documentElement;
+}
+
 export function getRoute() {
 	return window.location.hash.slice(1).split(".");
 }

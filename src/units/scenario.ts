@@ -1,6 +1,6 @@
 import { idb, upload } from "@root/persist";
 import { initProofread } from "./scenario/proofread";
-import { getRoute, makeResizable, nothrowAsync, renderMD, textareaReconsider } from "@root/utils";
+import { getRoute, makeResizable, nothrowAsync, renderMD, selectInTextarea, textareaReconsider } from "@root/utils";
 import { Lorebook, ScenarioCard } from "@root/types";
 import { RampikeFilePicker } from "@rampike/filepicker";
 import { parseLorebookFile } from "./library/lorebook";
@@ -48,11 +48,27 @@ export function scenarioUnit() {
 	makeResizable(cardDescription);
 	makeResizable(definition);
 	const messagesControl = initFirstMessages();
-	initProofread(() => ({
-		name: characterName.value,
-		definition: definition.value,
-		openings: messagesControl.get()
-	}));
+	initProofread({
+		draft: () => ({
+			name: characterName.value,
+			definition: definition.value,
+			openings: messagesControl.get()
+		}),
+		replace: (field, expected, next) => {
+			if ("opening" in field) return messagesControl.replace(field.opening, expected, next);
+			if (definition.value.trim() !== expected) return false;
+			definition.value = next;
+			definition.dispatchEvent(new Event("input"));
+			return true;
+		},
+		select: (field, expected, start, end) => {
+			if ("opening" in field) return messagesControl.select(field.opening, expected, start, end);
+			if (definition.value.trim() !== expected) return false;
+			const lead = definition.value.length - definition.value.trimStart().length;
+			selectInTextarea(definition, lead + start, lead + end);
+			return true;
+		}
+	});
 	/** books attached to the card being edited */
 	let lorebooks: Lorebook[] = [];
 	/** the card as it was loaded, so fields this form doesn't know about survive a save */
@@ -285,8 +301,34 @@ function initFirstMessages() {
 		},
 		get: () => {
 			return messagesState.map(v => v.trim()).filter(v => v);
+		},
+		/** replaces the `index`th message of get() if it is still `expected` */
+		replace: (index: number, expected: string, next: string) => {
+			const at = locate(index, expected);
+			if (at === null) return false;
+			messagesState[at] = next;
+			if (at === messageIndex) updateMessagesPager();
+			return true;
+		},
+		/** pages to the `index`th message of get() and selects `start..end` of its trimmed text, if it is still `expected` */
+		select: (index: number, expected: string, start: number, end: number) => {
+			const at = locate(index, expected);
+			if (at === null) return false;
+			messageIndex = at;
+			updateMessagesPager();
+			const lead = messagesState[at].length - messagesState[at].trimStart().length;
+			selectInTextarea(messages, lead + start, lead + end);
+			return true;
 		}
 	};
+
+	/** where the `index`th message of get() is in messagesState, or null if it is no longer `expected` */
+	function locate(index: number, expected: string) {
+		const at = messagesState
+			.map((v, ix) => [v.trim(), ix] as const)
+			.filter(([v]) => v)[index]?.[1];
+		return at === undefined || messagesState[at].trim() !== expected ? null : at;
+	}
 }
 
 async function storePicture(picker: RampikeImagePicker): Promise<string | null> {

@@ -86,6 +86,8 @@
 	--color-subtext: #646464;
 	--color-accent: #00ADB5;
 	--color-text: #111130;
+	--color-diff-add: #1a7f37;
+	--color-diff-remove: #cf222e;
 }
 .theme-light-coffee {
 	--color-base: #EEEEEE;
@@ -94,6 +96,8 @@
 	--color-subtext: #736258;
 	--color-accent: #a16161;
 	--color-text: #101010;
+	--color-diff-add: #1a7f37;
+	--color-diff-remove: #cf222e;
 }
 .theme-light-flashbang {
 	--color-base: #EEEEEE;
@@ -102,4 +106,6 @@
 	--color-subtext: #646464;
 	--color-accent: #F2842F;
 	--color-text: #101010;
+	--color-diff-add: #1a7f37;
+	--color-diff-remove: #cf222e;
 }
